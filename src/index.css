@@ -20,6 +20,10 @@
   --app-accent-text: #ffffff;
   --app-accent-bg: rgba(79, 70, 229, 0.12);
   --app-accent-hover: #4338ca;
+  --app-success: #059669;
+  --app-warning: #d97706;
+  --app-danger: #e11d48;
+  --app-info: #0284c7;
 }
 
 [data-theme="nordic-light"] {
@@ -36,6 +40,10 @@
   --app-accent-text: #ffffff;
   --app-accent-bg: rgba(79, 70, 229, 0.12);
   --app-accent-hover: #4338ca;
+  --app-success: #059669;
+  --app-warning: #d97706;
+  --app-danger: #e11d48;
+  --app-info: #0284c7;
 }
 
 [data-theme="scholar-light"] {
@@ -52,6 +60,10 @@
   --app-accent-text: #ffffff;
   --app-accent-bg: rgba(5, 150, 105, 0.12);
   --app-accent-hover: #047857;
+  --app-success: #059669;
+  --app-warning: #b45309;
+  --app-danger: #be123c;
+  --app-info: #0369a1;
 }
 
 [data-theme="slate-dark"] {
@@ -68,6 +80,10 @@
   --app-accent-text: #ffffff;
   --app-accent-bg: rgba(16, 185, 129, 0.15);
   --app-accent-hover: #059669;
+  --app-success: #34d399;
+  --app-warning: #fbbf24;
+  --app-danger: #fb7185;
+  --app-info: #22d3ee;
 }
 
 [data-theme="obsidian-dark"] {
@@ -84,6 +100,10 @@
   --app-accent-text: #ffffff;
   --app-accent-bg: rgba(16, 185, 129, 0.15);
   --app-accent-hover: #059669;
+  --app-success: #4ade80;
+  --app-warning: #fcd34d;
+  --app-danger: #f87171;
+  --app-info: #38bdf8;
 }
 
 [data-theme="terracotta-warm"] {
@@ -100,6 +120,10 @@
   --app-accent-text: #ffffff;
   --app-accent-bg: rgba(234, 88, 12, 0.2);
   --app-accent-hover: #c2410c;
+  --app-success: #86efac;
+  --app-warning: #fbbf24;
+  --app-danger: #fb7185;
+  --app-info: #67e8f9;
 }
 
 /* Base Body Styling */
@@ -107,6 +131,15 @@ body {
   background-color: var(--app-bg);
   color: var(--app-text);
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html {
+  accent-color: var(--app-accent);
+  color-scheme: light;
+}
+
+html[data-theme~="dark"] {
+  color-scheme: dark;
 }
 
 /* 
@@ -210,6 +243,225 @@ body {
 #canvas-viewport {
   background-image: radial-gradient(var(--app-border-strong) 1px, transparent 1px) !important;
   background-color: var(--app-bg) !important;
+}
+
+/*
+  6. Extended Theming Coverage
+  Rounds out the palette so EVERY accent nuance, semantic status color
+  (success / warning / danger / info), and neutral shade follows the
+  active aesthetic instead of leaking hard-coded tailwind colors.
+*/
+
+/* 6a. Neutral text & chips refinement */
+.text-slate-500,
+.text-slate-600 {
+  color: var(--app-text-muted) !important;
+}
+
+.text-slate-950 {
+  color: var(--app-text) !important;
+}
+
+.bg-slate-600 {
+  background-color: var(--app-border-strong) !important;
+}
+
+.bg-slate-500\/10 {
+  background-color: color-mix(in srgb, var(--app-text-muted) 10%, transparent) !important;
+}
+
+.via-slate-900 {
+  --tw-gradient-via: var(--app-surface) !important;
+}
+
+/* 6b. Primary accent (indigo family) */
+.text-indigo-300,
+.text-indigo-500,
+.text-indigo-600 {
+  color: var(--app-accent) !important;
+}
+
+.bg-indigo-500 {
+  background-color: var(--app-accent) !important;
+  color: var(--app-accent-text) !important;
+}
+
+.bg-indigo-500\/10,
+.bg-indigo-500\/20 {
+  background-color: color-mix(in srgb, var(--app-accent) 12%, transparent) !important;
+}
+
+.bg-indigo-950,
+.bg-indigo-950\/40,
+.bg-indigo-950\/60,
+.bg-indigo-950\/80 {
+  background-color: color-mix(in srgb, var(--app-accent) 16%, var(--app-bg)) !important;
+}
+
+.border-indigo-400,
+.border-indigo-500\/40,
+.border-indigo-800,
+.border-indigo-800\/60 {
+  border-color: var(--app-accent) !important;
+}
+
+.ring-indigo-500,
+.ring-indigo-500\/30 {
+  --tw-ring-color: var(--app-accent) !important;
+}
+
+/* 6c. Success (emerald family) */
+.text-emerald-100,
+.text-emerald-200,
+.text-emerald-300,
+.text-emerald-400,
+.text-emerald-500,
+.text-emerald-600 {
+  color: var(--app-success) !important;
+}
+
+.bg-emerald-600 {
+  background-color: var(--app-success) !important;
+  color: var(--app-accent-text) !important;
+}
+
+.bg-emerald-400,
+.bg-emerald-500 {
+  background-color: var(--app-success) !important;
+}
+
+.bg-emerald-500\/10,
+.bg-emerald-500\/20,
+.bg-emerald-500\/30 {
+  background-color: color-mix(in srgb, var(--app-success) 14%, transparent) !important;
+}
+
+.bg-emerald-950,
+.bg-emerald-950\/40,
+.bg-emerald-950\/60,
+.bg-emerald-950\/80 {
+  background-color: color-mix(in srgb, var(--app-success) 16%, var(--app-bg)) !important;
+}
+
+.border-emerald-500,
+.border-emerald-500\/30,
+.border-emerald-500\/40,
+.border-emerald-700,
+.border-emerald-800,
+.border-emerald-800\/50 {
+  border-color: var(--app-success) !important;
+}
+
+.ring-emerald-500\/50 {
+  --tw-ring-color: var(--app-success) !important;
+}
+
+/* 6d. Warning (amber family) */
+.text-amber-100,
+.text-amber-200,
+.text-amber-200\/90,
+.text-amber-300,
+.text-amber-400,
+.text-amber-400\/90,
+.text-amber-500,
+.text-amber-600 {
+  color: var(--app-warning) !important;
+}
+
+.bg-amber-400,
+.bg-amber-500,
+.bg-amber-600 {
+  background-color: var(--app-warning) !important;
+  color: var(--app-accent-text) !important;
+}
+
+.bg-amber-500\/10,
+.bg-amber-500\/20,
+.bg-amber-500\/30 {
+  background-color: color-mix(in srgb, var(--app-warning) 16%, transparent) !important;
+}
+
+.bg-amber-900\/60,
+.bg-amber-950,
+.bg-amber-950\/40,
+.bg-amber-950\/60,
+.bg-amber-950\/80 {
+  background-color: color-mix(in srgb, var(--app-warning) 18%, var(--app-bg)) !important;
+}
+
+.border-amber-500,
+.border-amber-500\/30,
+.border-amber-500\/40,
+.border-amber-500\/50,
+.border-amber-800,
+.border-amber-800\/60 {
+  border-color: var(--app-warning) !important;
+}
+
+/* 6e. Danger (rose/red family) */
+.text-rose-100,
+.text-rose-200,
+.text-rose-300,
+.text-rose-400,
+.text-rose-500,
+.text-red-300,
+.text-red-400 {
+  color: var(--app-danger) !important;
+}
+
+.bg-rose-950\/20,
+.bg-rose-950\/60 {
+  background-color: color-mix(in srgb, var(--app-danger) 16%, var(--app-bg)) !important;
+}
+
+.bg-red-500\/10 {
+  background-color: color-mix(in srgb, var(--app-danger) 12%, transparent) !important;
+}
+
+.border-rose-500,
+.border-rose-500\/30,
+.border-rose-500\/40,
+.border-rose-700,
+.border-rose-900\/40,
+.border-red-500\/40,
+.border-red-500\/50 {
+  border-color: var(--app-danger) !important;
+}
+
+/* 6f. Info (cyan/blue family) */
+.text-cyan-200,
+.text-cyan-300,
+.text-cyan-400,
+.text-blue-400,
+.text-blue-600 {
+  color: var(--app-info) !important;
+}
+
+.bg-cyan-500\/20,
+.bg-blue-500\/10 {
+  background-color: color-mix(in srgb, var(--app-info) 14%, transparent) !important;
+}
+
+.bg-cyan-950,
+.bg-cyan-950\/60 {
+  background-color: color-mix(in srgb, var(--app-info) 18%, var(--app-bg)) !important;
+}
+
+.border-cyan-500\/40,
+.border-cyan-500\/50,
+.border-cyan-700,
+.border-cyan-800 {
+  border-color: var(--app-info) !important;
+}
+
+/* 6g. Decorative purple follows the primary accent */
+.text-purple-300,
+.text-purple-400 {
+  color: var(--app-accent) !important;
+}
+
+.border-purple-500\/40 {
+  border-color: var(--app-accent) !important;
 }
 
 /* Custom scrollbars */
