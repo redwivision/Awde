@@ -1,0 +1,6 @@
+{
+  "name": "Awde - Visual Concept & Feynman AI Mastery",
+  "description": "EdTech platform featuring visual mind-map concept explainers, strict Socratic Feynman bot (Rooty), localized Amharic analogies, unlimited textbook quizzes, and integrated cognitive study techniques.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
