@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ConceptNode,
   LanguageMode,
   TopicUnit,
-  DesignAesthetic
+  DesignAesthetic,
+  ActiveTab,
+  TextbookWorkspace
 } from './types';
-import { DEFAULT_UNITS } from './data/curricula';
+import { DEFAULT_TEXTBOOK_WORKSPACES } from './data/textbookWorkspaces';
 import { AESTHETIC_THEMES } from './data/themes';
 import { WorkspaceSidebar } from './components/WorkspaceSidebar';
+import { HomePage } from './components/HomePage';
+import { WorkspaceDetail } from './components/WorkspaceDetail';
+import { UploadPdfModal } from './components/UploadPdfModal';
 import { MindMapCanvas } from './components/MindMapCanvas';
 import { NodeMasteryDrawer } from './components/NodeMasteryDrawer';
 import { FeynmanArena } from './components/FeynmanArena';
 import { QuizEngine } from './components/QuizEngine';
 import { StudySuite } from './components/StudySuite';
-import { TextbookManager } from './components/TextbookManager';
 import { StudyMethodLab } from './components/StudyMethodLab';
 import { AestheticsModal } from './components/AestheticsModal';
 import { CommandPalette } from './components/CommandPalette';
-import {
-  ActiveTab
-} from './types';
 import {
   Menu,
   Search,
@@ -33,15 +33,36 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  // Persistence state
-  const [units, setUnits] = useState<TopicUnit[]>(() => {
-    const saved = localStorage.getItem('awde_units_v1');
-    return saved ? JSON.parse(saved) : DEFAULT_UNITS;
-  });
+  // ---------- Persistence helpers ----------
+  const loadWorkspaces = (): TextbookWorkspace[] => {
+    try {
+      const saved = localStorage.getItem('awde_workspaces_v1');
+      if (saved) return JSON.parse(saved) as TextbookWorkspace[];
+    } catch {
+      /* ignore corrupt storage */
+    }
+    // Migrate any previous flat unit progress into default workspaces.
+    try {
+      const savedUnits = localStorage.getItem('awde_units_v1');
+      if (savedUnits) {
+        const prevUnits = JSON.parse(savedUnits) as TopicUnit[];
+        return DEFAULT_TEXTBOOK_WORKSPACES.map((ws) => ({
+          ...ws,
+          units: ws.units.map((du) => prevUnits.find((u) => u.id === du.id) || du)
+        }));
+      }
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_TEXTBOOK_WORKSPACES;
+  };
 
-  const [currentUnitId, setCurrentUnitId] = useState<string>(() => {
-    return units[0]?.id || 'eth_phys_11_thermo';
-  });
+  // Primary store: textbook workspaces. Units are derived by flattening.
+  const [workspaces, setWorkspaces] = useState<TextbookWorkspace[]>(loadWorkspaces);
+
+  const [currentUnitId, setCurrentUnitId] = useState<string>(
+    () => workspaces[0]?.units[0]?.id || DEFAULT_TEXTBOOK_WORKSPACES[0].units[0].id
+  );
 
   const [language, setLanguage] = useState<LanguageMode>(() => {
     const saved = localStorage.getItem('awde_lang');
@@ -56,22 +77,32 @@ export default function App() {
 
   const [isAestheticsModalOpen, setIsAestheticsModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('mindmap');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('library');
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
 
   // Selected node for Mastery Drawer / Feynman
   const [selectedNode, setSelectedNode] = useState<ConceptNode | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // Derived flat unit list (single source of truth = workspaces)
+  const units = useMemo(() => workspaces.flatMap((w) => w.units), [workspaces]);
+
   // Active unit object
   const currentUnit = units.find((u) => u.id === currentUnitId) || units[0];
 
+  // Active workspace object (when browsing a book detail)
+  const activeWorkspace = activeWorkspaceId
+    ? workspaces.find((w) => w.id === activeWorkspaceId) || null
+    : null;
+
   // Save to localStorage
   useEffect(() => {
-    localStorage.setItem('awde_units_v1', JSON.stringify(units));
-  }, [units]);
+    localStorage.setItem('awde_workspaces_v1', JSON.stringify(workspaces));
+  }, [workspaces]);
 
   useEffect(() => {
     localStorage.setItem('awde_lang', language);
@@ -111,28 +142,32 @@ export default function App() {
     if (unitId && unitId !== currentUnitId) {
       setCurrentUnitId(unitId);
     }
+    if (unitId) setActiveWorkspaceId(null);
     setSelectedNode(node);
     setIsDrawerOpen(true);
   };
 
   // Node mastery updates
   const handleUpdateNodeMastery = (nodeId: string, score: number, status: any) => {
-    setUnits((prev) =>
-      prev.map((unit) => {
-        if (unit.id !== currentUnitId) return unit;
-        return {
-          ...unit,
-          nodes: unit.nodes.map((n) =>
-            n.id === nodeId
-              ? {
-                  ...n,
-                  masteryScore: Math.max(n.masteryScore, score),
-                  masteryStatus: status || n.masteryStatus
-                }
-              : n
-          )
-        };
-      })
+    setWorkspaces((prev) =>
+      prev.map((ws) => ({
+        ...ws,
+        units: ws.units.map((unit) => {
+          if (unit.id !== currentUnitId) return unit;
+          return {
+            ...unit,
+            nodes: unit.nodes.map((n) =>
+              n.id === nodeId
+                ? {
+                    ...n,
+                    masteryScore: Math.max(n.masteryScore, score),
+                    masteryStatus: status || n.masteryStatus
+                  }
+                : n
+            )
+          };
+        })
+      }))
     );
   };
 
@@ -144,6 +179,7 @@ export default function App() {
   const handleStartFeynmanFromDrawer = (node: ConceptNode) => {
     setSelectedNode(node);
     setIsDrawerOpen(false);
+    setActiveWorkspaceId(null);
     setActiveTab('feynman');
   };
 
@@ -151,13 +187,32 @@ export default function App() {
   const handleStartQuizFromDrawer = (node: ConceptNode) => {
     setSelectedNode(node);
     setIsDrawerOpen(false);
+    setActiveWorkspaceId(null);
     setActiveTab('quiz');
   };
 
-  // Add new imported unit
-  const handleAddNewUnit = (newUnit: TopicUnit) => {
-    setUnits((prev) => [newUnit, ...prev]);
-    setCurrentUnitId(newUnit.id);
+  // Create a brand new workspace from an uploaded / synthesized textbook
+  const handleWorkspaceCreated = (newWs: TextbookWorkspace) => {
+    setWorkspaces((prev) => [newWs, ...prev]);
+    setActiveWorkspaceId(newWs.id);
+    setCurrentUnitId(newWs.units[0]?.id || currentUnitId);
+    setActiveTab('mindmap');
+  };
+
+  // Jump from the sidebar / palette directly into a unit's study tools
+  const handleOpenUnit = (unitId: string, nodeId?: string) => {
+    setCurrentUnitId(unitId);
+    if (nodeId) {
+      const target = units.find((u) => u.id === unitId)?.nodes.find((n) => n.id === nodeId);
+      if (target) setSelectedNode(target);
+    }
+    setActiveWorkspaceId(null);
+    setActiveTab('mindmap');
+  };
+
+  // Navigate into a whole-book workspace detail
+  const handleOpenWorkspace = (workspaceId: string) => {
+    setActiveWorkspaceId(workspaceId);
   };
 
   // Calculate unit mastery progress
@@ -190,11 +245,14 @@ export default function App() {
       <WorkspaceSidebar
         units={units}
         currentUnitId={currentUnitId}
-        onSelectUnit={(unitId) => setCurrentUnitId(unitId)}
+        onSelectUnit={handleOpenUnit}
         selectedNodeId={selectedNode?.id}
         onSelectNode={handleSelectNode}
         activeTab={activeTab}
-        onSelectTab={(tab) => setActiveTab(tab)}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          setActiveWorkspaceId(null);
+        }}
         language={language}
         onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}
         onOpenAesthetics={() => setIsAestheticsModalOpen(true)}
@@ -202,6 +260,7 @@ export default function App() {
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         isMobileOpen={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        workspacesCount={workspaces.length}
       />
 
       {/* Main Workspace Frame */}
@@ -219,20 +278,38 @@ export default function App() {
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Breadcrumb Hierarchy Navigation */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 truncate">
-              <span className="hidden sm:inline font-semibold text-slate-300">
-                Awde
-              </span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-600 hidden sm:inline shrink-0" />
-              <span className="font-semibold text-indigo-400 truncate max-w-[140px] sm:max-w-[220px]">
-                {isAmharic ? currentUnit.titleAmharic : currentUnit.title}
-              </span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-              <span className="text-slate-200 font-bold truncate">
-                {getTabTitle()}
-              </span>
-            </div>
+{/* Breadcrumb Hierarchy Navigation */}
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 truncate">
+                <span className="hidden sm:inline font-semibold text-slate-300">
+                  Awde
+                </span>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600 hidden sm:inline shrink-0" />
+                {activeWorkspace ? (
+                  <>
+                    <span className="font-semibold text-indigo-400 truncate max-w-[160px] sm:max-w-[260px]">
+                      {isAmharic ? activeWorkspace.titleAmharic : activeWorkspace.title}
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                    <span className="text-slate-200 font-bold truncate">
+                      {isAmharic ? 'የመጽሐፍ አጠቃላይ እይታ' : 'Book Overview'}
+                    </span>
+                  </>
+                ) : activeTab === 'library' ? (
+                  <span className="text-slate-200 font-bold truncate">
+                    {isAmharic ? 'የመጻሕፍት ማዕከል' : 'Curriculum Library'}
+                  </span>
+                ) : (
+                  <>
+                    <span className="font-semibold text-indigo-400 truncate max-w-[140px] sm:max-w-[220px]">
+                      {isAmharic ? currentUnit.titleAmharic : currentUnit.title}
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                    <span className="text-slate-200 font-bold truncate">
+                      {getTabTitle()}
+                    </span>
+                  </>
+                )}
+              </div>
           </div>
 
           {/* Right: Quick Search & Theme Actions */}
@@ -281,74 +358,105 @@ export default function App() {
         </header>
 
         {/* Main Canvas Workspace Content */}
-        <main className="flex-1 relative overflow-hidden bg-slate-950">
-          {activeTab === 'mindmap' && (
-            <MindMapCanvas
-              unit={currentUnit}
-              language={language}
-              onSelectNode={handleSelectNode}
-              selectedNodeId={selectedNode?.id}
-            />
-          )}
+          <main className="flex-1 relative overflow-hidden bg-slate-950">
+            {activeWorkspace ? (
+              /* Whole-book detail view (Book -> Units -> Topics) */
+              <WorkspaceDetail
+                workspace={activeWorkspace}
+                language={language}
+                onOpenUnit={handleOpenUnit}
+                onSelectNode={handleSelectNode}
+                onBackToLibrary={() => {
+                  setActiveWorkspaceId(null);
+                  setActiveTab('library');
+                }}
+              />
+            ) : (
+              <>
+                {activeTab === 'library' && (
+                  <HomePage
+                    workspaces={workspaces}
+                    currentUnit={currentUnit}
+                    onSelectUnit={(unitId) => {
+                      setCurrentUnitId(unitId);
+                      setActiveWorkspaceId(null);
+                      setActiveTab('mindmap');
+                    }}
+                    onSelectWorkspace={handleOpenWorkspace}
+                    onNavigateTab={(tab) => {
+                      setActiveTab(tab);
+                      setActiveWorkspaceId(null);
+                    }}
+                    onOpenPdfModal={() => setIsPdfModalOpen(true)}
+                    onSelectNodeForFeynman={(node, unit) => {
+                      setCurrentUnitId(unit.id);
+                      setActiveWorkspaceId(null);
+                      setSelectedNode(node);
+                      setActiveTab('feynman');
+                    }}
+                    language={language}
+                  />
+                )}
 
-          {activeTab === 'feynman' && selectedNode && (
-            <FeynmanArena
-              unit={currentUnit}
-              selectedNode={selectedNode}
-              language={language}
-              onSelectNode={(node) => setSelectedNode(node)}
-              onUpdateNodeMastery={handleUpdateNodeMastery}
-            />
-          )}
+                {activeTab === 'mindmap' && (
+                  <MindMapCanvas
+                    unit={currentUnit}
+                    language={language}
+                    onSelectNode={handleSelectNode}
+                    selectedNodeId={selectedNode?.id}
+                  />
+                )}
 
-          {activeTab === 'experiment_lab' && (
-            <StudyMethodLab
-              unit={currentUnit}
-              units={units}
-              language={language}
-              onNavigateToMethod={(tab, nodeId) => {
-                if (nodeId) {
-                  const targetNode = currentUnit.nodes.find((n) => n.id === nodeId);
-                  if (targetNode) setSelectedNode(targetNode);
-                }
-                setActiveTab(tab);
-              }}
-            />
-          )}
+                {activeTab === 'feynman' && selectedNode && (
+                  <FeynmanArena
+                    unit={currentUnit}
+                    selectedNode={selectedNode}
+                    language={language}
+                    onSelectNode={(node) => setSelectedNode(node)}
+                    onUpdateNodeMastery={handleUpdateNodeMastery}
+                  />
+                )}
 
-          {activeTab === 'quiz' && (
-            <QuizEngine
-              unit={currentUnit}
-              language={language}
-              onAddCustomQuestions={(newQs) => {
-                setUnits((prev) =>
-                  prev.map((u) =>
-                    u.id === currentUnitId
-                      ? { ...u, quizQuestions: [...u.quizQuestions, ...newQs] }
-                      : u
-                  )
-                );
-              }}
-            />
-          )}
+                {activeTab === 'experiment_lab' && (
+                  <StudyMethodLab
+                    unit={currentUnit}
+                    units={units}
+                    language={language}
+                    onNavigateToMethod={(tab, nodeId) => {
+                      if (nodeId) {
+                        const targetNode = currentUnit.nodes.find((n) => n.id === nodeId);
+                        if (targetNode) setSelectedNode(targetNode);
+                      }
+                      setActiveTab(tab);
+                    }}
+                  />
+                )}
 
-          {activeTab === 'studysuite' && (
-            <StudySuite unit={currentUnit} language={language} />
-          )}
+                {activeTab === 'quiz' && (
+                  <QuizEngine
+                    unit={currentUnit}
+                    language={language}
+                    onAddCustomQuestions={(newQs) => {
+                      setWorkspaces((prev) =>
+                        prev.map((ws) => ({
+                          ...ws,
+                          units: ws.units.map((u) =>
+                            u.id === currentUnitId
+                              ? { ...u, quizQuestions: [...u.quizQuestions, ...newQs] }
+                              : u
+                          )
+                        }))
+                      );
+                    }}
+                  />
+                )}
 
-          {activeTab === 'library' && (
-            <TextbookManager
-              units={units}
-              currentUnitId={currentUnitId}
-              language={language}
-              onSelectUnit={(id) => {
-                setCurrentUnitId(id);
-                setActiveTab('mindmap');
-              }}
-              onAddNewUnit={handleAddNewUnit}
-            />
-          )}
-        </main>
+                {activeTab === 'studysuite' && (
+                  <StudySuite unit={currentUnit} language={language} />
+                )}
+              </>
+            )}
+          </main>
       </div>
 
       {/* Slide-in / Bottom Sheet Node Mastery Drawer */}
@@ -369,9 +477,20 @@ export default function App() {
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
         units={units}
-        onSelectUnit={(unitId) => setCurrentUnitId(unitId)}
+        onSelectUnit={handleOpenUnit}
         onSelectNode={handleSelectNode}
-        onSelectTab={(tab) => setActiveTab(tab)}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          setActiveWorkspaceId(null);
+        }}
+        language={language}
+      />
+
+      {/* Textbook PDF Import Modal */}
+      <UploadPdfModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        onWorkspaceCreated={handleWorkspaceCreated}
         language={language}
       />
 

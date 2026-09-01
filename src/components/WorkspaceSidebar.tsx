@@ -47,6 +47,7 @@ interface WorkspaceSidebarProps {
   onToggleCollapse: () => void;
   isMobileOpen: boolean;
   onCloseMobile: () => void;
+  workspacesCount?: number;
 }
 
 export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
@@ -63,7 +64,8 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   isCollapsed,
   onToggleCollapse,
   isMobileOpen,
-  onCloseMobile
+  onCloseMobile,
+  workspacesCount
 }) => {
   const [expandedUnitId, setExpandedUnitId] = useState<string>(currentUnitId);
   const [filterQuery, setFilterQuery] = useState('');
@@ -129,10 +131,10 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
     },
     {
       id: 'library' as const,
-      label: 'Curriculum Library',
-      labelAmharic: 'የመጻሕፍት ማዕከል',
+      label: 'Home & Curriculum Library',
+      labelAmharic: 'መነሻ እና የመጻሕፍት ማዕከል',
       icon: BookMarked,
-      badge: `${units.length} Units`
+      badge: `${workspacesCount ?? units.length} Books`
     }
   ];
 
@@ -142,7 +144,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       <div className="p-3.5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-950/40">
         <div
           onClick={() => {
-            onSelectTab('mindmap');
+            onSelectTab('library');
             if (isMobileOpen) onCloseMobile();
           }}
           className="cursor-pointer min-w-0"

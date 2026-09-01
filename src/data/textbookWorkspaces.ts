@@ -12,8 +12,8 @@ export const DEFAULT_TEXTBOOK_WORKSPACES: TextbookWorkspace[] = [
     gradeOrLevel: 'Grade 11 MoE Official',
     sourcePdfName: 'Grade_11_Physics_MoE_Ethiopia_Student_Textbook.pdf',
     coverColor: 'from-blue-600 to-indigo-800',
-    totalUnits: 4,
-    totalTopics: 18,
+    totalUnits: 2,
+    totalTopics: 8,
     overallMastery: 42,
     lastStudiedAt: '2 hours ago',
     units: [
@@ -141,8 +141,8 @@ export const DEFAULT_TEXTBOOK_WORKSPACES: TextbookWorkspace[] = [
     gradeOrLevel: 'Grade 12 MoE Official',
     sourcePdfName: 'Grade_12_Biology_MoE_Ethiopia_Student_Textbook.pdf',
     coverColor: 'from-emerald-600 to-teal-800',
-    totalUnits: 3,
-    totalTopics: 14,
+    totalUnits: 2,
+    totalTopics: 5,
     overallMastery: 28,
     lastStudiedAt: 'Yesterday',
     units: [
@@ -229,23 +229,6 @@ export const DEFAULT_TEXTBOOK_WORKSPACES: TextbookWorkspace[] = [
     ]
   },
   {
-    id: 'book_eth_chem_11',
-    title: 'Grade 11 Chemistry (Ethiopian National Curriculum)',
-    titleAmharic: 'የ11ኛ ክፍል ኬሚስትሪ (ብሔራዊ ሥርዓተ-ትምህርት)',
-    subject: 'Chemistry',
-    subjectAmharic: 'ኬሚስትሪ',
-    gradeOrLevel: 'Grade 11 MoE Official',
-    sourcePdfName: 'Grade_11_Chemistry_MoE_Ethiopia_Student_Textbook.pdf',
-    coverColor: 'from-amber-600 to-orange-800',
-    totalUnits: 3,
-    totalTopics: 12,
-    overallMastery: 35,
-    lastStudiedAt: '3 days ago',
-    units: [
-      DEFAULT_UNITS[2] // Chemical Equilibrium (unit_chem_equilibrium)
-    ]
-  },
-  {
     id: 'book_cs_algo',
     title: 'Algorithms & Discrete Mathematics',
     titleAmharic: 'አልጎሪዝም እና የኮምፒውተር ሳይንስ መሠረቶች',
@@ -254,12 +237,12 @@ export const DEFAULT_TEXTBOOK_WORKSPACES: TextbookWorkspace[] = [
     gradeOrLevel: 'University & High School STEM Track',
     sourcePdfName: 'Introduction_to_Algorithms_and_Graph_Theory.pdf',
     coverColor: 'from-purple-600 to-indigo-900',
-    totalUnits: 2,
-    totalTopics: 8,
+    totalUnits: 1,
+    totalTopics: DEFAULT_UNITS[2].nodes.length,
     overallMastery: 72,
     lastStudiedAt: '4 hours ago',
     units: [
-      DEFAULT_UNITS[3] // Graph Algorithms (unit_cs_graph_algorithms)
+      DEFAULT_UNITS[2] // Graph Algorithms & Shortest Path (unit_cs_dsa)
     ]
   }
 ];

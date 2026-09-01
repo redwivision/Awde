@@ -251,11 +251,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             {filteredWorkspaces.map((ws) => (
               <div
                 key={ws.id}
+                onClick={() => onSelectWorkspace(ws.id)}
                 style={{
                   backgroundColor: 'var(--app-surface, #ffffff)',
                   borderColor: 'var(--app-border, #cbd5e1)'
                 }}
-                className="rounded-2xl border p-5 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between"
+                className="rounded-2xl border p-5 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between cursor-pointer"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
@@ -288,7 +289,8 @@ export const HomePage: React.FC<HomePageProps> = ({
                     {ws.units.map((u) => (
                       <button
                         key={u.id}
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           onSelectUnit(u.id);
                           onNavigateTab('mindmap');
                         }}
@@ -339,7 +341,8 @@ export const HomePage: React.FC<HomePageProps> = ({
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         if (ws.units[0]) onSelectUnit(ws.units[0].id);
                         onNavigateTab('mindmap');
                       }}
@@ -353,7 +356,8 @@ export const HomePage: React.FC<HomePageProps> = ({
                       {isAmharic ? 'ማይንድ-ማፕ' : 'Mind-Map'}
                     </button>
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         if (ws.units[0] && ws.units[0].nodes[0]) {
                           onSelectUnit(ws.units[0].id);
                           onSelectNodeForFeynman(ws.units[0].nodes[0], ws.units[0]);
