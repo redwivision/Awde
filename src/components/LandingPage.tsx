@@ -29,8 +29,8 @@ interface LandingPageProps {
 /**
  * Awde landing page — a cinematic first-run gate that showcases the product
  * promise before entering the workspace. Fully themable via --app-* CSS vars
- * and bilingual (English / Amharic). The "Enter" choice is persisted so it
- * appears once, acting as a reusable marketing/landing hero.
+ * and bilingual (English / Amharic). The "Enter" choice opens the workspace
+ * for the current visit; the landing page remains the entry point on reload.
  */
 export const LandingPage: React.FC<LandingPageProps> = ({
   language,

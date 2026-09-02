@@ -56,15 +56,8 @@ export default function App() {
     return (saved as DesignAesthetic) || 'nordic-light';
   });
 
-  // Landing page shows first on initial visit. Dismissed state is persisted
-  // so users go straight to workspace on subsequent visits.
-  const [isLandingOpen, setIsLandingOpen] = useState(() => {
-    // Server-side rendering safety check
-    if (typeof window === 'undefined') return true;
-    const dismissed = localStorage.getItem('awde_landing_dismissed');
-    // Show landing page if NOT explicitly dismissed
-    return dismissed !== '1';
-  });
+  // Landing page is the entry point on every fresh app load.
+  const [isLandingOpen, setIsLandingOpen] = useState(true);
 
   // Offline mode banner — shown when no AI keys configured
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
@@ -256,10 +249,7 @@ export default function App() {
     <LandingPage
       language={language}
       onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}
-      onEnterWorkspace={() => {
-        localStorage.setItem('awde_landing_dismissed', '1');
-        setIsLandingOpen(false);
-      }}
+      onEnterWorkspace={() => setIsLandingOpen(false)}
       workspacesCount={workspaces.length}
     />
   ) : (
