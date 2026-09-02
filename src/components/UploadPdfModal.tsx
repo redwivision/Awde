@@ -45,6 +45,14 @@ const selectFile = (f: File) => {
     setError(isAmharic ? 'እባክዎ የPDF ፋይል ይምረጡ።' : 'Please choose a PDF file.');
     return;
   }
+  // 5MB limit to protect free-tier API quotas
+  const maxSize = 5 * 1024 * 1024;
+  if (f.size > maxSize) {
+    setError(isAmharic
+      ? 'ፋይሉ በጣም ትልቅ ነው። እባክዎ ከ5MB በታች የሆነ PDF ይምረጡ።'
+      : 'File too large. Please choose a PDF under 5MB to protect our free-tier API quotas.');
+    return;
+  }
   setError('');
   setFileName(f.name);
   setFileObj(f);
@@ -243,7 +251,7 @@ const handleCreateWorkspace = async () => {
                     {isAmharic ? 'የመማሪያ መጽሐፍዎን (PDF) እዚህ ይጎትቱ' : 'Drag & drop student textbook PDF here'}
                   </p>
                   <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs mt-0.5">
-                    {isAmharic ? 'ወይም ከኮምፒውተርዎ ይምረጡ (PDF, EPUB)' : 'or browse from your device (PDF, DOCX, Syllabus)'}
+                    {isAmharic ? 'ወይም ከኮምፒውተርዎ ይምረጡ (PDF, ከ5MB በታች)' : 'or browse from your device (PDF, max 5MB)'}
                   </p>
                 </div>
                 <label

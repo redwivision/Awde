@@ -56,11 +56,14 @@ export default function App() {
     return (saved as DesignAesthetic) || 'nordic-light';
   });
 
-  // Optional landing hero — never blocks the workspace. The Workspace (Library
-  // Home) is the first view. The landing page can be shown on demand.
+  // Landing page shows first on initial visit. Dismissed state is persisted
+  // so users go straight to workspace on subsequent visits.
   const [isLandingOpen, setIsLandingOpen] = useState(() => {
+    // Server-side rendering safety check
+    if (typeof window === 'undefined') return true;
     const dismissed = localStorage.getItem('awde_landing_dismissed');
-    return !dismissed;
+    // Show landing page if NOT explicitly dismissed
+    return dismissed !== '1';
   });
 
   // Offline mode banner — shown when no AI keys configured

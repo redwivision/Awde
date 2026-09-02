@@ -79,7 +79,7 @@ app.get('/api/health', (req, res) => {
 // In-memory multer storage for textbook PDF uploads (no disk writes needed).
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB max
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max (protects free-tier API quotas)
   fileFilter: (_req, file, cb) => {
     if (file.mimetype === 'application/pdf' || /\.pdf$/i.test(file.originalname)) {
       cb(null, true);
