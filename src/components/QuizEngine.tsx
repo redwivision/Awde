@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { postJson } from '../lib/api';
 import {
   LanguageMode,
   QuizQuestion,
@@ -90,18 +91,14 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
 
   const handleGenerateMoreQuestions = async () => {
     setIsGeneratingMore(true);
-    try {
-      const res = await fetch('/api/quiz/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          topic: unit.title,
-          textbookText: unit.description,
-          count: 4,
-          difficulty: 'hard'
-        })
+try {
+      const res = await postJson('/api/quiz/generate', {
+        topic: unit.title,
+        textbookText: unit.description,
+        count: 4,
+        difficulty: 'hard'
       });
-      const data = await res.json();
+      const data = res.data as { success?: boolean; questions?: QuizQuestion[] };
       if (data.success && data.questions) {
         const newQs: QuizQuestion[] = data.questions;
         setQuestions((prev) => [...prev, ...newQs]);

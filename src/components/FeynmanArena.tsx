@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { postJson } from '../lib/api';
 import {
   ConceptNode,
   FeynmanDialogueTurn,
@@ -163,20 +164,16 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/feynman/evaluate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nodeLabel: selectedNode.label,
-          nodeSummary: selectedNode.summary,
-          userExplanation: userTurnText,
-          language,
-          strictnessLevel: strictness,
-          chatHistory: newDialogue.map((d) => ({ speaker: d.speaker, text: d.text }))
-        })
+      const res = await postJson('/api/feynman/evaluate', {
+        nodeLabel: selectedNode.label,
+        nodeSummary: selectedNode.summary,
+        userExplanation: userTurnText,
+        language,
+        strictnessLevel: strictness,
+        chatHistory: newDialogue.map((d) => ({ speaker: d.speaker, text: d.text }))
       });
 
-      const data = await res.json();
+      const data = res.data as { success?: boolean; evaluation?: any; isFallback?: boolean };
       if (data.success && data.evaluation) {
         const evalData: FeynmanEvaluation = {
           nodeId: selectedNode.id,

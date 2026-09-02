@@ -96,9 +96,9 @@ Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
 │       ├── StudySuite.tsx    # Pomodoro / Blurting / Spaced repetition
 │       ├── StudyMethodLab.tsx# Efficacy-delta experiment tracking
 │       ├── RootyAvatar.tsx   # Emotion-driven animated SVG student
-│       ├── WorkspaceSidebar.tsx, NodeMasteryDrawer.tsx, TextbookManager.tsx,
+│       ├── WorkspaceSidebar.tsx, NodeMasteryDrawer.tsx,
 │       ├── CommandPalette.tsx, AestheticsModal.tsx, AwdeLogo.tsx
-│       └── … (HomePage / UploadPdfModal — higher-level workspace flow)
+│       └── … (HomePage / UploadPdfModal / WorkspaceDetail — workspace flow)
 ```
 
 ### Backend API (Gemini)
@@ -110,7 +110,7 @@ Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
 | `POST /api/quiz/generate` | Generate unlimited diagnostic quiz questions |
 | `POST /api/blurting/evaluate` | Grade a Blurting-Method active-recall dump |
 
-State is persisted to `localStorage` (`awde_units_v1`, `awde_lang`, `awde_aesthetic`, `awde_experiments_v1`), so progress survives reloads without any backend database.
+State is persisted to `localStorage` (`awde_workspaces_v1` primary store, with `awde_lang`, `awde_aesthetic`, `awde_experiments_v1`). The legacy flat-unit key (`awde_units_v1`) is transparently migrated into workspaces on load. Progress survives reloads without any backend database.
 
 ---
 

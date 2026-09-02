@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { postJson } from '../lib/api';
 import {
   BlurtingRecallResult,
   Flashcard,
@@ -154,16 +155,12 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
     const keyPoints = unit.nodes.map((n) => (isAmharic ? n.labelAmharic : n.label));
 
     try {
-      const res = await fetch('/api/blurting/evaluate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          topicTitle: unit.title,
-          targetKeyPoints: keyPoints,
-          userRecallText: blurtText
-        })
+      const res = await postJson('/api/blurting/evaluate', {
+        topicTitle: unit.title,
+        targetKeyPoints: keyPoints,
+        userRecallText: blurtText
       });
-      const data = await res.json();
+      const data = res.data as any;
       if (data.success) {
         setBlurtResult({
           accuracyScore: data.accuracyScore,

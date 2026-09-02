@@ -1,0 +1,25 @@
+{
+  "name": "Awde - Visual Concept & Feynman AI Mastery",
+  "short_name": "Awde",
+  "description": "Turn any textbook into an interactive mind-map and Socratic Feynman mastery experience. Bilingual (English/Amharic), works offline.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Curriculum Library",
+      "url": "/",
+      "description": "Open your textbook mind-map library"
+    }
+  ]
+}

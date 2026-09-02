@@ -1,6 +1,10 @@
 import { TextbookWorkspace, TopicUnit, ConceptNode, NodeConnection } from '../types';
 import { DEFAULT_UNITS } from './curricula';
 
+// Monotonic counter guarantees unique workspace ids even when two PDF uploads
+// are processed within the same millisecond (prevents localStorage key clashes).
+let customBookIdCounter = 0;
+
 // Rich pre-configured official curriculum textbook workspaces
 export const DEFAULT_TEXTBOOK_WORKSPACES: TextbookWorkspace[] = [
   {
@@ -351,8 +355,8 @@ export function generateTextbookMultiLevelGraph(workspace: TextbookWorkspace): M
     allConnections.push(...unit.connections);
   });
 
-  // Cross-Unit connections (e.g. Work-Energy in Mechanics -> First Law in Thermo)
-  const crossUnitConnections = [
+  const workspaceUnitIds = new Set(workspace.units.map((u) => u.id));
+  const crossUnitTemplates: MultiLevelGraphData['crossUnitConnections'] = [
     {
       id: 'cross_mech_thermo_01',
       fromUnitId: 'unit_physics_mechanics',
@@ -372,6 +376,11 @@ export function generateTextbookMultiLevelGraph(workspace: TextbookWorkspace): M
       labelAmharic: 'የተመረተው ATP ለትራንስክሪፕሽን ጉልበት ይሰጣል'
     }
   ];
+  // Only include entries whose endpoint units actually exist in THIS workspace,
+  // otherwise they become dangling refs in a single-book graph.
+  const crossUnitConnections = crossUnitTemplates.filter(
+    (c) => workspaceUnitIds.has(c.fromUnitId) && workspaceUnitIds.has(c.toUnitId)
+  );
 
   return {
     bookNode: {
@@ -397,7 +406,7 @@ export function createCustomTextbookWorkspace(
   gradeLevel: string,
   extractedChapters: { title: string; topics: string[] }[]
 ): TextbookWorkspace {
-  const bookId = `custom_book_${Date.now()}`;
+  const bookId = `custom_book_${Date.now()}_${customBookIdCounter++}`;
 
   const units: TopicUnit[] = extractedChapters.map((ch, chIdx) => {
     const unitId = `${bookId}_unit_${chIdx + 1}`;

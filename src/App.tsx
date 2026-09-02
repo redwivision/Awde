@@ -9,6 +9,7 @@ import {
 } from './types';
 import { DEFAULT_TEXTBOOK_WORKSPACES } from './data/textbookWorkspaces';
 import { AESTHETIC_THEMES } from './data/themes';
+import { loadWorkspaces as loadWorkspacesFromStorage } from './data/persistence';
 import { WorkspaceSidebar } from './components/WorkspaceSidebar';
 import { HomePage } from './components/HomePage';
 import { WorkspaceDetail } from './components/WorkspaceDetail';
@@ -34,28 +35,7 @@ import {
 
 export default function App() {
   // ---------- Persistence helpers ----------
-  const loadWorkspaces = (): TextbookWorkspace[] => {
-    try {
-      const saved = localStorage.getItem('awde_workspaces_v1');
-      if (saved) return JSON.parse(saved) as TextbookWorkspace[];
-    } catch {
-      /* ignore corrupt storage */
-    }
-    // Migrate any previous flat unit progress into default workspaces.
-    try {
-      const savedUnits = localStorage.getItem('awde_units_v1');
-      if (savedUnits) {
-        const prevUnits = JSON.parse(savedUnits) as TopicUnit[];
-        return DEFAULT_TEXTBOOK_WORKSPACES.map((ws) => ({
-          ...ws,
-          units: ws.units.map((du) => prevUnits.find((u) => u.id === du.id) || du)
-        }));
-      }
-    } catch {
-      /* ignore */
-    }
-    return DEFAULT_TEXTBOOK_WORKSPACES;
-  };
+  const loadWorkspaces = (): TextbookWorkspace[] => loadWorkspacesFromStorage(localStorage);
 
   // Primary store: textbook workspaces. Units are derived by flattening.
   const [workspaces, setWorkspaces] = useState<TextbookWorkspace[]>(loadWorkspaces);
