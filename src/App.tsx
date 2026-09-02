@@ -58,7 +58,27 @@ export default function App() {
 
   // Optional landing hero — never blocks the workspace. The Workspace (Library
   // Home) is the first view. The landing page can be shown on demand.
-  const [isLandingOpen, setIsLandingOpen] = useState(false);
+  const [isLandingOpen, setIsLandingOpen] = useState(() => {
+    const dismissed = localStorage.getItem('awde_landing_dismissed');
+    return !dismissed;
+  });
+
+  // Offline mode banner — shown when no AI keys configured
+  const [showOfflineBanner, setShowOfflineBanner] = useState(false);
+
+  useEffect(() => {
+    // Check if running in offline mode (no Gemini key)
+    const checkOfflineMode = async () => {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        setShowOfflineBanner(!data.hasGeminiKey);
+      } catch {
+        setShowOfflineBanner(true);
+      }
+    };
+    checkOfflineMode();
+  }, []);
 
   const [isAestheticsModalOpen, setIsAestheticsModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -198,6 +218,11 @@ export default function App() {
   // Navigate into a whole-book workspace detail
   const handleOpenWorkspace = (workspaceId: string) => {
     setActiveWorkspaceId(workspaceId);
+    // Auto-select first unit when opening a workspace
+    const ws = workspaces.find((w) => w.id === workspaceId);
+    if (ws && ws.units[0]) {
+      setCurrentUnitId(ws.units[0].id);
+    }
   };
 
   // Calculate unit mastery progress
@@ -236,6 +261,24 @@ export default function App() {
     />
   ) : (
     <div className="flex h-screen w-screen bg-slate-950 text-slate-100 font-sans overflow-hidden select-none">
+      {/* Offline Mode Banner */}
+      {showOfflineBanner && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500/95 backdrop-blur-sm text-amber-950 px-4 py-2 flex items-center justify-center gap-2 text-xs font-medium shadow-lg">
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>
+            {isAmharic
+              ? 'ኦፍላይን ሁነታ፡ ስርዓቱ በራስ-ሰር የተፈጠሩ መረጃዎችን እየተጠቀመ ነው። የGemini API ቁልፍ በማስገባት ሙሉ AI ባህሪያትን ማግኘት ይችላሉ።'
+              : 'Offline Mode: Using deterministic fallback generators. Configure GEMINI_API_KEY to unlock live AI features.'}
+          </span>
+          <button
+            onClick={() => setShowOfflineBanner(false)}
+            className="ml-2 px-2 py-0.5 rounded bg-amber-900/20 hover:bg-amber-900/30 transition-colors"
+          >
+            {isAmharic ? 'ዝጋ' : 'Dismiss'}
+          </button>
+        </div>
+      )}
+
       {/* Workspace Persistent / Collapsible Sidebar */}
       <WorkspaceSidebar
         units={units}
