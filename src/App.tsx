@@ -11,6 +11,7 @@ import { DEFAULT_TEXTBOOK_WORKSPACES } from './data/textbookWorkspaces';
 import { AESTHETIC_THEMES } from './data/themes';
 import { loadWorkspaces as loadWorkspacesFromStorage } from './data/persistence';
 import { WorkspaceSidebar } from './components/WorkspaceSidebar';
+import { LandingPage } from './components/LandingPage';
 import { HomePage } from './components/HomePage';
 import { WorkspaceDetail } from './components/WorkspaceDetail';
 import { UploadPdfModal } from './components/UploadPdfModal';
@@ -54,6 +55,10 @@ export default function App() {
     const saved = localStorage.getItem('awde_aesthetic');
     return (saved as DesignAesthetic) || 'nordic-light';
   });
+
+  // Optional landing hero — never blocks the workspace. The Workspace (Library
+  // Home) is the first view. The landing page can be shown on demand.
+  const [isLandingOpen, setIsLandingOpen] = useState(false);
 
   const [isAestheticsModalOpen, setIsAestheticsModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -219,7 +224,17 @@ export default function App() {
     }
   };
 
-  return (
+  return isLandingOpen ? (
+    <LandingPage
+      language={language}
+      onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}
+      onEnterWorkspace={() => {
+        localStorage.setItem('awde_landing_dismissed', '1');
+        setIsLandingOpen(false);
+      }}
+      workspacesCount={workspaces.length}
+    />
+  ) : (
     <div className="flex h-screen w-screen bg-slate-950 text-slate-100 font-sans overflow-hidden select-none">
       {/* Workspace Persistent / Collapsible Sidebar */}
       <WorkspaceSidebar

@@ -7,11 +7,11 @@ interface AwdeLogoProps {
 }
 
 /**
- * Awde — The Rising Knowledge Sprout
- * A single bold geometric mark: a sprouting seedling whose stem is a synapse /
- * neural axon, its leaves folding into an open book, and roots reaching down.
- * It ties directly into Rooty's "knowledge antenna" sprout aesthetic and the
- * brand idea that understanding GROWS, it is not memorized.
+ * Awde — The Knowledge Node / አውደ (Amharic for "seed")
+ * A single bold geometric mark: a hexagonal knowledge hub with four
+ * radiating network synapses, whose overall silhouette reads as a star —
+ * nodding to the Star of Ethiopia. It expresses the app's core promise:
+ * "seed-sized ideas that grow into connected knowledge structures."
  *
  * Reads clearly at 16px (collapsed sidebar) and 128px (hero / marketing).
  */
@@ -30,7 +30,7 @@ export const AwdeLogo: React.FC<AwdeLogoProps> = ({
 
   return (
     <div className="flex items-center gap-2.5 select-none group">
-      {/* Mark: Rising Knowledge Sprout */}
+      {/* Mark: Knowledge Node hub */}
       <div
         style={{
           width: dim.icon,
@@ -38,7 +38,7 @@ export const AwdeLogo: React.FC<AwdeLogoProps> = ({
           backgroundColor: 'var(--app-accent-bg, rgba(79, 70, 229, 0.14))',
           borderColor: 'var(--app-accent, #4f46e5)'
         }}
-        className="relative shrink-0 rounded-xl p-1 border flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:shadow-md"
+        className="relative shrink-0 rounded-xl p-1 border flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:rotate-6 group-hover:shadow-md"
       >
         <svg
           viewBox="0 0 32 32"
@@ -47,56 +47,38 @@ export const AwdeLogo: React.FC<AwdeLogoProps> = ({
           className="w-full h-full"
           aria-label="Awde logo"
         >
-          {/* Awde accent color */}
           <defs>
-            <linearGradient id="awde-sprout" x1="0" y1="32" x2="16" y2="0" gradientUnits="userSpaceOnUse">
+            <linearGradient id="awde-node" x1="2" y1="30" x2="30" y2="2" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="var(--app-accent,#4f46e5)" />
               <stop offset="100%" stopColor="#06b6d4" />
             </linearGradient>
           </defs>
 
-          {/* Roots — grounded knowledge below the soil line */}
-          <g stroke="var(--app-accent,#4f46e5)" strokeWidth="1.6" strokeLinecap="round" opacity="0.55">
-            <path d="M16 22 v-6" />
-            <path d="M16 19 q-3 -0.5 -5 -1.5" />
-            <path d="M16 20 q3 -0.5 5 -1" />
+          {/* Radiating synapse lines forming a star silhouette */}
+          <g stroke="url(#awde-node)" strokeWidth="1.7" strokeLinecap="round">
+            <path d="M16 16 L16 6" />
+            <path d="M16 16 L24 12" />
+            <path d="M16 16 L24 22" />
+            <path d="M16 16 L8 22" />
+            <path d="M16 16 L8 10" />
+            <path d="M16 16 L16 26" />
           </g>
 
-          {/* Soil line */}
-          <line x1="10" y1="24" x2="22" y2="24" stroke="var(--app-accent,#4f46e5)" strokeWidth="1.3" strokeLinecap="round" opacity="0.35" />
+          {/* Outer branch nodes */}
+          <g fill="var(--app-accent,#4f46e5)">
+            <circle cx="16" cy="5.5" r="1.7" />
+            <circle cx="25" cy="11" r="1.5" />
+            <circle cx="25" cy="21" r="1.5" fill="#06b6d4" />
+            <circle cx="16" cy="26.5" r="1.7" fill="#06b6d4" />
+            <circle cx="7" cy="21" r="1.5" />
+            <circle cx="7" cy="10.5" r="1.5" />
+          </g>
 
-          {/* Stem = synapse / axon, curving up */}
+          {/* Central hub — hexagonal seed */}
           <path
-            d="M16 22 C16 17 16 15 16 10"
-            stroke="url(#awde-sprout)"
-            strokeWidth="2.4"
-            strokeLinecap="round"
+            d="M16 12.6 L20.8 15.3 L20.8 20.7 L16 23.4 L11.2 20.7 L11.2 15.3 Z"
+            fill="url(#awde-node)"
           />
-
-          {/* Synapse pulses along the stem */}
-          <circle cx="16" cy="16" r="1.1" fill="var(--app-accent,#4f46e5)" opacity="0.85" />
-
-          {/* Left leaf = open book */}
-          <path
-            d="M16 10 C13 7 11 8 9.5 11 C13 10.5 15 11 16 12.5"
-            fill="url(#awde-sprout)"
-            stroke="var(--app-accent,#4f46e5)"
-            strokeWidth="0.8"
-            strokeLinejoin="round"
-          />
-
-          {/* Right leaf = upward growth */}
-          <path
-            d="M16 8.5 C18.5 5.5 21.5 5.5 23.5 8 C21 9 18.5 9 16 11"
-            fill="url(#awde-sprout)"
-            stroke="var(--app-accent,#4f46e5)"
-            strokeWidth="0.8"
-            strokeLinejoin="round"
-          />
-
-          {/* Seed / spark at tip */}
-          <circle cx="16" cy="7" r="1.6" fill="var(--app-accent,#4f46e5)" />
-          <circle cx="17.4" cy="5.6" r="0.9" fill="#06b6d4" opacity="0.9" />
         </svg>
       </div>
 

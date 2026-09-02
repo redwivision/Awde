@@ -67,7 +67,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         backgroundColor: 'var(--app-bg, #f1f5f9)',
         color: 'var(--app-text, #020617)'
       }}
-      className="flex-1 overflow-y-auto min-h-screen"
+      className="w-full h-full flex flex-col overflow-y-auto"
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
         {/* Top Hero Section */}
@@ -143,7 +143,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   borderColor: 'var(--app-border, #cbd5e1)',
                   color: 'var(--app-text, #020617)'
                 }}
-                className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm border shadow-sm flex items-center gap-2 hover:border-indigo-500 transition-all"
+                className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm border shadow-sm flex items-center gap-2 hover:border-indigo-500 hover:shadow-md hover:-translate-y-0.5 transition-all"
               >
                 <MessageSquare className="w-4 h-4 text-emerald-500" />
                 {isAmharic ? 'ሩቲን አስተምር (Feynman)' : 'Teach Rooty (Feynman Arena)'}
@@ -156,7 +156,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   borderColor: 'var(--app-border, #cbd5e1)',
                   color: 'var(--app-text, #020617)'
                 }}
-                className="px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm border shadow-sm flex items-center gap-2 hover:border-indigo-500 transition-all"
+                className="px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm border shadow-sm flex items-center gap-2 hover:border-indigo-500 hover:shadow-md hover:-translate-y-0.5 transition-all"
               >
                 <Plus className="w-4 h-4 text-indigo-500" />
                 {isAmharic ? 'አዲስ መጽሐፍ (PDF) ጨምር' : 'Import Textbook PDF'}
@@ -434,7 +434,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 backgroundColor: 'var(--app-surface, #ffffff)',
                 borderColor: 'var(--app-border, #cbd5e1)'
               }}
-              className="p-5 rounded-2xl border space-y-2.5"
+              className="p-5 rounded-2xl border space-y-2.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                 <Network className="w-5 h-5" />
@@ -454,7 +454,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 backgroundColor: 'var(--app-surface, #ffffff)',
                 borderColor: 'var(--app-border, #cbd5e1)'
               }}
-              className="p-5 rounded-2xl border space-y-2.5"
+              className="p-5 rounded-2xl border space-y-2.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                 <MessageSquare className="w-5 h-5" />
@@ -474,7 +474,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 backgroundColor: 'var(--app-surface, #ffffff)',
                 borderColor: 'var(--app-border, #cbd5e1)'
               }}
-              className="p-5 rounded-2xl border space-y-2.5"
+              className="p-5 rounded-2xl border space-y-2.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                 <FlaskConical className="w-5 h-5" />

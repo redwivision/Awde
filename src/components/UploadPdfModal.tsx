@@ -3,16 +3,16 @@ import {
   FileText,
   Upload,
   Sparkles,
-  Plus,
-  Trash2,
   BookOpen,
   CheckCircle2,
   X,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 import { LanguageMode, TextbookWorkspace } from '../types';
 import { createCustomTextbookWorkspace } from '../data/textbookWorkspaces';
+import { postFormData } from '../lib/api';
 
 interface UploadPdfModalProps {
   isOpen: boolean;
@@ -30,65 +30,57 @@ export const UploadPdfModal: React.FC<UploadPdfModalProps> = ({
   const isAmharic = language === 'am';
 
   const [fileName, setFileName] = useState<string>('');
+  const [fileObj, setFileObj] = useState<File | null>(null);
   const [bookTitle, setBookTitle] = useState<string>('');
   const [subject, setSubject] = useState<string>('Physics');
   const [gradeLevel, setGradeLevel] = useState<string>('Grade 11 National Curriculum');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
   const [activeStep, setActiveStep] = useState<'upload' | 'review'>('upload');
-
-  const [chapters, setChapters] = useState<{ title: string; topics: string[] }[]>([
-    {
-      title: 'Unit 1: Fundamentals & Invariants',
-      topics: ['Conservation Principles', 'Vector Coordinate Systems', 'Equilibrium States']
-    },
-    {
-      title: 'Unit 2: Dynamic Interactions & Flux',
-      topics: ['Rate of Change Equations', 'Potential Well Analysis', 'Dissipative Losses']
-    },
-    {
-      title: 'Unit 3: Applied Systems & Engineering',
-      topics: ['Systemic Feedback Loops', 'Efficiency Limits & Real-World Scales']
-    }
-  ]);
 
   if (!isOpen) return null;
 
-  const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      setFileName(file.name);
-      const titleGuess = file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' ');
-      setBookTitle(titleGuess);
-      simulateAutoExtraction(file.name);
-    }
-  };
+const selectFile = (f: File) => {
+  if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') {
+    setError(isAmharic ? 'እባክዎ የPDF ፋይል ይምረጡ።' : 'Please choose a PDF file.');
+    return;
+  }
+  setError('');
+  setFileName(f.name);
+  setFileObj(f);
+  const titleGuess = f.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' ');
+  setBookTitle(titleGuess);
+  setActiveStep('review');
+};
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setFileName(file.name);
-      const titleGuess = file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' ');
-      setBookTitle(titleGuess);
-      simulateAutoExtraction(file.name);
-    }
-  };
+const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  e.preventDefault();
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    selectFile(e.dataTransfer.files[0]);
+  }
+};
 
-  const simulateAutoExtraction = (name: string) => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      setActiveStep('review');
-    }, 900);
-  };
+const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (e.target.files && e.target.files[0]) {
+    selectFile(e.target.files[0]);
+  }
+};
 
+  // Quick-Start samples build a deterministic local workspace instantly
+  // (no Gemini, no upload needed) so the demo works even completely offline.
   const handleLoadSample = (sampleType: 'math10' | 'chem12' | 'econ11') => {
+    let fileName = '';
+    let title = '';
+    let subj = '';
+    let grade = '';
+    let chapters: { title: string; topics: string[] }[] = [];
+
     if (sampleType === 'math10') {
-      setFileName('Grade_10_Mathematics_MoE_Ethiopia.pdf');
-      setBookTitle('Grade 10 Mathematics (Ethiopian Curriculum)');
-      setSubject('Mathematics');
-      setGradeLevel('Grade 10 MoE');
-      setChapters([
+      fileName = 'Grade_10_Mathematics_MoE_Ethiopia.pdf';
+      title = 'Grade 10 Mathematics (Ethiopian Curriculum)';
+      subj = 'Mathematics';
+      grade = 'Grade 10 MoE';
+      chapters = [
         {
           title: 'Unit 1: Polynomial Functions & Graphs',
           topics: ['Polynomial Division & Remainder Theorem', 'Roots & Zeros Analysis', 'Rational Function Asymptotes']
@@ -101,13 +93,13 @@ export const UploadPdfModal: React.FC<UploadPdfModalProps> = ({
           title: 'Unit 3: Trigonometry & Circular Functions',
           topics: ['Unit Circle Coordinates', 'Sine and Cosine Waves', 'Trigonometric Identities']
         }
-      ]);
+      ];
     } else if (sampleType === 'chem12') {
-      setFileName('Grade_12_Chemistry_Electrochemistry_MoE.pdf');
-      setBookTitle('Grade 12 Chemistry: Advanced Electrochemistry & Kinetics');
-      setSubject('Chemistry');
-      setGradeLevel('Grade 12 MoE');
-      setChapters([
+      fileName = 'Grade_12_Chemistry_Electrochemistry_MoE.pdf';
+      title = 'Grade 12 Chemistry: Advanced Electrochemistry & Kinetics';
+      subj = 'Chemistry';
+      grade = 'Grade 12 MoE';
+      chapters = [
         {
           title: 'Unit 1: Chemical Kinetics & Reaction Rates',
           topics: ['Collision Theory & Activation Energy', 'Rate Law Equations', 'Catalysis Mechanisms']
@@ -116,13 +108,13 @@ export const UploadPdfModal: React.FC<UploadPdfModalProps> = ({
           title: 'Unit 2: Electrochemistry & Galvanic Cells',
           topics: ['Standard Electrode Potentials', 'Nernst Equation & Cell EMF', 'Electrolysis & Faraday Laws']
         }
-      ]);
+      ];
     } else {
-      setFileName('Grade_11_Economics_Micro_Macro_MoE.pdf');
-      setBookTitle('Grade 11 Economics (Micro & Macro Fundamentals)');
-      setSubject('Economics');
-      setGradeLevel('Grade 11 MoE');
-      setChapters([
+      fileName = 'Grade_11_Economics_Micro_Macro_MoE.pdf';
+      title = 'Grade 11 Economics (Micro & Macro Fundamentals)';
+      subj = 'Economics';
+      grade = 'Grade 11 MoE';
+      chapters = [
         {
           title: 'Unit 1: Theory of Consumer Behavior & Utility',
           topics: ['Marginal Utility Diminishing Returns', 'Indifference Curves & Budget Lines', 'Consumer Equilibrium']
@@ -131,49 +123,52 @@ export const UploadPdfModal: React.FC<UploadPdfModalProps> = ({
           title: 'Unit 2: Market Structures & Price Determination',
           topics: ['Perfect Competition Dynamics', 'Monopoly & Deadweight Loss', 'Elasticity of Demand & Supply']
         }
-      ]);
+      ];
     }
-    setActiveStep('review');
-  };
 
-  const handleAddChapter = () => {
-    setChapters([
-      ...chapters,
-      {
-        title: `Unit ${chapters.length + 1}: New Curriculum Unit`,
-        topics: ['Core Fundamental Concept', 'Key Law & Mechanism']
-      }
-    ]);
-  };
-
-  const handleAddTopic = (chapterIndex: number) => {
-    const updated = [...chapters];
-    updated[chapterIndex].topics.push(`Lesson ${updated[chapterIndex].topics.length + 1}`);
-    setChapters(updated);
-  };
-
-  const handleRemoveTopic = (chapterIndex: number, topicIndex: number) => {
-    const updated = [...chapters];
-    updated[chapterIndex].topics = updated[chapterIndex].topics.filter((_, idx) => idx !== topicIndex);
-    setChapters(updated);
-  };
-
-  const handleRemoveChapter = (chapterIndex: number) => {
-    setChapters(chapters.filter((_, idx) => idx !== chapterIndex));
-  };
-
-  const handleCreateWorkspace = () => {
-    if (!bookTitle.trim()) return;
-    const newWs = createCustomTextbookWorkspace(
-      fileName || 'Uploaded_Textbook.pdf',
-      bookTitle,
-      subject,
-      gradeLevel,
-      chapters
-    );
+    const newWs = createCustomTextbookWorkspace(fileName, title, subj, grade, chapters);
     onWorkspaceCreated(newWs);
     onClose();
   };
+
+const handleCreateWorkspace = async () => {
+  if (!bookTitle.trim()) return;
+  if (!fileObj) {
+    setError(isAmharic ? 'እባክዎ ፋይል ይምረጡ።' : 'Please select a PDF to process.');
+    return;
+  }
+  setIsProcessing(true);
+  setError('');
+
+  try {
+    const form = new FormData();
+    form.append('file', fileObj);
+    form.append('bookTitle', bookTitle.trim());
+    form.append('subject', subject.trim() || 'Science');
+    form.append('gradeLevel', gradeLevel.trim() || 'Secondary School');
+
+    const result = await postFormData<{ workspace: TextbookWorkspace }>('/api/textbook/process', form, { timeoutMs: 120000 });
+
+    if (!result.ok) {
+      const msg =
+        (result.data as any)?.error ||
+        (isAmharic ? 'ፋይሉን ማስተካከል አልተቻለም።' : 'Could not process the textbook. Please try again.');
+      setError(msg);
+      setIsProcessing(false);
+      return;
+    }
+    if (result.data?.workspace) {
+      onWorkspaceCreated(result.data.workspace);
+      onClose();
+      return;
+    }
+    setError(isAmharic ? 'ምንም ውጤት አልተመለሰም።' : 'No workspace was returned.');
+    setIsProcessing(false);
+  } catch {
+    setError(isAmharic ? 'ከአገልጋዩ ጋር መገናኘት አልተቻለም።' : 'Could not reach the server. Check your connection.');
+    setIsProcessing(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -387,98 +382,59 @@ export const UploadPdfModal: React.FC<UploadPdfModalProps> = ({
                 </div>
               </div>
 
-              {/* Differentiated Units Hierarchy Preview */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-indigo-500" />
-                    <span className="text-xs font-bold tracking-tight">
-                      {isAmharic ? 'የምዕራፎችና ርዕሶች ተዋረድ (Units & Topics Hierarchy)' : 'Differentiated Unit Nodes & Topic Structure'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleAddChapter}
-                    style={{ color: 'var(--app-accent, #4f46e5)' }}
-                    className="text-xs font-semibold flex items-center gap-1 hover:underline"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> {isAmharic ? 'ምዕራፍ ጨምር' : 'Add Unit'}
-                  </button>
+              {/* AI Processing Preview */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Layers className="w-4 h-4 text-indigo-500" />
+                  <span className="text-xs font-bold tracking-tight">
+                    {isAmharic ? 'AI ማስተካከያ ሂደት' : 'AI Mastery Build'}
+                  </span>
                 </div>
-
-                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                  {chapters.map((ch, chIdx) => (
-                    <div
-                      key={chIdx}
-                      style={{
-                        backgroundColor: 'var(--app-surface-elevated, #f8fafc)',
-                        borderColor: 'var(--app-border, #cbd5e1)'
-                      }}
-                      className="p-3.5 rounded-xl border space-y-2"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <input
-                          type="text"
-                          value={ch.title}
-                          onChange={(e) => {
-                            const updated = [...chapters];
-                            updated[chIdx].title = e.target.value;
-                            setChapters(updated);
-                          }}
-                          style={{
-                            backgroundColor: 'transparent',
-                            color: 'var(--app-text, #020617)'
-                          }}
-                          className="font-bold text-xs flex-1 focus:outline-none focus:underline"
-                        />
-                        <button
-                          onClick={() => handleRemoveChapter(chIdx)}
-                          className="text-rose-500 p-1 hover:bg-rose-500/10 rounded"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-
-                      {/* Topics for this chapter */}
-                      <div className="space-y-1.5 pl-3 border-l-2 border-indigo-500/30">
-                        {ch.topics.map((top, topIdx) => (
-                          <div key={topIdx} className="flex items-center gap-2">
-                            <span className="text-[10px] text-indigo-500 font-mono">
-                              {chIdx + 1}.{topIdx + 1}
-                            </span>
-                            <input
-                              type="text"
-                              value={top}
-                              onChange={(e) => {
-                                const updated = [...chapters];
-                                updated[chIdx].topics[topIdx] = e.target.value;
-                                setChapters(updated);
-                              }}
-                              style={{
-                                backgroundColor: 'var(--app-surface, #ffffff)',
-                                borderColor: 'var(--app-border, #cbd5e1)',
-                                color: 'var(--app-text, #020617)'
-                              }}
-                              className="px-2 py-1 text-[11px] rounded-lg border flex-1"
-                            />
-                            <button
-                              onClick={() => handleRemoveTopic(chIdx, topIdx)}
-                              className="text-slate-400 hover:text-rose-500 p-0.5"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                        <button
-                          onClick={() => handleAddTopic(chIdx)}
-                          className="text-[11px] text-indigo-500 font-medium flex items-center gap-1 hover:underline pt-1"
-                        >
-                          <Plus className="w-3 h-3" /> {isAmharic ? 'ርዕስ ጨምር' : 'Add Topic'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                <div
+                  style={{
+                    backgroundColor: 'var(--app-surface-elevated, #f8fafc)',
+                    borderColor: 'var(--app-border, #cbd5e1)'
+                  }}
+                  className="border rounded-xl p-4 space-y-2"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <p className="text-xs font-semibold">
+                    {isAmharic ? 'ፋይል ተመርጧል፡' : 'File selected:'} {fileName}
+                  </p>
+                  <ul className="text-[11px] leading-relaxed space-y-1.5">
+                    <li className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                      {isAmharic ? 'የPDF ጽሑፍ ማውጣት (Text Extraction)' : 'Extract textbook text from the PDF'}
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <Sparkles className="w-3 h-3 text-indigo-500" />
+                      {isAmharic ? 'AI የእውቀት ካርታ መገንባት' : 'Gemini builds the multi-level mind-map'}
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <BookOpen className="w-3 h-3 text-indigo-500" />
+                      {isAmharic ? 'አማርኛ/እንግሊዝኛ፣ ምሳሌዎች፣ ጥያቄዎች እና ፍላሽካርድ' : 'Amharic + analogies + quizzes + flashcards'}
+                    </li>
+                  </ul>
+                  <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-[11px] pt-1">
+                    {isAmharic
+                      ? 'በመግፋት ጊዜ AI ፋይሉን በማንበብ የተሟላ የጥናት ካርታ ይገነባል።'
+                      : 'Click build and AI will read the file and structure a complete mastery workspace.'}
+                  </p>
                 </div>
               </div>
+
+              {error && (
+                <div
+                  style={{
+                    backgroundColor: 'rgba(225, 29, 72, 0.08)',
+                    borderColor: 'rgba(225, 29, 72, 0.35)',
+                    color: 'var(--app-text, #020617)'
+                  }}
+                  className="border rounded-xl px-4 py-3 text-xs font-medium"
+                >
+                  {error}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -515,14 +471,21 @@ export const UploadPdfModal: React.FC<UploadPdfModalProps> = ({
             {activeStep === 'review' && (
               <button
                 onClick={handleCreateWorkspace}
+                disabled={isProcessing}
                 style={{
                   backgroundColor: 'var(--app-accent, #4f46e5)',
                   color: 'var(--app-accent-text, #ffffff)'
                 }}
-                className="px-4 py-2 text-xs font-bold rounded-xl shadow-md flex items-center gap-2 hover:opacity-90 transition-opacity"
+                className="px-4 py-2 text-xs font-bold rounded-xl shadow-md flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Sparkles className="w-4 h-4" />
-                {isAmharic ? 'የመማሪያ ካርታውን ገንባ' : 'Build Multi-Level Mind Map'}
+                {isProcessing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                {isProcessing
+                  ? (isAmharic ? 'እየገነባ ነው...' : 'Building...')
+                  : (isAmharic ? 'የመማሪያ ካርታውን ገንባ' : 'Build Multi-Level Mind Map')}
               </button>
             )}
           </div>

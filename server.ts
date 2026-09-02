@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
+import multer from 'multer';
 import { GoogleGenAI, Type } from '@google/genai';
 import {
   getGeminiClient,
@@ -10,11 +11,12 @@ import {
   generateFallbackQuestions,
   generateFallbackBlurting
 } from './server/ai';
+import { processTextbookPdf } from './server/textbook';
 
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 60;
 const rateLimitBuckets = new Map<string, number[]>();
@@ -72,6 +74,55 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', hasGeminiKey: Boolean(process.env.GEMINI_API_KEY) });
+});
+
+// In-memory multer storage for textbook PDF uploads (no disk writes needed).
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB max
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype === 'application/pdf' || /\.pdf$/i.test(file.originalname)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are supported.'));
+    }
+  }
+});
+
+// API: Upload a real textbook PDF -> extract text -> build an AI mastery workspace
+app.post('/api/textbook/process', upload.single('file'), async (req, res) => {
+  try {
+    const genericError = 'Could not process the textbook. Please try again or use a Quick-Start sample.';
+    if (!req.file) {
+      return res.status(400).json({ error: 'No PDF file was uploaded.' });
+    }
+
+    const bookTitle = String(req.body?.bookTitle || '').trim() || req.file.originalname.replace(/\.pdf$/i, '').replace(/_/g, ' ');
+    const subject = String(req.body?.subject || 'Science').trim() || 'Science';
+    const gradeLevel = String(req.body?.gradeLevel || 'Secondary School').trim() || 'Secondary School';
+
+    const { workspace, extractedPages, textLength } = await processTextbookPdf(
+      req.file.buffer,
+      req.file.originalname,
+      bookTitle,
+      subject,
+      gradeLevel
+    );
+
+    res.json({
+      success: true,
+      workspace,
+      generatedByAI: Boolean(workspace.generatedByAI),
+      extractedPages,
+      textLength
+    });
+  } catch (error: any) {
+    const isValidation = error instanceof multer.MulterError || error?.message?.includes('Only PDF files');
+    console.error('Error processing textbook:', error);
+    res.status(isValidation ? 400 : 500).json({
+      error: safeErrorMessage(error, isValidation ? error.message : 'Could not process the textbook. Please try again.')
+    });
+  }
 });
 
 // API: Generate Mind-Map & Concept Breakdown

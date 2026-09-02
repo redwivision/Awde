@@ -68,3 +68,37 @@ export async function postJson<T = unknown>(
   // Unreachable in practice; kept to satisfy the return type.
   throw new Error(`Request to ${url} failed with status ${lastStatus}`);
 }
+
+// Multipart (file upload) variant of postJson, used for PDFs. Same weak-wifi
+// guarantees: aborts after timeoutMs, never throws on HTTP errors.
+export async function postFormData<T = unknown>(
+  url: string,
+  form: FormData,
+  options: { timeoutMs?: number } = {}
+): Promise<ApiResult<T>> {
+  const { timeoutMs = 60000 } = options; // file upload + AI build can be slow
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      body: form, // browser sets multipart boundary automatically
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    let data: any = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+    if (res.ok) {
+      return { ok: true, status: res.status, data: data as T, isFallback: Boolean(data?.isFallback) };
+    }
+    return { ok: false, status: res.status, data: data as T, isFallback: false };
+  } catch (err: any) {
+    clearTimeout(timer);
+    throw err;
+  }
+}

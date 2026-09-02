@@ -17,6 +17,31 @@ export function getGeminiClient(): GoogleGenAI | null {
   });
 }
 
+// Groq (OpenAI-compatible, fast LPU inference) used as a fallback provider when
+// Gemini is unavailable or overloaded. Optional via GROQ_API_KEY; returns null
+// when not configured so the pipeline skips straight to the demo builder.
+export function getGroqApiKey(): string | null {
+  return process.env.GROQ_API_KEY || null;
+}
+
+// The Groq chat-completions endpoint (OpenAI-compatible). Kept as a constant so
+// textbook.ts can call it with plain fetch and no extra SDK dependency.
+export const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
+// qwen3.8-27b has a far larger free-tier token allowance than the gpt-oss
+// models, so it reliably completes the full mastery-unit JSON without
+// truncation (verified: 4 nodes + quiz + flashcards, ~3s, finish=stop).
+export const GROQ_TT_MODEL = 'qwen/qwen3.8-27b';
+
+// NVIDIA NIM: free-tier OpenAI-compatible gateway (build.nvidia.com, 40 RPM).
+// Another optional fallback provider between Gemini and Groq.
+export function getNvidiaApiKey(): string | null {
+  return process.env.NVIDIA_API_KEY || null;
+}
+export const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
+// Only model currently enabled+callable on this account (verified: others 404).
+// Note: NVIDIA free tier is very slow for large outputs - may time out.
+export const NVIDIA_TT_MODEL = 'minimaxai/minimax-m3';
+
 // Deterministic offline fallback generators. These run instantly with zero
 // network, so weak-wifi / offline students always get a working experience.
 // They power every AI feature until a GEMINI_API_KEY is configured.
