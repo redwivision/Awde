@@ -30,7 +30,7 @@ export const AwdeLogo: React.FC<AwdeLogoProps> = ({
 
   return (
     <div className="flex items-center gap-2.5 select-none group">
-      {/* Mark: the "Network" — a knowledge web converging into understanding */}
+      {/* Mark: the "Mastery Core" — a hexagonal node ringed by mastery circles */}
       <div
         style={{
           width: dim.icon,
@@ -48,28 +48,24 @@ export const AwdeLogo: React.FC<AwdeLogoProps> = ({
           aria-label="Awde logo"
         >
           <defs>
-            <linearGradient id="awde-net-b" x1="16" y1="4" x2="16" y2="25" gradientUnits="userSpaceOnUse">
+            <linearGradient id="awde-core-a" x1="16" y1="10.2" x2="16" y2="21.8" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="#14b8a6" />
               <stop offset="100%" stopColor="#059669" />
             </linearGradient>
           </defs>
 
-          {/* Connectors: three ideas converging into the base node */}
-          <g stroke="url(#awde-net-b)" strokeWidth="2.2" strokeLinecap="round">
-            <path d="M8 7 L16 21" />
-            <path d="M16 7 L16 21" />
-            <path d="M24 7 L16 21" />
-          </g>
-          {/* horizontal link among the three top ideas */}
-          <path d="M8 7 L24 7" stroke="#059669" strokeWidth="1.4" strokeLinecap="round" />
+          {/* Outer mastery ring */}
+          <circle cx="16" cy="16" r="12.6" fill="none" stroke="#059669" strokeWidth="1.7" />
+          {/* Inner mastery ring */}
+          <circle cx="16" cy="16" r="8.6" fill="none" stroke="#14b8a6" strokeWidth="1.7" />
 
-          {/* Three idea nodes across the top */}
-          <circle cx="8" cy="7" r="2.6" fill="#14b8a6" />
-          <circle cx="16" cy="7" r="2.6" fill="#34d399" />
-          <circle cx="24" cy="7" r="2.6" fill="#14b8a6" />
+          {/* Orbit nodes, symmetric at 90/210/330 deg on outer ring */}
+          <circle cx="16" cy="4.9" r="1.5" fill="#14b8a6" />
+          <circle cx="6.4" cy="10.9" r="1.3" fill="#059669" />
+          <circle cx="25.6" cy="10.9" r="1.3" fill="#34d399" />
 
-          {/* Converged understanding node (base) */}
-          <circle cx="16" cy="21" r="3.6" fill="url(#awde-net-b)" />
+          {/* Central core: solid hexagonal knowledge node, centered (16,16) */}
+          <path d="M16 9.8 L21 12.7 L21 19.3 L16 22.2 L11 19.3 L11 12.7 Z" fill="url(#awde-core-a)" />
         </svg>
       </div>
 
