@@ -99,6 +99,53 @@ Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
 
 ---
 
+## Deployment
+
+> **Important:** Awde is a **single persistent server** — the Express backend in
+> `server.ts` serves the React build **and** all `/api/*` endpoints (AI calls,
+> PDF uploads). It must be deployed to a **persistent host** (Render, Railway,
+> Fly.io, a VM). **Do not deploy to static/edge serverless hosts** (e.g. a plain
+> Vercel/Netlify static deploy has **no backend**, so every API call fails and
+> the app shows "Offline Mode" and "Could not process the textbook").
+
+**Required environment variables** (set in your host's dashboard):
+- `NODE_ENV=production`
+- `GEMINI_API_KEY` — your Google Gemini API key (live AI). If omitted, the app
+  runs in offline-fallback mode (deterministic generators) as a safety net.
+- _Optional:_ `GROQ_API_KEY`, `NVIDIA_API_KEY` (fallback AI providers),
+  `APP_URL` (public URL of the service).
+
+### Option A — Render (recommended, free)
+
+1. Push this repo to GitHub (already done).
+2. In Render, choose **New → Web Service** and connect the repo.
+3. Render auto-detects [`render.yaml`](./render.yaml). Set the **Build
+   Command** to `npm ci && npm run build` and **Start Command** to `npm start`.
+4. Add `GEMINI_API_KEY` (and optional fallback keys) in the service's
+   **Environment** tab.
+5. The service starts on port `3000` (set with `PORT` if needed) and handles
+   both the app and all `/api` routes.
+
+### Option B — Railway / Fly.io (Docker)
+
+A [`Dockerfile`](./Dockerfile) is included. It builds the frontend + server and
+runs `node dist/server.cjs` on port `3000`.
+
+- **Railway:** New Project → Deploy from repo → Railway auto-detects the
+  `Dockerfile`. Add the env vars above, and set the public port to `3000`.
+- **Fly.io:** `fly launch` (accept the generated `fly.toml`), then
+  `fly secrets set GEMINI_API_KEY=...` and `fly deploy`.
+
+### Local production check
+
+```bash
+npm run build
+npm start              # serve on http://localhost:3000 (NODE_ENV=production)
+curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true}
+```
+
+---
+
 ## Architecture
 
 ```

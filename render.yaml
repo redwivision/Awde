@@ -1,0 +1,28 @@
+# Render Blueprint — deploys Awde as a persistent web service.
+#
+# Awde is a single Express server that serves the React build AND all /api
+# endpoints (AI calls, PDF uploads). It must run on a persistent host, not
+# serverless/static hosting (Vercel static has no backend). See README ->
+# Deployment for the full instructions.
+#
+# Set the GEMINI_API_KEY (and optional GROQ_API_KEY / NVIDIA_API_KEY) in Render's
+# service environment when you create the service, or via this blueprint.
+services:
+  - type: web
+    name: awde
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false # set this in the Render dashboard (kept out of source control)
+      # - key: GROQ_API_KEY
+      #   sync: false
+      # - key: NVIDIA_API_KEY
+      #   sync: false
+      # - key: APP_URL
+      #   value: https://your-service.onrender.com
