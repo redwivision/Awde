@@ -15,15 +15,34 @@ import { WorkspaceSidebar } from './components/WorkspaceSidebar';
 import { LandingPage } from './components/LandingPage';
 import { HomePage } from './components/HomePage';
 import { WorkspaceDetail } from './components/WorkspaceDetail';
-import { UploadPdfModal } from './components/UploadPdfModal';
 import { MindMapCanvas } from './components/MindMapCanvas';
-import { NodeMasteryDrawer } from './components/NodeMasteryDrawer';
-import { FeynmanArena } from './components/FeynmanArena';
-import { QuizEngine } from './components/QuizEngine';
-import { StudySuite } from './components/StudySuite';
-import { StudyMethodLab } from './components/StudyMethodLab';
-import { AestheticsModal } from './components/AestheticsModal';
-import { CommandPalette } from './components/CommandPalette';
+
+// Heavy / on-demand components are lazy-loaded so the initial bundle stays
+// small on weak wifi. Each loads only when it is actually opened.
+const UploadPdfModal = React.lazy(() =>
+  import('./components/UploadPdfModal').then((m) => ({ default: m.UploadPdfModal }))
+);
+const NodeMasteryDrawer = React.lazy(() =>
+  import('./components/NodeMasteryDrawer').then((m) => ({ default: m.NodeMasteryDrawer }))
+);
+const FeynmanArena = React.lazy(() =>
+  import('./components/FeynmanArena').then((m) => ({ default: m.FeynmanArena }))
+);
+const QuizEngine = React.lazy(() =>
+  import('./components/QuizEngine').then((m) => ({ default: m.QuizEngine }))
+);
+const StudySuite = React.lazy(() =>
+  import('./components/StudySuite').then((m) => ({ default: m.StudySuite }))
+);
+const StudyMethodLab = React.lazy(() =>
+  import('./components/StudyMethodLab').then((m) => ({ default: m.StudyMethodLab }))
+);
+const AestheticsModal = React.lazy(() =>
+  import('./components/AestheticsModal').then((m) => ({ default: m.AestheticsModal }))
+);
+const CommandPalette = React.lazy(() =>
+  import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette }))
+);
 import {
   Menu,
   Search,
@@ -35,6 +54,15 @@ import {
   Command,
   WifiOff
 } from 'lucide-react';
+
+const TabSpinner: React.FC = () => (
+  <div className="flex items-center justify-center h-full min-h-[40vh]">
+    <div
+      className="w-8 h-8 rounded-full border-2 animate-spin"
+      style={{ borderColor: 'var(--app-accent-bg, rgba(79,70,229,0.25))', borderTopColor: 'var(--app-accent, #4f46e5)' }}
+    />
+  </div>
+);
 
 export default function App() {
   // ---------- Persistence helpers ----------
@@ -438,7 +466,7 @@ export default function App() {
                 }}
               />
             ) : (
-              <>
+              <React.Suspense fallback={<TabSpinner />}>
                 {activeTab === 'library' && (
                   <HomePage
                     workspaces={workspaces}
@@ -520,12 +548,13 @@ export default function App() {
                 {activeTab === 'studysuite' && (
                   <StudySuite unit={currentUnit} language={language} />
                 )}
-              </>
+              </React.Suspense>
             )}
           </main>
       </div>
 
       {/* Slide-in / Bottom Sheet Node Mastery Drawer */}
+      <React.Suspense fallback={null}>
       {isDrawerOpen && selectedNode && (
         <NodeMasteryDrawer
           node={selectedNode}
@@ -570,6 +599,7 @@ export default function App() {
         }}
         language={language}
       />
+      </React.Suspense>
     </div>
   );
 }

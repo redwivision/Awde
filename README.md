@@ -51,7 +51,8 @@ Students today rely on static textbooks that force rote-reading and memorization
 | 📚 **Curriculum Library** | Pre-loaded Ethiopian MoE units (Physics, Biology, CS) + import your own textbook PDF to auto-generate a full mind-map unit |
 | 🌍 **Bilingual** | Full English ⇄ Amharic (አማርኛ) toggle across all content, analogies, quizzes, and Rooty's critique |
 | 🎨 **Theming** | Multiple design aesthetics incl. Nordic Minimal, Scholar Parchment, Obsidian Cyber, and the warm "Addis Espresso" heritage theme |
-| 📴 **Offline-First** | Works fully offline with deterministic fallback generators — no API key required |
+| 📴 **Single-Server Simplicity** | One Express process serves the React build and all /api endpoints — no separate backend required |
+| 🔑 **No API Key Required** | All AI endpoints run with deterministic offline-fallback generators when no key is set; a Gemini key makes output richer |
 | 🔍 **Node Mastery Drawer** | Slide-in detail panel for every concept with 5 tabs: Localized Analogy, Concept Core (detailed explanation + key takeaways + related concepts), Common Traps, Rules & Formulas, and Ask Rooty |
 | 💡 **Ask Rooty (Q&A)** | Lightweight chat in the node drawer — ask any question about a concept and get a clear, jargon-free answer with Ethiopian cultural analogies |
 
@@ -222,11 +223,11 @@ State is persisted to `localStorage` (`awde_workspaces_v1` primary store, with `
 
 | Metric | Value |
 |--------|-------|
-| Offline Capable | 100% |
-| Average Recall Improvement | +58% |
+| Device Offline | App shell + saved workspaces/mind-maps readable; live AI generation requires connection |
+| Auth / API Keys | None required (deterministic fallback generators) |
 | Languages | 2 (English + Amharic) |
-| Response Time (offline) | <3 seconds |
-| Test Coverage | 56 tests passing |
+| Recall Deltas | Measured per-user in the Method Laboratory (before vs after) |
+| Test Coverage | 59 tests passing |
 
 ---
 

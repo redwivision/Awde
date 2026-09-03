@@ -10,8 +10,6 @@ import {
   Palette,
   BookOpen,
   TrendingUp,
-  Users,
-  Clock,
   Globe,
   GraduationCap,
   Puzzle,
@@ -19,7 +17,9 @@ import {
   Sparkles,
   XCircle,
   CheckCircle2,
-  ArrowDown
+  ArrowDown,
+  Zap,
+  Download
 } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { DesignAesthetic, LanguageMode } from '../types';
@@ -91,7 +91,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     sub: isAmharic
       ? 'አብዛኛው ጊዜ የምናጠናው ፈተናውን ለማለፍ ነው — እውቀቱን ለመቆጣጠር አይደለም። አውደ በውጤት እና በእውነተኛ እውቀት መካከል ያለውን ድልድይ ይገነባል።'
       : 'We study to pass the exam, not to own the knowledge. Awde is the bridge that spans the distance between a grade and real understanding.',
-    meta: isAmharic ? 'ነጻ • ኦፍላይን ይሰራል • ለደካማ ኢንተርኔት የተበጀ' : 'Free • Works offline • Built for low-bandwidth networks',
+    meta: isAmharic ? 'ነጻ • ሳውቀው ያስቀምጣል • ለደካማ ኢንተርኔት የተበጀ' : 'Free • Keeps your study saved locally • Built for low-bandwidth networks',
     cta: isAmharic ? 'ድልድዩን ይሻገሩ — ይግቡ' : 'Cross the bridge — Enter',
     scrollHint: isAmharic ? 'ወደ ታች ይሸብልሉ' : 'Scroll to read the story'
   };
@@ -235,20 +235,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const stats = [
     {
       icon: <TrendingUp className="w-4 h-4" />,
-      value: '+58%',
-      label: isAmharic ? 'የማስታወስ መጨመር' : 'Average Recall Improvement',
+      value: '📈',
+      label: isAmharic ? 'የማስታወስ ለውጥ ተለክቷል' : 'Measures your real recall before & after',
       color: 'text-emerald-500'
     },
     {
-      icon: <Users className="w-4 h-4" />,
-      value: '100%',
-      label: isAmharic ? 'ኦፍላይን የሚሰራ' : 'Offline Capable',
+      icon: <Zap className="w-4 h-4" />,
+      value: '0',
+      label: isAmharic ? 'የኤፒአይ ቁልፍ አያስፈልግም' : 'API keys required',
       color: 'text-blue-500'
     },
     {
-      icon: <Clock className="w-4 h-4" />,
-      value: '< 3s',
-      label: isAmharic ? 'ፈጣን ምላሽ' : 'Instant Feedback',
+      icon: <Download className="w-4 h-4" />,
+      value: 'on-device',
+      label: isAmharic ? 'ጥናትዎ በመሳሪያዎ ላይ ተቀምጧል' : 'Study saved on your device',
       color: 'text-amber-500'
     },
     {
@@ -261,8 +261,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   const trust = [
     { icon: <Languages className="w-4 h-4" />, label: isAmharic ? 'እንግሊዝኛ + አማርኛ' : 'English + Amharic' },
-    { icon: <Wifi className="w-4 h-4" />, label: isAmharic ? 'ኦፍላይን የሚሰራ' : 'Offline-first' },
-    { icon: <ShieldCheck className="w-4 h-4" />, label: isAmharic ? 'መረጃዎ በእርስዎ ላይ' : 'Your data stays local' }
+    { icon: <ShieldCheck className="w-4 h-4" />, label: isAmharic ? 'መረጃዎ በእርስዎ ላይ' : 'Your data stays local' },
+    { icon: <Wifi className="w-4 h-4" />, label: isAmharic ? 'ያለ ቁልፍ ይሰራል' : 'Works without an AI key' }
   ];
 
   return (
@@ -542,8 +542,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               }}
             >
               {/* Shore labels above */}
-              <div className="flex items-end justify-between pb-4">
-                <div className="text-left max-w-[38%]">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 pb-4">
+                <div className="text-left sm:max-w-[38%]">
                   <p className="text-[11px] font-bold uppercase tracking-widest text-red-500 flex items-center gap-1.5">
                     <XCircle className="w-3.5 h-3.5" /> {isAmharic ? 'የውጤት ጎን' : 'Score-side'}
                   </p>
@@ -551,7 +551,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     {bridge.shoreReal}
                   </p>
                 </div>
-                <div className="flex-1 text-center px-3">
+                <div className="shrink-0 py-2 text-left sm:flex-1 sm:py-0 sm:text-center sm:px-3">
                   <span className="inline-block rounded-full text-[10px] sm:text-xs font-bold px-3 py-1"
                     style={{
                       backgroundColor: 'var(--app-accent-bg, rgba(79,70,229,0.12))',
@@ -561,8 +561,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     {isAmharic ? 'አውደ ድልድይ' : 'Awde Bridge'}
                   </span>
                 </div>
-                <div className="text-right max-w-[38%]">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-500 flex items-center justify-end gap-1.5">
+                <div className="text-left sm:max-w-[38%] sm:text-right">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-500 flex items-center gap-1.5 sm:justify-end">
                     {isAmharic ? 'የእውቀት ጎን' : 'Mastery-side'} <CheckCircle2 className="w-3.5 h-3.5" />
                   </p>
                   <p className="mt-1 text-xs sm:text-sm font-semibold leading-snug">

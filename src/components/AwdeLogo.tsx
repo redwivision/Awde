@@ -30,13 +30,13 @@ export const AwdeLogo: React.FC<AwdeLogoProps> = ({
 
   return (
     <div className="flex items-center gap-2.5 select-none group">
-      {/* Mark: Knowledge Node hub */}
+      {/* Mark: the "Network" — a knowledge web converging into understanding */}
       <div
         style={{
           width: dim.icon,
           height: dim.icon,
-          backgroundColor: 'var(--app-accent-bg, rgba(79, 70, 229, 0.14))',
-          borderColor: 'var(--app-accent, #4f46e5)'
+          backgroundColor: 'rgba(5, 150, 105, 0.12)',
+          borderColor: '#059669'
         }}
         className="relative shrink-0 rounded-xl p-1 border flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:rotate-6 group-hover:shadow-md"
       >
@@ -48,37 +48,28 @@ export const AwdeLogo: React.FC<AwdeLogoProps> = ({
           aria-label="Awde logo"
         >
           <defs>
-            <linearGradient id="awde-node" x1="2" y1="30" x2="30" y2="2" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="var(--app-accent,#4f46e5)" />
-              <stop offset="100%" stopColor="#06b6d4" />
+            <linearGradient id="awde-net-b" x1="16" y1="4" x2="16" y2="25" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#14b8a6" />
+              <stop offset="100%" stopColor="#059669" />
             </linearGradient>
           </defs>
 
-          {/* Radiating synapse lines forming a star silhouette */}
-          <g stroke="url(#awde-node)" strokeWidth="1.7" strokeLinecap="round">
-            <path d="M16 16 L16 6" />
-            <path d="M16 16 L24 12" />
-            <path d="M16 16 L24 22" />
-            <path d="M16 16 L8 22" />
-            <path d="M16 16 L8 10" />
-            <path d="M16 16 L16 26" />
+          {/* Connectors: three ideas converging into the base node */}
+          <g stroke="url(#awde-net-b)" strokeWidth="2.2" strokeLinecap="round">
+            <path d="M8 7 L16 21" />
+            <path d="M16 7 L16 21" />
+            <path d="M24 7 L16 21" />
           </g>
+          {/* horizontal link among the three top ideas */}
+          <path d="M8 7 L24 7" stroke="#059669" strokeWidth="1.4" strokeLinecap="round" />
 
-          {/* Outer branch nodes */}
-          <g fill="var(--app-accent,#4f46e5)">
-            <circle cx="16" cy="5.5" r="1.7" />
-            <circle cx="25" cy="11" r="1.5" />
-            <circle cx="25" cy="21" r="1.5" fill="#06b6d4" />
-            <circle cx="16" cy="26.5" r="1.7" fill="#06b6d4" />
-            <circle cx="7" cy="21" r="1.5" />
-            <circle cx="7" cy="10.5" r="1.5" />
-          </g>
+          {/* Three idea nodes across the top */}
+          <circle cx="8" cy="7" r="2.6" fill="#14b8a6" />
+          <circle cx="16" cy="7" r="2.6" fill="#34d399" />
+          <circle cx="24" cy="7" r="2.6" fill="#14b8a6" />
 
-          {/* Central hub — hexagonal seed */}
-          <path
-            d="M16 12.6 L20.8 15.3 L20.8 20.7 L16 23.4 L11.2 20.7 L11.2 15.3 Z"
-            fill="url(#awde-node)"
-          />
+          {/* Converged understanding node (base) */}
+          <circle cx="16" cy="21" r="3.6" fill="url(#awde-net-b)" />
         </svg>
       </div>
 
