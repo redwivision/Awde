@@ -731,8 +731,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="text-center pt-6 pb-10 border-t" style={{ borderColor: 'var(--app-border, #cbd5e1)' }}>
           <p className="text-xs" style={{ color: 'var(--app-text-muted, #475569)' }}>
             {isAmharic
-              ? '© 2026 አውደ (Awde) — ለኢትዮጵያ ተማሪዎች የተሰራ የእውቀት ማዳበሪያ'
-              : '© 2026 Awde — Cognitive Mastery Platform for Ethiopian STEM Students'}
+              ? '© 2026 አውደ (Awde) — የተሰራው በኒው ኪብሩ'
+              : '© 2026 Awde — Built by Lewi Kibru'}
           </p>
         </div>
       </div>
