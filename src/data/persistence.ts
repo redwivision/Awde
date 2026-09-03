@@ -1,4 +1,4 @@
-import { TextbookWorkspace, TopicUnit } from '../types';
+import { ConceptNode, TextbookWorkspace, TopicUnit } from '../types';
 import { DEFAULT_TEXTBOOK_WORKSPACES } from './textbookWorkspaces';
 
 // Pure, browser-free persistence + derivation logic so it can be unit tested.
@@ -15,6 +15,12 @@ export const UNITS_KEY = 'awde_units_v1';
 export const LANG_KEY = 'awde_lang';
 export const AESTHETIC_KEY = 'awde_aesthetic';
 
+// Version of the enrichment schema (detailedExplanation / keyTakeaways). Bump
+// whenever ConceptNode gains required fields so stale localStorage data gets
+// backfilled from the default seed instead of rendering empty sections.
+const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION_KEY = 'awde_schema_version';
+
 // Load workspaces from storage, transparently migrating the legacy flat-unit
 // format (awde_units_v1) and swallowing any corruption so the app never
 // crashes on bad local data (weak-wifi / partial-write resilience).
@@ -23,7 +29,7 @@ export function loadWorkspaces(storage: Storage): TextbookWorkspace[] {
     const saved = storage.getItem(WORKSPACES_KEY);
     if (saved) {
       const parsed = JSON.parse(saved) as TextbookWorkspace[];
-      if (Array.isArray(parsed)) return sanitizeWorkspaces(parsed);
+      if (Array.isArray(parsed)) return upgradeStoredWorkspaces(storage, parsed);
     }
   } catch {
     /* ignore corrupt storage */
@@ -35,7 +41,8 @@ export function loadWorkspaces(storage: Storage): TextbookWorkspace[] {
     if (savedUnits) {
       const prevUnits = JSON.parse(savedUnits) as TopicUnit[];
       if (Array.isArray(prevUnits)) {
-        return migrateLegacyUnits(prevUnits);
+        const migrated = migrateLegacyUnits(prevUnits);
+        return upgradeStoredWorkspaces(storage, migrated);
       }
     }
   } catch {
@@ -43,6 +50,52 @@ export function loadWorkspaces(storage: Storage): TextbookWorkspace[] {
   }
 
   return cloneDefaults();
+}
+
+// Backfill missing enrichment fields onto saved nodes from the default seed,
+// matched by unit id + node id. Runs once per SCHEMA_VERSION, then marks the
+// schema as current so we don't re-run the (cheap) pass on every load.
+function upgradeStoredWorkspaces(storage: Storage, workspaces: TextbookWorkspace[]): TextbookWorkspace[] {
+  const clean = sanitizeWorkspaces(workspaces);
+  const prevVersion = Number(storage.getItem(SCHEMA_VERSION_KEY) || 0);
+
+  if (prevVersion < SCHEMA_VERSION) {
+    const defaultNodes = new Map<string, ConceptNode>();
+    for (const ws of DEFAULT_TEXTBOOK_WORKSPACES) {
+      for (const u of ws.units) {
+        for (const n of u.nodes) defaultNodes.set(u.id + '::' + n.id, n);
+      }
+    }
+
+    const upgraded = clean.map((ws) => ({
+      ...ws,
+      units: ws.units.map((u) => ({
+        ...u,
+        nodes: u.nodes.map((n) => {
+          if (n.detailedExplanation && n.keyTakeaways) return n;
+          const seed = defaultNodes.get(u.id + '::' + n.id);
+          return {
+            ...n,
+            detailedExplanation: n.detailedExplanation || seed?.detailedExplanation || n.summary,
+            detailedExplanationAmharic:
+              n.detailedExplanationAmharic || seed?.detailedExplanationAmharic || n.summaryAmharic,
+            keyTakeaways: n.keyTakeaways || seed?.keyTakeaways || [],
+            keyTakeawaysAmharic: n.keyTakeawaysAmharic || seed?.keyTakeawaysAmharic || []
+          };
+        })
+      }))
+    }));
+
+    try {
+      storage.setItem(SCHEMA_VERSION_KEY, String(SCHEMA_VERSION));
+      storage.setItem(WORKSPACES_KEY, JSON.stringify(upgraded));
+    } catch {
+      /* persistence best-effort */
+    }
+    return upgraded;
+  }
+
+  return clean;
 }
 
 // Sanitize a workspace array: drop entries that break the data model so the app

@@ -7,6 +7,7 @@ import {
   isUnitConsistent,
   WORKSPACES_KEY,
   UNITS_KEY,
+  SCHEMA_VERSION_KEY,
   type Storage
 } from '../src/data/persistence';
 import { DEFAULT_TEXTBOOK_WORKSPACES } from '../src/data/textbookWorkspaces';
@@ -92,6 +93,39 @@ describe('loadWorkspaces (offline resilience + migration)', () => {
     // custom legacy id not in defaults -> stays on its default unit, no crash
     expect(ws.length).toBe(DEFAULT_TEXTBOOK_WORKSPACES.length);
     expect(isUnitConsistent(ws)).toBe(true);
+  });
+
+  it('backfills missing enrichment fields on stale saved nodes (schema upgrade)', () => {
+    // Simulate a workspace saved before detailedExplanation/keyTakeaways existed.
+    const staleWorkspace = {
+      ...DEFAULT_TEXTBOOK_WORKSPACES[0],
+      units: DEFAULT_TEXTBOOK_WORKSPACES[0].units.map((u) => ({
+        ...u,
+        nodes: u.nodes.map((n) => {
+          const { detailedExplanation, detailedExplanationAmharic, keyTakeaways, keyTakeawaysAmharic, ...rest } = n as any;
+          return rest;
+        })
+      }))
+    };
+    const storage = makeStorage({ [WORKSPACES_KEY]: JSON.stringify([staleWorkspace]) });
+    const ws = loadWorkspaces(storage);
+    const unit = ws[0].units.find((u) => u.id === staleWorkspace.units[0].id)!;
+    const node = unit.nodes[0];
+    expect(typeof node.detailedExplanation).toBe('string');
+    expect(node.detailedExplanation.length).toBeGreaterThan(0);
+    expect(Array.isArray(node.keyTakeaways)).toBe(true);
+    expect(node.keyTakeaways.length).toBeGreaterThan(0);
+  });
+
+  it('does not re-run schema upgrade after it is marked current', () => {
+    const storage = makeStorage({
+      [WORKSPACES_KEY]: JSON.stringify([DEFAULT_TEXTBOOK_WORKSPACES[0]]),
+      [SCHEMA_VERSION_KEY]: '2'
+    });
+    const initialGet = storage.getItem(WORKSPACES_KEY);
+    loadWorkspaces(storage);
+    // stored value unchanged (no rewrite on subsequent loads)
+    expect(storage.getItem(WORKSPACES_KEY)).toBe(initialGet);
   });
 });
 
