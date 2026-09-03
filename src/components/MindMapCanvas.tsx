@@ -144,7 +144,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="bg-slate-950/90 text-xs text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-800 focus:outline-none"
+              className="bg-slate-950/90 text-xs text-slate-300 px-2.5 py-2 rounded-lg border border-slate-800 focus:outline-none"
             >
               <option value="all">{isAmharic ? 'ሁሉም ምድቦች' : 'All Categories'}</option>
               {categories.map((cat) => (
@@ -155,7 +155,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-950/90 text-xs text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-800 focus:outline-none"
+              className="bg-slate-950/90 text-xs text-slate-300 px-2.5 py-2 rounded-lg border border-slate-800 focus:outline-none"
             >
               <option value="all">{isAmharic ? 'ሁሉም ደረጃዎች' : 'All Status'}</option>
               <option value="unstudied">{isAmharic ? 'አልተጀመረም' : 'Unstudied'}</option>
@@ -172,7 +172,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
           <div className="flex items-center bg-slate-950/90 p-0.5 rounded-lg border border-slate-800">
             <button
               onClick={() => setViewMode('canvas')}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
+              className={`px-2.5 py-2 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
                 viewMode === 'canvas'
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-white'
@@ -184,7 +184,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
+              className={`px-2.5 py-2 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
                 viewMode === 'list'
                   ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-white'
@@ -201,7 +201,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
             <div className="flex items-center gap-1 bg-slate-950/90 p-1 rounded-lg border border-slate-800">
               <button
                 onClick={() => setZoom((z) => Math.min(z * 1.15, 2.2))}
-                className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                className="p-2.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
                 title="Zoom In"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
@@ -211,14 +211,14 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
               </span>
               <button
                 onClick={() => setZoom((z) => Math.max(z * 0.85, 0.45))}
-                className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                className="p-2.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
                 title="Zoom Out"
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={handleResetView}
-                className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                className="p-2.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
                 title="Reset View"
               >
                 <Maximize2 className="w-3.5 h-3.5" />

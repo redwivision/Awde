@@ -226,10 +226,10 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <div className="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => setActiveTechnique('pomodoro')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                 activeTechnique === 'pomodoro'
                   ? 'bg-emerald-600 text-white shadow'
                   : 'text-slate-400 hover:text-slate-200'
@@ -241,7 +241,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
 
             <button
               onClick={() => setActiveTechnique('blurting')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                 activeTechnique === 'blurting'
                   ? 'bg-amber-600 text-white shadow'
                   : 'text-slate-400 hover:text-slate-200'
@@ -253,7 +253,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
 
             <button
               onClick={() => setActiveTechnique('srs')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                 activeTechnique === 'srs'
                   ? 'bg-cyan-600 text-white shadow'
                   : 'text-slate-400 hover:text-slate-200'
@@ -576,7 +576,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
             {flashcards[fcIndex] && (
               <div
                 onClick={() => setIsFlipped(!isFlipped)}
-                className="w-full min-h-[220px] p-8 rounded-2xl bg-slate-950 border-2 border-slate-800 hover:border-cyan-500/50 cursor-pointer flex flex-col justify-between transition-all duration-300 select-none text-center shadow-inner"
+                className="w-full min-h-[220px] p-5 sm:p-8 rounded-2xl bg-slate-950 border-2 border-slate-800 hover:border-cyan-500/50 cursor-pointer flex flex-col justify-between transition-all duration-300 select-none text-center shadow-inner"
               >
                 <div className="flex justify-between items-center text-xs text-slate-500">
                   <span className="font-mono">
@@ -609,7 +609,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
               <motion.div
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="grid grid-cols-4 gap-3"
+                className="grid grid-cols-2 sm:grid-cols-4 gap-3"
               >
                 <button
                   onClick={() => handleRateFlashcard(-1)}

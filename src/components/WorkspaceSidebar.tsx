@@ -157,7 +157,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           {/* Mobile close */}
           <button
             onClick={onCloseMobile}
-            className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+            className="md:hidden p-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
@@ -190,7 +190,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                 if (isMobileOpen) onCloseMobile();
               }}
               title={isAmharic ? item.labelAmharic : item.label}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold transition-all group ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 min-h-[40px] rounded-lg text-xs font-semibold transition-all group ${
                 isActive
                   ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-950 font-bold'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
@@ -225,7 +225,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                 onSelectTab('library');
                 if (isMobileOpen) onCloseMobile();
               }}
-              className="p-1 rounded text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition-colors"
+              className="p-2 min-h-[40px] min-w-[40px] rounded text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition-colors"
               title="Add or import unit"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -240,7 +240,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
               placeholder={isAmharic ? 'ክፍሎችን ፈልግ...' : 'Search units & nodes...'}
-              className="w-full bg-slate-950/80 text-xs text-slate-200 placeholder-slate-500 pl-8 pr-2.5 py-1.5 rounded-lg border border-slate-800 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-slate-950/80 text-xs text-slate-200 placeholder-slate-500 pl-8 pr-2.5 py-2.5 min-h-[40px] rounded-lg border border-slate-800 focus:outline-none focus:border-indigo-500"
             />
           </div>
 
@@ -275,7 +275,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                           e.stopPropagation();
                           setExpandedUnitId(isExpanded ? '' : u.id);
                         }}
-                        className="text-slate-400 hover:text-white p-0.5"
+                        className="text-slate-400 hover:text-white p-2 min-h-[40px] min-w-[40px]"
                       >
                         {isExpanded ? (
                           <ChevronDown className="w-3.5 h-3.5" />
@@ -319,7 +319,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                               onSelectNode(node);
                               if (isMobileOpen) onCloseMobile();
                             }}
-                            className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs cursor-pointer transition-all ${
+                            className={`flex items-center justify-between gap-2 px-2.5 py-2.5 min-h-[40px] rounded-lg text-xs cursor-pointer transition-all ${
                               isNodeActive
                                 ? 'bg-indigo-950/80 text-indigo-300 font-bold border border-indigo-800/60'
                                 : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
@@ -396,7 +396,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           {/* Aesthetic Chooser */}
           <button
             onClick={onOpenAesthetics}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 min-h-[40px] px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
             title="Choose Aesthetic"
           >
             <Palette className="w-3.5 h-3.5 text-indigo-400" />
@@ -406,7 +406,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           {/* Bilingual Language Switcher */}
           <button
             onClick={onToggleLanguage}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 min-h-[40px] px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
             title="Toggle Language"
           >
             <Globe className="w-3.5 h-3.5 text-emerald-400" />
@@ -445,7 +445,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="relative w-4/5 max-w-xs h-full z-10 shadow-2xl"
+              className="relative w-[85%] max-w-xs h-full z-10 shadow-2xl"
             >
               {sidebarContent}
             </motion.div>

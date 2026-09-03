@@ -119,7 +119,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             />
             <button
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800"
+              className="p-2 min-h-[40px] min-w-[40px] text-slate-400 hover:text-white rounded hover:bg-slate-800 flex items-center justify-center"
             >
               <X className="w-4 h-4" />
             </button>
@@ -142,7 +142,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                         onSelectTab(tool.id);
                         onClose();
                       }}
-                      className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-800/80 text-left transition-colors text-xs text-slate-200 group"
+                      className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/80 text-left transition-colors text-xs text-slate-200 group"
                     >
                       <div className="flex items-center gap-2.5">
                         <div className="p-1.5 rounded-lg bg-indigo-950/50 text-indigo-400 border border-indigo-800/40">
@@ -173,14 +173,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                       onSelectNode(node, node.unitId);
                       onClose();
                     }}
-                    className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-800/80 text-left transition-colors text-xs text-slate-200 group"
+                    className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/80 text-left transition-colors text-xs text-slate-200 group"
                   >
                     <div className="min-w-0 pr-2">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-100 group-hover:text-indigo-300 truncate">
                           {isAmharic ? node.labelAmharic : node.label}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400 bg-slate-950 px-1.5 py-0.2 rounded border border-slate-800">
+                        <span className="shrink-0 max-w-[80px] truncate text-[10px] font-mono text-slate-400 bg-slate-950 px-1.5 py-0.2 rounded border border-slate-800">
                           {node.category}
                         </span>
                       </div>

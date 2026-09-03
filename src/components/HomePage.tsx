@@ -67,7 +67,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         backgroundColor: 'var(--app-bg, #f1f5f9)',
         color: 'var(--app-text, #020617)'
       }}
-      className="w-full h-full flex flex-col overflow-y-auto"
+      className="w-full h-full flex flex-col overflow-y-auto overflow-x-hidden"
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
         {/* Top Hero Section */}
@@ -168,31 +168,31 @@ export const HomePage: React.FC<HomePageProps> = ({
               style={{
                 borderColor: 'var(--app-border, #cbd5e1)'
               }}
-              className="pt-6 mt-4 border-t grid grid-cols-2 sm:grid-cols-4 gap-4"
+              className="pt-6 mt-4 border-t grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"
             >
               <div>
                 <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs">
                   {isAmharic ? 'የመማሪያ መጻሕፍት' : 'Textbook Workspaces'}
                 </p>
-                <p className="text-xl font-extrabold mt-0.5">{workspaces.length} {isAmharic ? 'መጻሕፍት' : 'Books'}</p>
+                <p className="text-lg sm:text-xl font-extrabold mt-0.5">{workspaces.length} {isAmharic ? 'መጻሕፍት' : 'Books'}</p>
               </div>
               <div>
                 <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs">
                   {isAmharic ? 'ምዕራፎችና ክፍሎች' : 'Differentiated Units'}
                 </p>
-                <p className="text-xl font-extrabold mt-0.5">{totalUnits} {isAmharic ? 'ክፍሎች' : 'Units'}</p>
+                <p className="text-lg sm:text-xl font-extrabold mt-0.5">{totalUnits} {isAmharic ? 'ክፍሎች' : 'Units'}</p>
               </div>
               <div>
                 <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs">
                   {isAmharic ? 'የትምህርት ርዕሶች' : 'Structured Topics'}
                 </p>
-                <p className="text-xl font-extrabold mt-0.5">{totalTopics} {isAmharic ? 'ርዕሶች' : 'Topics'}</p>
+                <p className="text-lg sm:text-xl font-extrabold mt-0.5">{totalTopics} {isAmharic ? 'ርዕሶች' : 'Topics'}</p>
               </div>
               <div>
                 <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs">
                   {isAmharic ? 'የጥናት ውጤታማነት' : 'Average Efficacy Jump'}
                 </p>
-                <p className="text-xl font-extrabold mt-0.5 text-emerald-600 dark:text-emerald-400">+58% Recall Δ</p>
+                <p className="text-lg sm:text-xl font-extrabold mt-0.5 text-emerald-600 dark:text-emerald-400">+58% Recall Δ</p>
               </div>
             </div>
           </div>
@@ -238,7 +238,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   backgroundColor: 'var(--app-accent, #4f46e5)',
                   color: 'var(--app-accent-text, #ffffff)'
                 }}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 shadow-sm hover:opacity-90"
+                className="px-3 py-2.5 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 shadow-sm hover:opacity-90"
               >
                 <Plus className="w-3.5 h-3.5" />
                 {isAmharic ? 'መጽሐፍ ጨምር' : 'New PDF'}
@@ -256,20 +256,20 @@ export const HomePage: React.FC<HomePageProps> = ({
                   backgroundColor: 'var(--app-surface, #ffffff)',
                   borderColor: 'var(--app-border, #cbd5e1)'
                 }}
-                className="rounded-2xl border p-5 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between cursor-pointer"
+                className="rounded-2xl border p-3.5 sm:p-5 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between cursor-pointer"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+            <div className="flex items-center flex-wrap gap-1">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
                           {ws.subject}
                         </span>
-                        <span style={{ color: 'var(--app-text-muted, #475569)' }} className="text-[11px] font-medium">
+                        <span style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs font-medium">
                           {ws.gradeOrLevel}
                         </span>
                       </div>
-                      <h3 className="font-bold text-base mt-1.5 group-hover:text-indigo-500 transition-colors">
+                      <h3 className="font-bold text-base mt-1.5 group-hover:text-indigo-500 transition-colors line-clamp-2">
                         {isAmharic ? ws.titleAmharic : ws.title}
                       </h3>
                     </div>
@@ -299,7 +299,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                           borderColor: 'var(--app-border, #cbd5e1)',
                           color: 'var(--app-text, #020617)'
                         }}
-                        className="text-[11px] px-2.5 py-1 rounded-lg border font-medium hover:border-indigo-500 transition-colors flex items-center gap-1"
+                        className="text-xs px-3 py-2 rounded-lg border font-medium hover:border-indigo-500 transition-colors flex items-center gap-1"
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                         {isAmharic ? u.titleAmharic : u.title}
@@ -335,7 +335,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   style={{ borderColor: 'var(--app-border, #cbd5e1)' }}
                   className="pt-4 mt-4 border-t flex items-center justify-between gap-2"
                 >
-                  <div style={{ color: 'var(--app-text-muted, #475569)' }} className="text-[11px]">
+                  <div style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs">
                     {ws.totalUnits} {isAmharic ? 'ክፍሎች' : 'Units'} • {ws.totalTopics} {isAmharic ? 'ርዕሶች' : 'Topics'}
                   </div>
 
@@ -350,7 +350,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                         backgroundColor: 'var(--app-accent, #4f46e5)',
                         color: 'var(--app-accent-text, #ffffff)'
                       }}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 hover:opacity-90 shadow-sm"
+                      className="px-3 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1 hover:opacity-90 shadow-sm"
                     >
                       <Network className="w-3.5 h-3.5" />
                       {isAmharic ? 'ማይንድ-ማፕ' : 'Mind-Map'}
@@ -369,7 +369,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                         borderColor: 'var(--app-border, #cbd5e1)',
                         color: 'var(--app-text, #020617)'
                       }}
-                      className="px-3 py-1.5 rounded-xl text-xs font-semibold border hover:border-emerald-500 flex items-center gap-1"
+                      className="px-3 py-2.5 rounded-xl text-xs font-semibold border hover:border-emerald-500 flex items-center gap-1"
                     >
                       <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />
                       {isAmharic ? 'ፈይንድማን' : 'Feynman'}
@@ -386,7 +386,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 backgroundColor: 'var(--app-surface-elevated, #f8fafc)',
                 borderColor: 'var(--app-border-strong, #94a3b8)'
               }}
-              className="rounded-2xl border-2 border-dashed p-6 flex flex-col items-center justify-center text-center gap-3 cursor-pointer hover:border-indigo-500 transition-all group"
+              className="rounded-2xl border-2 border-dashed p-4 sm:p-6 flex flex-col items-center justify-center text-center gap-3 cursor-pointer hover:border-indigo-500 transition-all group"
             >
               <div
                 style={{
@@ -409,7 +409,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
               <span
                 style={{ color: 'var(--app-accent, #4f46e5)' }}
-                className="text-xs font-bold flex items-center gap-1"
+                className="text-xs font-bold flex items-center gap-1 py-2 px-4"
               >
                 {isAmharic ? 'ፋይል ይምረጡ' : 'Upload & Build Workspace'} <ArrowRight className="w-3.5 h-3.5" />
               </span>
@@ -434,7 +434,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 backgroundColor: 'var(--app-surface, #ffffff)',
                 borderColor: 'var(--app-border, #cbd5e1)'
               }}
-              className="p-5 rounded-2xl border space-y-2.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              className="p-3.5 sm:p-5 rounded-2xl border space-y-2.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                 <Network className="w-5 h-5" />
@@ -454,7 +454,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 backgroundColor: 'var(--app-surface, #ffffff)',
                 borderColor: 'var(--app-border, #cbd5e1)'
               }}
-              className="p-5 rounded-2xl border space-y-2.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              className="p-3.5 sm:p-5 rounded-2xl border space-y-2.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                 <MessageSquare className="w-5 h-5" />
@@ -474,7 +474,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 backgroundColor: 'var(--app-surface, #ffffff)',
                 borderColor: 'var(--app-border, #cbd5e1)'
               }}
-              className="p-5 rounded-2xl border space-y-2.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              className="p-3.5 sm:p-5 rounded-2xl border space-y-2.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                 <FlaskConical className="w-5 h-5" />

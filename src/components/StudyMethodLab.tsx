@@ -205,7 +205,7 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
 
           {/* Quick Metrics Badge */}
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center min-w-[100px]">
+            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
               <div className="text-[10px] font-mono text-slate-400 uppercase">
                 {isAmharic ? 'አማካይ እድገት' : 'Avg Recall Delta'}
               </div>
@@ -214,7 +214,7 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center min-w-[100px]">
+            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
               <div className="text-[10px] font-mono text-slate-400 uppercase">
                 {isAmharic ? 'የተመዘገቡ ሙከራዎች' : 'Validated Trials'}
               </div>
@@ -288,7 +288,7 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
                       e.stopPropagation();
                       onNavigateToMethod(proto.targetTab, activeExperimentNodeId);
                     }}
-                    className="mt-5 w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                    className="mt-5 w-full py-2.5 px-4 min-h-[40px] rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
                   >
                     <span>{isAmharic ? 'ሙከራውን ጀምር' : 'Launch Protocol Trial'}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -369,7 +369,7 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
         </div>
 
         {/* Cognitive Synthesis Advice */}
-        <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-emerald-950/60 border border-indigo-800/50 flex items-center justify-between gap-4">
+        <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-emerald-950/60 border border-indigo-800/50 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shrink-0">
               <Brain className="w-5 h-5" />
@@ -387,7 +387,7 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
           </div>
           <button
             onClick={() => onNavigateToMethod('mindmap')}
-            className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shrink-0 transition-colors shadow-sm"
+            className="px-3.5 py-2.5 min-h-[40px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shrink-0 transition-colors shadow-sm"
           >
             {isAmharic ? 'ካርታውን ክፈት' : 'Start Synergy Session'}
           </button>

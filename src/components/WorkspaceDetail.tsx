@@ -373,7 +373,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
                   borderColor: 'var(--app-border, #cbd5e1)',
                   color: 'var(--app-text, #020617)'
                 }}
-                className="p-2 rounded-lg border shadow-sm hover:opacity-80"
+                className="p-2.5 min-h-[40px] min-w-[40px] rounded-lg border shadow-sm hover:opacity-80"
                 title="Zoom in"
               >
                 <ZoomIn className="w-4 h-4" />
@@ -385,7 +385,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
                   borderColor: 'var(--app-border, #cbd5e1)',
                   color: 'var(--app-text, #020617)'
                 }}
-                className="p-2 rounded-lg border shadow-sm hover:opacity-80"
+                className="p-2.5 min-h-[40px] min-w-[40px] rounded-lg border shadow-sm hover:opacity-80"
                 title="Zoom out"
               >
                 <ZoomOut className="w-4 h-4" />
@@ -397,7 +397,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
                   borderColor: 'var(--app-border, #cbd5e1)',
                   color: 'var(--app-text, #020617)'
                 }}
-                className="p-2 rounded-lg border shadow-sm hover:opacity-80"
+                className="p-2.5 min-h-[40px] min-w-[40px] rounded-lg border shadow-sm hover:opacity-80"
                 title="Reset view"
               >
                 <Maximize2 className="w-4 h-4" />
@@ -497,7 +497,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
                       backgroundColor: 'var(--app-accent, #4f46e5)',
                       color: 'var(--app-accent-text, #ffffff)'
                     }}
-                    className="flex-1 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 hover:opacity-90 shadow-sm"
+                    className="flex-1 px-3 py-2.5 min-h-[40px] rounded-lg text-xs font-bold flex items-center justify-center gap-1 hover:opacity-90 shadow-sm"
                   >
                     <Network className="w-3.5 h-3.5" />
                     {isAmharic ? 'ማይንድ-ማፕ' : 'Mind-Map'}
@@ -511,7 +511,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
                       borderColor: 'var(--app-border, #cbd5e1)',
                       color: 'var(--app-text, #020617)'
                     }}
-                    className="flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 border hover:opacity-80"
+                    className="flex-1 px-3 py-2.5 min-h-[40px] rounded-lg text-xs font-semibold flex items-center justify-center gap-1 border hover:opacity-80"
                   >
                     <MessageSquare className="w-3.5 h-3.5" style={{ color: 'var(--app-accent, #4f46e5)' }} />
                     {isAmharic ? 'ሩቲን' : 'Feynman'}

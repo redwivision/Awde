@@ -204,21 +204,21 @@ const handleCreateWorkspace = async () => {
           style={{ borderColor: 'var(--app-border, #cbd5e1)' }}
           className="flex items-center justify-between px-6 py-4 border-b"
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div
               style={{
                 backgroundColor: 'var(--app-accent-bg, rgba(79, 70, 229, 0.12))',
                 color: 'var(--app-accent, #4f46e5)'
               }}
-              className="p-2 rounded-xl"
+              className="p-2 rounded-xl shrink-0"
             >
               <FileText className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="font-bold text-base tracking-tight">
+            <div className="min-w-0">
+              <h2 className="font-bold text-base tracking-tight truncate">
                 {isAmharic ? 'አዲስ የመማሪያ መጽሐፍ (PDF) ማዘጋጃ' : 'Generate Textbook Mind-Map Workspace'}
               </h2>
-              <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs">
+              <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs truncate">
                 {isAmharic
                   ? 'ከመጽሐፍ PDF ውስጥ ምዕራፎችን እና ንዑስ ርዕሶችን በራስ-ሰር በመለየት የተሟላ ማይንድ-ማፕ ይገንቡ'
                   : 'Synthesize Book Root Node → Unit Hubs → Topic Nodes → Socratic Feynman Arenas'}
@@ -235,7 +235,7 @@ const handleCreateWorkspace = async () => {
         </div>
 
         {/* Content Body */}
-        <div className="p-6 overflow-y-auto space-y-5 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
           {activeStep === 'upload' ? (
             <div className="space-y-5">
               {/* Dropzone */}
@@ -246,7 +246,7 @@ const handleCreateWorkspace = async () => {
                   borderColor: 'var(--app-border-strong, #94a3b8)',
                   backgroundColor: 'var(--app-surface-elevated, #f8fafc)'
                 }}
-                className="border-2 border-dashed rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-3 transition-colors hover:border-indigo-500"
+                className="border-2 border-dashed rounded-2xl p-5 sm:p-8 text-center flex flex-col items-center justify-center gap-3 transition-colors hover:border-indigo-500"
               >
                 <div
                   style={{
@@ -461,13 +461,13 @@ const handleCreateWorkspace = async () => {
         {/* Footer */}
         <div
           style={{ borderColor: 'var(--app-border, #cbd5e1)' }}
-          className="flex items-center justify-between px-6 py-4 border-t"
+          className="flex flex-wrap sm:flex-nowrap gap-3 items-center justify-between px-6 py-4 border-t"
         >
           {activeStep === 'review' ? (
             <button
               onClick={() => setActiveStep('upload')}
               style={{ color: 'var(--app-text-muted, #475569)' }}
-              className="text-xs font-semibold hover:underline"
+              className="text-xs font-semibold hover:underline py-2 px-1 min-h-[40px]"
             >
               {isAmharic ? '← ወደ ኋላ' : '← Back to Upload'}
             </button>
@@ -482,7 +482,7 @@ const handleCreateWorkspace = async () => {
                 borderColor: 'var(--app-border, #cbd5e1)',
                 color: 'var(--app-text, #020617)'
               }}
-              className="px-4 py-2 text-xs font-semibold rounded-xl border hover:bg-slate-500/10 transition-colors"
+              className="px-4 py-2 min-h-[40px] text-xs font-semibold rounded-xl border hover:bg-slate-500/10 transition-colors"
             >
               {isAmharic ? 'ሰርዝ' : 'Cancel'}
             </button>
@@ -495,7 +495,7 @@ const handleCreateWorkspace = async () => {
                   backgroundColor: 'var(--app-accent, #4f46e5)',
                   color: 'var(--app-accent-text, #ffffff)'
                 }}
-                className="px-4 py-2 text-xs font-bold rounded-xl shadow-md flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-4 py-2 min-h-[40px] text-xs font-bold rounded-xl shadow-md flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isProcessing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

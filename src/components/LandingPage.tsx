@@ -85,7 +85,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   // ---- Narrative copy (bilingual) ----
 
   const hero = {
-    eyebrow: isAmharic ? 'ለኢትዮጵያ ተማሪዎች የተሰራ የማስተዋል መድረክ' : 'A learning platform for Ethiopian STEM students',
+    eyebrow: isAmharic ? 'ለኢትዮጵያ ተማሪዎች የተሰራ የማስተዋል መድረክ' : 'A learning platform for Ethiopian students',
     titleA: isAmharic ? 'ውጤት ማግኘት ማለት' : 'Getting the grade',
     titleB: isAmharic ? 'መረዳት አይደለም።' : 'is not understanding.',
     sub: isAmharic
@@ -722,8 +722,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="text-center pt-6 pb-10 border-t" style={{ borderColor: 'var(--app-border, #cbd5e1)' }}>
           <p className="text-xs" style={{ color: 'var(--app-text-muted, #475569)' }}>
             {isAmharic
-              ? '© 2024 አውደ (Awde) — ለኢትዮጵያ ተማሪዎች የተሰራ የእውቀት ማዳበሪያ'
-              : '© 2024 Awde — Cognitive Mastery Platform for Ethiopian STEM Students'}
+              ? '© 2026 አውደ (Awde) — ለኢትዮጵያ ተማሪዎች የተሰራ የእውቀት ማዳበሪያ'
+              : '© 2026 Awde — Cognitive Mastery Platform for Ethiopian STEM Students'}
           </p>
         </div>
       </div>

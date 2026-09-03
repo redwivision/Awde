@@ -203,7 +203,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
           <div className="p-4 sm:p-6 border-b border-slate-800/80 bg-slate-900/90 sticky top-0 z-20">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-mono font-medium px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/50">
                     Depth Level {node.depthLevel} • {node.category}
                   </span>
@@ -235,7 +235,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
             <div className="flex items-center gap-2 mt-5 border-b border-slate-800 pb-2 overflow-x-auto">
               <button
                 onClick={() => setActiveTab('analogy')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                className={`px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   activeTab === 'analogy'
                     ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -247,7 +247,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
 
               <button
                 onClick={() => setActiveTab('breakdown')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                className={`px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   activeTab === 'breakdown'
                     ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -259,7 +259,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
 
               <button
                 onClick={() => setActiveTab('misconceptions')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                className={`px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   activeTab === 'misconceptions'
                     ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -271,7 +271,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
 
               <button
                 onClick={() => setActiveTab('formulas')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                className={`px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   activeTab === 'formulas'
                     ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -283,7 +283,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
 
               <button
                 onClick={() => setActiveTab('ask_rooty')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                className={`px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   activeTab === 'ask_rooty'
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -296,7 +296,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
           </div>
 
           {/* Drawer Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
             {/* TAB: Localized Analogy */}
             {activeTab === 'analogy' && (
               <div className="space-y-5">
@@ -350,7 +350,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                 </div>
 
                 {/* Feynman Prompt Callout */}
-                <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-between gap-4">
+                <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="space-y-0.5">
                     <h4 className="text-sm font-semibold text-white flex items-center gap-1.5">
                       <Zap className="w-4 h-4 text-emerald-400" />
@@ -367,7 +367,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                       onClose();
                       onStartFeynman(node);
                     }}
-                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-950 flex items-center gap-1.5 transition-all shrink-0"
+                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-950 flex items-center gap-1.5 transition-all min-w-0"
                   >
                     <span>{isAmharic ? 'ወደ ሩቲ ሂድ' : 'Enter Arena'}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -645,7 +645,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
           </div>
 
           {/* Drawer Footer Actions */}
-          <div className="p-4 border-t border-slate-800 bg-slate-900/95 flex items-center justify-between gap-3 sticky bottom-0 z-20">
+          <div className="p-4 border-t border-slate-800 bg-slate-900/95 flex flex-wrap items-center justify-between gap-3 sticky bottom-0 z-20">
             <button
               onClick={handleQuickMasteryStamp}
               className="px-3.5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"

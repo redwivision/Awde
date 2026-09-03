@@ -38,7 +38,7 @@ export const AestheticsModal: React.FC<AestheticsModalProps> = ({
           id="design-aesthetics-modal"
         >
           {/* Modal Header */}
-          <div className="p-6 border-b border-slate-800/90 flex items-center justify-between bg-slate-950/60">
+          <div className="p-6 border-b border-slate-800/90 flex items-center justify-between flex-wrap gap-3 bg-slate-950/60">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                 <Palette className="w-5 h-5" />
@@ -62,7 +62,7 @@ export const AestheticsModal: React.FC<AestheticsModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              className="p-2.5 min-h-[40px] min-w-[40px] text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center"
               aria-label="Close aesthetic chooser"
             >
               <X className="w-5 h-5" />
@@ -70,7 +70,7 @@ export const AestheticsModal: React.FC<AestheticsModalProps> = ({
           </div>
 
           {/* Theme List / Grid */}
-          <div className="p-6 overflow-y-auto space-y-3.5 flex-1">
+          <div className="p-4 sm:p-6 overflow-y-auto space-y-3.5 flex-1">
             {AESTHETIC_THEMES.map((theme) => {
               const isSelected = currentAesthetic === theme.id;
               const isLight = theme.mode === 'light';
@@ -90,7 +90,7 @@ export const AestheticsModal: React.FC<AestheticsModalProps> = ({
                   <div className="flex items-start gap-3.5 flex-1 min-w-0">
                     {/* Visual Color Swatches preview box */}
                     <div
-                      className="w-14 h-14 rounded-xl border shrink-0 flex flex-col p-1.5 justify-between shadow-inner"
+                      className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl border shrink-0 flex flex-col p-1.5 justify-between shadow-inner"
                       style={{
                         backgroundColor: theme.palette.bg,
                         borderColor: theme.palette.border
@@ -166,7 +166,7 @@ export const AestheticsModal: React.FC<AestheticsModalProps> = ({
                           e.stopPropagation();
                           onSelectAesthetic(theme.id);
                         }}
-                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition-colors"
+                        className="px-3 py-2 min-h-[40px] rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition-colors"
                       >
                         {isAmharic ? 'ይህን ምረጥ' : 'Select'}
                       </button>
@@ -185,7 +185,7 @@ export const AestheticsModal: React.FC<AestheticsModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors"
+              className="px-4 py-2.5 min-h-[40px] rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors"
             >
               {isAmharic ? 'ተከናውኗል' : 'Done'}
             </button>
