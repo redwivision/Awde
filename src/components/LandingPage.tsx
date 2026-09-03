@@ -374,6 +374,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             >
               {hero.meta}
             </span>
+            <span
+              style={{
+                color: 'var(--app-accent, #059669)',
+                borderColor: 'var(--app-border-strong, #94a3b8)'
+              }}
+              className="px-3 py-1 rounded-full border text-xs font-bold tracking-wide"
+            >
+              {isAmharic ? 'እወቅ፤ አብቅል' : 'Know it. Grow it.'}
+            </span>
           </motion.div>
 
           <motion.div

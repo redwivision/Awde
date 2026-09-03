@@ -11,9 +11,9 @@
 // The app's AI endpoints are server-side and can't work truly offline, but the
 // UI shell and your latest lesson state (localStorage) remain usable.
 
-const SHELL_CACHE = 'awde-shell-v1';
-const ASSET_CACHE = 'awde-assets-v1';
-const SHELL_URLS = ['./', './index.html', './manifest.webmanifest', './favicon.svg'];
+const SHELL_CACHE = 'awde-shell-v2';
+const ASSET_CACHE = 'awde-assets-v2';
+const SHELL_URLS = ['./', './index.html', './manifest.webmanifest', './favicon.svg', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

@@ -92,7 +92,7 @@ export const AwdeLogo: React.FC<AwdeLogoProps> = ({
             className={`font-medium ${dim.sub} mt-0.5 opacity-70`}
             style={{ color: 'var(--app-text-muted, #94a3b8)' }}
           >
-            {isAmharic ? 'የእውቀት ማዳበሪያ' : 'Grow knowledge.'}
+            {isAmharic ? 'እወቅ፤ አብቅል' : 'Know it. Grow it.'}
           </p>
         </div>
       )}
