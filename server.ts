@@ -10,7 +10,9 @@ import {
   generateFallbackFeynmanEvaluation,
   generateFallbackQuestions,
   generateFallbackBlurting,
-  generateFallbackNodeAnswer
+  generateFallbackNodeAnswer,
+  withTimeout,
+  AI_TIMEOUT_MS
 } from './server/ai';
 import { processTextbookPdf } from './server/textbook';
 
@@ -133,11 +135,10 @@ app.post('/api/textbook/process', upload.single('file'), async (req, res) => {
 
 // API: Generate Mind-Map & Concept Breakdown
 app.post('/api/mindmap/generate', makeRateLimiter(), async (req, res) => {
+  const body = getSafeJsonBody(req, res);
+  if (!body) return;
+  const { topic, textbookText, subject, gradeLevel, language } = body;
   try {
-    const body = getSafeJsonBody(req, res);
-    if (!body) return;
-
-    const { topic, textbookText, subject, gradeLevel, language } = body;
     const ai = getGeminiClient();
 
     if (!ai) {
@@ -170,7 +171,7 @@ Textbook Extract or Outline:
 ${(textbookText || topic || 'Key core concepts and formulas').slice(0, 4000)}
 Primary Language: ${language === 'am' ? 'Amharic (አማርኛ) prioritized alongside English' : 'English with complete Amharic translations'}`;
 
-    const response = await ai.models.generateContent({
+    const response = await withTimeout(ai.models.generateContent({
       model: 'gemini-3.7-flash',
       contents: prompt,
       config: {
@@ -286,7 +287,7 @@ Primary Language: ${language === 'am' ? 'Amharic (አማርኛ) prioritized alon
           required: ['title', 'titleAmharic', 'subject', 'nodes', 'connections', 'quizQuestions', 'flashcards']
         }
       }
-    });
+    }), AI_TIMEOUT_MS);
 
     const parsed = JSON.parse(response.text || '{}');
     const unitId = 'unit_' + Date.now();
@@ -300,25 +301,24 @@ Primary Language: ${language === 'am' ? 'Amharic (አማርኛ) prioritized alon
     res.json({ success: true, unit: finalUnit });
   } catch (error: any) {
     console.error('Error generating mindmap:', error);
-    res.status(500).json({ error: safeErrorMessage(error, 'Could not generate the mind-map right now. Please try again.') });
+    // AI failed (timeout/network/API) — never error the student; fall back deterministically.
+    res.json({ success: true, isFallback: true, unit: generateFallbackUnit(topic || 'Concept Study', subject || 'Science', textbookText || '') });
   }
 });
 
 // API: Rooty Socratic Feynman Evaluation
 app.post('/api/feynman/evaluate', makeRateLimiter(), async (req, res) => {
+  const body = getSafeJsonBody(req, res);
+  if (!body) return;
+  const {
+    nodeLabel,
+    nodeSummary,
+    userExplanation,
+    language,
+    strictnessLevel, // 'gentle' | 'balanced' | 'ironclad'
+    chatHistory
+  } = body;
   try {
-    const body = getSafeJsonBody(req, res);
-    if (!body) return;
-
-    const {
-      nodeLabel,
-      nodeSummary,
-      userExplanation,
-      language,
-      strictnessLevel, // 'gentle' | 'balanced' | 'ironclad'
-      chatHistory
-    } = body;
-
     const ai = getGeminiClient();
 
     if (!ai) {
@@ -369,7 +369,7 @@ ${JSON.stringify(chatHistory || [])}
 
 Evaluate this Feynman attempt now.`;
 
-    const response = await ai.models.generateContent({
+    const response = await withTimeout(ai.models.generateContent({
       model: 'gemini-3.7-flash',
       contents: prompt,
       config: {
@@ -419,28 +419,28 @@ Evaluate this Feynman attempt now.`;
           ]
         }
       }
-    });
+    }), AI_TIMEOUT_MS);
 
     const parsed = JSON.parse(response.text || '{}');
     res.json({ success: true, evaluation: parsed });
   } catch (error: any) {
     console.error('Error evaluating Feynman attempt:', error);
-    res.status(500).json({ error: safeErrorMessage(error, 'Evaluation failed. Please try again.') });
+    // AI failed — never error the student; fall back deterministically.
+    res.json({ success: true, isFallback: true, evaluation: generateFallbackFeynmanEvaluation(nodeLabel, userExplanation, strictnessLevel) });
   }
 });
 
 // API: Ask Rooty — lightweight Q&A about a concept node
 app.post('/api/node/ask', makeRateLimiter(), async (req, res) => {
+  const body = getSafeJsonBody(req, res);
+  if (!body) return;
+  const { nodeLabel, nodeSummary, question, language, chatHistory } = body;
+
+  if (!question || !String(question).trim()) {
+    return res.status(400).json({ error: 'Question is required.' });
+  }
+
   try {
-    const body = getSafeJsonBody(req, res);
-    if (!body) return;
-
-    const { nodeLabel, nodeSummary, question, language, chatHistory } = body;
-
-    if (!question || !String(question).trim()) {
-      return res.status(400).json({ error: 'Question is required.' });
-    }
-
     const ai = getGeminiClient();
 
     if (!ai) {
@@ -468,7 +468,7 @@ ${chatHistory && chatHistory.length > 0 ? `Previous conversation:\n${JSON.string
 
 Answer the student's question now. Be clear, concise, and encouraging.`;
 
-    const response = await ai.models.generateContent({
+    const response = await withTimeout(ai.models.generateContent({
       model: 'gemini-3.7-flash',
       contents: prompt,
       config: {
@@ -483,27 +483,26 @@ Answer the student's question now. Be clear, concise, and encouraging.`;
           required: ['answer', 'answerAmharic']
         }
       }
-    });
+    }), AI_TIMEOUT_MS);
 
     const parsed = JSON.parse(response.text || '{}');
     res.json({ success: true, answer: parsed.answer, answerAmharic: parsed.answerAmharic });
   } catch (error: any) {
     console.error('Error in node ask:', error);
-    res.status(500).json({ error: safeErrorMessage(error, 'Could not get an answer. Please try again.') });
+    // AI failed — never error the student; Rooty answers deterministically instead.
+    res.json({ success: true, isFallback: true, ...generateFallbackNodeAnswer(nodeLabel, question) });
   }
 });
 
 // API: Generate Unlimited Diagnostic Quizzes
 app.post('/api/quiz/generate', makeRateLimiter(), async (req, res) => {
+  const body = getSafeJsonBody(req, res);
+  if (!body) return;
+  const { topic, textbookText, count = 5, difficulty = 'adaptive' } = body;
+  const parsedCount = Number(count);
+  const safeCount = Number.isFinite(parsedCount) ? Math.max(1, Math.min(20, parsedCount)) : 5;
   try {
-    const body = getSafeJsonBody(req, res);
-    if (!body) return;
-
-    const { topic, textbookText, count = 5, difficulty = 'adaptive' } = body;
     const ai = getGeminiClient();
-
-    const parsedCount = Number(count);
-    const safeCount = Number.isFinite(parsedCount) ? Math.max(1, Math.min(20, parsedCount)) : 5;
 
     if (!ai) {
       return res.json({
@@ -521,7 +520,7 @@ Include common misconception traps as plausible distractors. Provide complete bi
 Topic: ${topic}
 Textbook Context: ${(textbookText || topic).slice(0, 3000)}`;
 
-    const response = await ai.models.generateContent({
+    const response = await withTimeout(ai.models.generateContent({
       model: 'gemini-3.7-flash',
       contents: prompt,
       config: {
@@ -547,23 +546,23 @@ Textbook Context: ${(textbookText || topic).slice(0, 3000)}`;
           }
         }
       }
-    });
+    }), AI_TIMEOUT_MS);
 
     const parsed = JSON.parse(response.text || '[]');
     res.json({ success: true, questions: parsed });
   } catch (error: any) {
     console.error('Error generating quiz:', error);
-    res.status(500).json({ error: safeErrorMessage(error, 'Quiz generation failed. Please try again.') });
+    // AI failed — never error the student; fall back deterministically.
+    res.json({ success: true, isFallback: true, questions: generateFallbackQuestions(topic, safeCount) });
   }
 });
 
 // API: Blurting Active Recall Evaluation
 app.post('/api/blurting/evaluate', makeRateLimiter(), async (req, res) => {
+  const body = getSafeJsonBody(req, res);
+  if (!body) return;
+  const { topicTitle, targetKeyPoints, userRecallText } = body;
   try {
-    const body = getSafeJsonBody(req, res);
-    if (!body) return;
-
-    const { topicTitle, targetKeyPoints, userRecallText } = body;
     const ai = getGeminiClient();
 
     if (!ai) {
@@ -581,7 +580,7 @@ Target Key Points to know: ${JSON.stringify(targetKeyPoints)}
 Student's Blurting Recall text:
 "${userRecallText}"`;
 
-    const response = await ai.models.generateContent({
+    const response = await withTimeout(ai.models.generateContent({
       model: 'gemini-3.7-flash',
       contents: prompt,
       config: {
@@ -599,12 +598,13 @@ Student's Blurting Recall text:
           required: ['accuracyScore', 'recalledKeyPoints', 'missedKeyPoints', 'feedback', 'feedbackAmharic']
         }
       }
-    });
+    }), AI_TIMEOUT_MS);
 
     res.json({ success: true, ...JSON.parse(response.text || '{}') });
   } catch (error: any) {
     console.error('Error evaluating blurting:', error);
-    res.status(500).json({ error: safeErrorMessage(error, 'Evaluation failed. Please try again.') });
+    // AI failed — never error the student; fall back deterministically.
+    res.json({ success: true, isFallback: true, ...generateFallbackBlurting(targetKeyPoints) });
   }
 });
 

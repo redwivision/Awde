@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { postJson, isOnline } from '../lib/api';
+import { postJson } from '../lib/api';
 import {
   ConceptNode,
   FeynmanDialogueTurn,
@@ -253,16 +253,17 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
           }
         }
       } else {
-        // Fallback: network unavailable or server error. Show a clear message
-        // in the dialogue instead of silently doing nothing.
+        // Fallback: server unreachable. Always provide a helpful evaluation
+        // rather than an error message — the student must never see a dead end.
+        const conceptLabel = selectedNode.label || 'this concept';
         const isOffline = data.error === 'offline';
-        const offlineReply = isOnline()
+        const offlineReply = isOffline
           ? (isAmharic
-              ? 'የኔ ግንኙነት ተቋርጧል። እባክህ እንደገና ሞክር።'
-              : 'My connection hiccuped — try that again in a moment.')
+              ? `ከበይነመረብ ጋር ስላልተገናኘህ አሁን ሙሉ ማወक አልችልም። ነገር ግን ይህን ነው ያለብך፡ «${conceptLabel}»ን በቀላል ቃላት ለማስተማር ሞክር — ይህ የፌይንማን ዘዴ መሠረት ነው።`
+              : `I can't do a full evaluation while you're offline, but here's my coaching:\n\nTry explaining "${conceptLabel}" in your own words using a simple everyday analogy. That's the core of the Feynman technique — you're already doing it!`)
           : (isAmharic
-              ? 'ከበይነመረብ ጋር ስላልተገናኘህ አሁን ማስተማር አይችልም። እንደገና ተገናኝና ገጹን ጫን።'
-              : "You're offline, so I can't evaluate right now. Reconnect and reload to continue!");
+              ? `ሰርቨሩን ጋር ችግር አጋጥሞኛል። «${conceptLabel}»ን በቀላል ምሳሌ ማብራራት ሞክር — ይህ ተደራሽ መረዳት እንድትፈጥር ይช่วยሃል።`
+              : `I can't reach the server for a full evaluation right now, but here's my coaching:\n\nTry explaining "${conceptLabel}" using a simple, concrete analogy from daily life. That builds genuine understanding — keep going!`);
 
         setDialogue((prev) => [
           ...prev,
@@ -270,13 +271,27 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
             id: 'turn_rooty_offline_' + Date.now(),
             speaker: 'rooty',
             text: offlineReply,
-            emotion: 'confused',
+            emotion: 'challenging',
             timestamp: Date.now()
           }
         ]);
       }
     } catch (err) {
       console.error('Feynman evaluation error:', err);
+      // Last-resort fallback — the student should never see a stuck spinner with no answer.
+      const conceptLabel = selectedNode.label || 'this concept';
+      setDialogue((prev) => [
+        ...prev,
+        {
+          id: 'turn_rooty_err_' + Date.now(),
+          speaker: 'rooty',
+          text: isAmharic
+            ? `ሰርቨሩን ጋር ችግር አጋጥሞኛል። «${conceptLabel}»ን በቀላል ቃላት በመስማራት ሞክር — ይህ ተደራሽ መረዳት እንድትፈጥር ያስተምርሃል።`
+            : `Something went wrong reaching the server, but don't stop! Try explaining "${conceptLabel}" in your own words using a simple analogy — that's how real mastery builds.`,
+          emotion: 'challenging',
+          timestamp: Date.now()
+        }
+      ]);
     } finally {
       setIsLoading(false);
     }

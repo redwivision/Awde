@@ -42,6 +42,34 @@ export const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
 // Note: NVIDIA free tier is very slow for large outputs - may time out.
 export const NVIDIA_TT_MODEL = 'minimaxai/minimax-m3';
 
+// How long an upstream AI call (Gemini) is allowed to run before we give up and
+// fall back to the deterministic generator. Kept short so weak-wifi students get
+// a usable answer fast instead of a stuck spinner or a 5xx error.
+export const AI_TIMEOUT_MS = 9000;
+
+// Wraps a promise with an absolute deadline. If the promise doesn't settle in
+// `ms`, it rejects with a sentinel AiTimeoutError. Combined with each route's
+// fallback handler, this guarantees an AI endpoint NEVER hangs or 500s on a
+// slow/failed upstream — it falls back deterministically.
+export class AiTimeoutError extends Error {
+  constructor() {
+    super('ai_timeout');
+    this.name = 'AiTimeoutError';
+  }
+}
+
+export async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new AiTimeoutError()), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 // Deterministic offline fallback generators. These run instantly with zero
 // network, so weak-wifi / offline students always get a working experience.
 // They power every AI feature until a GEMINI_API_KEY is configured.

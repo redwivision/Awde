@@ -71,7 +71,7 @@ export async function postJson<T = unknown>(
   body: unknown,
   options: { timeoutMs?: number; retries?: number } = {}
 ): Promise<ApiResult<T>> {
-  const { timeoutMs = 12000, retries = 1 } = options;
+  const { timeoutMs = 8000, retries = 1 } = options;
 
   // If the device is already disconnected, fail fast instead of waiting on a
   // request that cannot succeed. No spinner hang.

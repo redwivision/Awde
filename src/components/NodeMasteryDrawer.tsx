@@ -113,15 +113,14 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
       });
 
       // postJson returns { ok:false, data:{ error:'offline' } } when the device
-      // is disconnected — block with a clear message rather than a canned reply.
+      // is disconnected — always show a fallback answer, never an error.
       if (!result.ok || !result.data?.answer) {
         const isOffline = result.data?.error === 'offline';
-        setChatMessages((prev) => [
-          ...prev,
-          isOffline
-            ? { role: 'rooty', content: "You're offline, so I can't answer right now. Reconnect and reload to keep going!", contentAmharic: 'ከበይነመረብ ጋር ስላልተገናኘህ አሁን መልስ መስጠት አልችልም። እንደገና ተገናኝና ገጹን ጫን!' }
-            : { role: 'rooty', content: 'Oops — my connection hiccuped. Try again in a moment!', contentAmharic: 'ጌጋ ተፈጥሯል። እንደገና ሞክር!' }
-        ]);
+        const label = node?.label || 'this concept';
+        const fb = isOffline
+          ? { content: `Right now I can't reach the server (you're offline). Here's a quick review while you reconnect:\n\n"${label}" is a core concept — try breaking it down into a simple real-world example. When you're back online, Rooty can give you a deeper breakdown!`, contentAmharic: `አሁን ሰርቨሩን መድረስ አይችልም (ከበይነመረብ ጋር ስላልተገናኘህ)\n\n«${label}» ዋና ጽንሰ-ሀሳብ ነው — በቀላል የዕለት ተዕለት ምሳሌ ለማብራራት ሞክር። በበይነመረብ ሲገናኝ ሩቲ የበለጠ ግልጽ ማብራሪያ ይሰጥልሃል!` }
+          : { content: `I can't reach the server right now, but here's what I know:\n\n"${label}" is best understood by connecting it to something real you can see and touch. Try explaining it out loud using an Ethiopian everyday example — that's the Feynman method!`, contentAmharic: `ሰርቨሩን ማግኘት አልችልም፤ ነገር ግን ያለው ይህን ነው፡\n\n«${label}»ን በትክክል ለማ duyệt ከእርስዋ ጋር ተግባራዊ ነገር ያገናኙት። በኢትዮጵያዊ የዕለት ተዕለት ምሳሌ ያህል በቀላል ቃላት በ\Collections out loud ለማስተማር ሞክር — ይህ የፌይንማን ዘዴ ነው!` };
+        setChatMessages((prev) => [...prev, { role: 'rooty', ...fb }]);
         return;
       }
 
@@ -132,9 +131,12 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
       };
       setChatMessages((prev) => [...prev, rootyMsg]);
     } catch {
+      const label = node?.label || 'this concept';
       setChatMessages((prev) => [
         ...prev,
-        { role: 'rooty', content: 'Oops — my connection hiccuped. Try again in a moment!', contentAmharic: 'ጌጋ ተፈጥሯል። እንደገና ሞክር!' }
+        { role: 'rooty',
+          content: `I had trouble reaching the server, but here's a starting point:\n\n"${label}" — try breaking it down into a simple analogy from everyday Ethiopian life. That's how true understanding builds!`,
+          contentAmharic: `ሰርቨሩን ጋር ችግር አጋጥሞኛል፣ ነገር ግን የመነሻ ነጥብ ይህ ነው፡\n\n«${label}» — በቀላል የዕለት ተዕለት ምሳሌ ማስተካከል ሞክር። ያ ነው ትክክለኛ መረዳት የሚያድገገው!` }
       ]);
     } finally {
       setChatLoading(false);
