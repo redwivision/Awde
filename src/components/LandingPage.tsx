@@ -381,7 +381,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               }}
               className="px-3 py-1 rounded-full border text-xs font-bold tracking-wide"
             >
-              {isAmharic ? 'እወቅ፤ አብቅል' : 'Know it. Grow it.'}
+              {isAmharic ? 'እወቅ አሳድግ' : 'Know it. Grow it.'}
             </span>
           </motion.div>
 
