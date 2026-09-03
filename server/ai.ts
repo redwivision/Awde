@@ -353,13 +353,13 @@ export function generateFallbackNodeAnswer(
 
   if (q.includes('why') || q.includes('ምን') || q.includes('ለምን')) {
     answer = `Great question! The reason "${label}" works the way it does comes down to fundamental physical principles. Think of it like this: just as water flows downhill because of gravity, ${label} follows its own governing rule. The key insight is that energy and structure determine behavior — change one, and the other shifts too. Try connecting this to a real-world Ethiopian example, like how the Blue Nile carves the Abay Gorge over millennia.`;
-    answerAmharic = `ጥሩ ጥያቄ ነው! "${label}" እንዴት እንደሚሠራ በመሠረታዊ ፊዚክስ መርሆች ይሰጠናል። ውሃ በ gravite እንደሚወርድ ሁሉ፣ ${label} የተለየ ሕግ ይከተላል። ቁልፍ ማስተን灣 ሁለት ነገር አብሮ መሆናቸውን ነው።`;
+    answerAmharic = `ጥሩ ጥያቄ ነው! «${label}» እንዴት እንደሚሠራ በመሠረታዊ የፊዚክስ መርሆች ሊብራራ ይችላል። ውሃ በስበት ኃይል ወደ ታች እንደሚፈስ ሁሉ፣ ${label} የራሱን ሕግ ይከተላል። ቁልፉ ነገር ሃይል እና አወቃቀር ባህሪን እንደሚወስኑ መረዳት ነው። ለምሳሌ የግድግዳን ጅልን ከብሉ ናይል ጋር በማገናኘት ልታስተካክለው ትችላለህ።`;
   } else if (q.includes('example') || q.includes('ምሳሌ') || q.includes('how')) {
-    answer = `Here's a concrete way to think about "${label}": imagine you're at Merkato watching a交易 happen. The same transfer principle applies here — one thing changes state or position, and the outcome depends on the conditions. The most important thing to remember is that ${label} isn't abstract — it shows up in daily Ethiopian life, from coffee roasting (Jebena Buna) to building the GERD.`;
-    answerAmharic = `"${label}" ለማሰብ እንዴት ይቻላል: በ መርካቶ ውስጥ ንግድ ሲከሰት ያኔ ይመስላል። ተመሳሳይ ለውጥ መርሆ ይተገበራል — አንድ ነገር ሁኔታ ሲቀይር ውጤቱ በአስተዳደር ላይ ይወሰናል።`;
+    answer = `Here's a concrete way to think about "${label}": imagine you're at Merkato watching a busy trade happen. The same transfer principle applies here — one thing changes state or position, and the outcome depends on the conditions. The most important thing to remember is that ${label} isn't abstract — it shows up in daily Ethiopian life, from coffee roasting (Jebena Buna) to building bridges and dams.`;
+    answerAmharic = `«${label}»ን ለማሰብ እንዲህ አስቡት፡ በመርካቶ ውስጥ ንግድ ሲከሰት እንደሚታየው ነው። ተመሳሳይ የለውጥ መርህ ይተገበራል — አንድ ነገር ሁኔታውን ሲቀይር ውጤቱ በዙሪያው ባሉ ሁኔታዎች ላይ ይወሰናል።`;
   } else {
     answer = `"${label}" is a core concept that connects to several other ideas in this unit. The essential thing to understand is that it describes a real physical process — not just a formula on paper. Rooty recommends: try explaining it to a younger sibling using only everyday words and a Ethiopian cultural analogy. If you can do that, you truly understand it!`;
-    answerAmharic = `"${label}" የጠቅላላ ጽንሰ-ሀሳብ ነው ከሌሎች ሀሳቦች ጋር የሚገናኝ ነው። ውስጡ ያለውን ትክክለኛ ፊዚካዊ ሂደት መረዳት ነው — በቃላት ብቻ አይደለም። ሩቲ ይመክራል: ለድንግር ባህርይ ቃላት ብቻ ተብሎ ለ婪mente አስተምረው።`;
+    answerAmharic = `«${label}» ከዚህ ክፍል ውስጥ ካሉ ሌሎች ሃሳቦች ጋር የሚገናኝ ዋና ጽንሰ-ሀሳብ ነው። ሊረዳበት የሚገባው ዋናው ነገር በውስጡ ያለውን ትክክለኛ የፊዚካል ሂደት መረዳት ነው — በወረቀት ላይ ባለ ቀመር ብቻ አይደለም። ሩቲ ይመክራል፡ ለትንሽ ልጅ በቀላል የዕለት ተዕለት ቃላት እና በኢትዮጵያዊ ምሳሌ ለማስተማር ሞክር።`;
   }
 
   return { answer, answerAmharic };

@@ -104,7 +104,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
     setChatLoading(true);
 
     try {
-      const result = await postJson<{ answer: string; answerAmharic: string }>('/api/node/ask', {
+      const result = await postJson<{ answer: string; answerAmharic: string; error?: string }>('/api/node/ask', {
         nodeLabel: node.label,
         nodeSummary: node.summary,
         question,
@@ -112,10 +112,23 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
         chatHistory: chatMessages.slice(-6).map((m) => ({ role: m.role, content: m.content }))
       });
 
+      // postJson returns { ok:false, data:{ error:'offline' } } when the device
+      // is disconnected — block with a clear message rather than a canned reply.
+      if (!result.ok || !result.data?.answer) {
+        const isOffline = result.data?.error === 'offline';
+        setChatMessages((prev) => [
+          ...prev,
+          isOffline
+            ? { role: 'rooty', content: "You're offline, so I can't answer right now. Reconnect and reload to keep going!", contentAmharic: 'ከበይነመረብ ጋር ስላልተገናኘህ አሁን መልስ መስጠት አልችልም። እንደገና ተገናኝና ገጹን ጫን!' }
+            : { role: 'rooty', content: 'Oops — my connection hiccuped. Try again in a moment!', contentAmharic: 'ጌጋ ተፈጥሯል። እንደገና ሞክር!' }
+        ]);
+        return;
+      }
+
       const rootyMsg: NodeChatMessage = {
         role: 'rooty',
-        content: result.data?.answer || 'Hmm, I need to think about that more. Try rephrasing your question!',
-        contentAmharic: result.data?.answerAmharic
+        content: result.data.answer,
+        contentAmharic: result.data.answerAmharic
       };
       setChatMessages((prev) => [...prev, rootyMsg]);
     } catch {

@@ -66,7 +66,7 @@ describe('postJson (weak-wifi / offline-safe client fetch)', () => {
     expect(calls).toHaveLength(2);
   });
 
-  it('aborts a request that exceeds the timeout and the returned result reflects network failure', async () => {
+  it('aborts a request that exceeds the timeout and returns a network-failure result (does not throw)', async () => {
     vi.useFakeTimers();
     mockFetch((_i, init) => {
       // Return a promise that never resolves on its own; abort triggers rejection.
@@ -77,16 +77,41 @@ describe('postJson (weak-wifi / offline-safe client fetch)', () => {
       });
     });
 
-    const p = postJson('/api/x', {}, { timeoutMs: 1000, retries: 0 });
-    const assertion = expect(p).rejects.toMatchObject({ name: 'AbortError' });
-    await vi.advanceTimersByTimeAsync(1100);
-    await assertion;
+    const assertionPromise = (async () => {
+      const p = postJson('/api/x', {}, { timeoutMs: 1000, retries: 0 });
+      await vi.advanceTimersByTimeAsync(1100);
+      const r = await p;
+      expect(r.ok).toBe(false);
+      expect(r.status).toBe(0);
+      expect((r.data as any).error).toBe('network');
+    })();
+    await assertionPromise;
   });
 
-  it('rejects after exhausting retries when the network stays down', async () => {
+  it('returns ok:false (does not throw) after exhausting retries when the network stays down', async () => {
     mockFetch(async () => {
       throw new TypeError('Failed to fetch');
     });
-    await expect(postJson('/api/x', {}, { retries: 2, timeoutMs: 100 })).rejects.toThrow('Failed to fetch');
+    const r = await postJson('/api/x', {}, { retries: 2, timeoutMs: 100 });
+    expect(r.ok).toBe(false);
+    expect((r.data as any).error).toBe('network');
+  });
+
+  it('short-circuits instantly (offline error, no fetch) when the device is offline', async () => {
+    const fetchSpy = vi.fn(async () => new Response('{}', { status: 200 }));
+    mockFetch(fetchSpy as any);
+    // Simulate navigator being offline by redefining the onLine getter.
+    const original = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false });
+    try {
+      const r = await postJson('/api/x', {});
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(r.ok).toBe(false);
+      expect(r.status).toBe(0);
+      expect((r.data as any).error).toBe('offline');
+    } finally {
+      if (original) Object.defineProperty(navigator, 'onLine', original);
+      else delete (navigator as any).onLine;
+    }
   });
 });

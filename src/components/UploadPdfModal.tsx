@@ -158,9 +158,20 @@ const handleCreateWorkspace = async () => {
     const result = await postFormData<{ workspace: TextbookWorkspace }>('/api/textbook/process', form, { timeoutMs: 120000 });
 
     if (!result.ok) {
-      const msg =
-        (result.data as any)?.error ||
-        (isAmharic ? 'ፋይሉን ማስተካከል አልተቻለም።' : 'Could not process the textbook. Please try again.');
+      const err = (result.data as any)?.error;
+      let msg: string;
+      if (err === 'offline') {
+        msg = isAmharic
+          ? 'ከበይነመረብ ጋር ስላልተገናኘህ ፋይሉን ማስተካከል አይቻልም። እንደገና ተገናኝና ገጹን ጫን።'
+          : "You're offline, so the textbook can't be processed. Reconnect and reload.";
+      } else if (err === 'network') {
+        msg = isAmharic
+          ? 'ከአገልጋዩ ጋር መገናኘት አልተቻለም። ግንኙነቱን ያረጋግጡ።'
+          : 'Could not reach the server. Check your connection and try again.';
+      } else {
+        msg =
+          err || (isAmharic ? 'ፋይሉን ማስተካከል አልተቻለም።' : 'Could not process the textbook. Please try again.');
+      }
       setError(msg);
       setIsProcessing(false);
       return;

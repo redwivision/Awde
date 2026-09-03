@@ -19,7 +19,7 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_REQUESTS = 60;
+const RATE_LIMIT_MAX_REQUESTS = 120;
 const rateLimitBuckets = new Map<string, number[]>();
 
 function getClientIp(req: express.Request): string {
@@ -29,19 +29,25 @@ function getClientIp(req: express.Request): string {
   return req.ip || 'unknown';
 }
 
-function enforceRateLimit(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const ip = getClientIp(req);
-  const now = Date.now();
-  const timestamps = rateLimitBuckets.get(ip) || [];
-  const recent = timestamps.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
+// Rate limiting is scoped to the AI-generation POST endpoints only, never to
+// static assets or the health check. This prevents a legitimate student using
+// chat-heavy features (Ask Rooty, Feynman, AI quizzes) — or a dev server
+// serving module bundles through the same origin — from tripping the limit.
+function makeRateLimiter(maxRequests = RATE_LIMIT_MAX_REQUESTS) {
+  return function enforceRateLimit(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const ip = getClientIp(req);
+    const now = Date.now();
+    const timestamps = rateLimitBuckets.get(ip) || [];
+    const recent = timestamps.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
 
-  if (recent.length >= RATE_LIMIT_MAX_REQUESTS) {
-    return res.status(429).json({ error: 'Too many requests. Please slow down and try again shortly.' });
-  }
+    if (recent.length >= maxRequests) {
+      return res.status(429).json({ error: 'Too many requests. Please slow down and try again shortly.' });
+    }
 
-  recent.push(now);
-  rateLimitBuckets.set(ip, recent);
-  next();
+    recent.push(now);
+    rateLimitBuckets.set(ip, recent);
+    next();
+  };
 }
 
 function getSafeJsonBody(req: express.Request, res: express.Response): Record<string, any> | null {
@@ -64,7 +70,6 @@ function safeErrorMessage(err: unknown, fallback: string): string {
   }
   return msg || fallback;
 }
-app.use(enforceRateLimit);
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (err instanceof SyntaxError && 'body' in err) {
     return res.status(400).json({ error: 'Malformed JSON payload.' });
@@ -127,7 +132,7 @@ app.post('/api/textbook/process', upload.single('file'), async (req, res) => {
 });
 
 // API: Generate Mind-Map & Concept Breakdown
-app.post('/api/mindmap/generate', async (req, res) => {
+app.post('/api/mindmap/generate', makeRateLimiter(), async (req, res) => {
   try {
     const body = getSafeJsonBody(req, res);
     if (!body) return;
@@ -300,7 +305,7 @@ Primary Language: ${language === 'am' ? 'Amharic (አማርኛ) prioritized alon
 });
 
 // API: Rooty Socratic Feynman Evaluation
-app.post('/api/feynman/evaluate', async (req, res) => {
+app.post('/api/feynman/evaluate', makeRateLimiter(), async (req, res) => {
   try {
     const body = getSafeJsonBody(req, res);
     if (!body) return;
@@ -347,7 +352,10 @@ ROOTY'S PERSONALITY & EMOTIONS:
 STRICTNESS MODE: ${strictnessGuideline}
 
 LANGUAGE:
-Support both English and Amharic (አማርኛ). If user speaks Amharic or asks for Amharic feedback, provide rich, idiomatic Amharic critique alongside English.
+The student has selected: ${language === 'am' ? 'Amharic (አማርኛ)' : 'English'}.
+- If the student's interface language is Amharic, your PRIMARY "rootyCritiqueAmharic" and "followUpQuestionAmharic" fields must be natural, idiomatic, fluent Amharic (አማርኛ) as a native speaker would write — not a literal word-for-word translation of the English. Keep "rootyCritique" as a faithful English version too.
+- If the student's interface language is English, still provide a complete, natural "rootyCritiqueAmharic" alongside the English "rootyCritique".
+- Avoid mixing scripts or leaving untranslated English words where a natural Amharic term exists; keep technical terms in parentheses only when helpful.
 
 Output must strictly be valid JSON.`;
 
@@ -422,7 +430,7 @@ Evaluate this Feynman attempt now.`;
 });
 
 // API: Ask Rooty — lightweight Q&A about a concept node
-app.post('/api/node/ask', async (req, res) => {
+app.post('/api/node/ask', makeRateLimiter(), async (req, res) => {
   try {
     const body = getSafeJsonBody(req, res);
     if (!body) return;
@@ -448,7 +456,7 @@ Your job is to answer student questions about a specific concept clearly and int
 - Use plain language, avoid jargon, and include Ethiopian cultural analogies when helpful.
 - Keep answers concise (3-5 sentences) but insightful.
 - If the student's question is vague, gently redirect them to be more specific.
-- Support both English and Amharic (አማርኛ). Respond in the language the student uses.
+- LANGUAGE: The student's interface language is ${language === 'am' ? 'Amharic (አማርኛ)' : 'English'}. When it's Amharic, make "answerAmharic" natural, idiomatic, fluent Amharic as a native speaker would write (not a literal word-for-word translation) and keep "answer" as a faithful English version. When it's English, still provide a complete, natural "answerAmharic" alongside the "answer".
 - Be warm and encouraging, like a brilliant older sibling helping with homework.`;
 
     const prompt = `Concept: ${nodeLabel}
@@ -486,7 +494,7 @@ Answer the student's question now. Be clear, concise, and encouraging.`;
 });
 
 // API: Generate Unlimited Diagnostic Quizzes
-app.post('/api/quiz/generate', async (req, res) => {
+app.post('/api/quiz/generate', makeRateLimiter(), async (req, res) => {
   try {
     const body = getSafeJsonBody(req, res);
     if (!body) return;
@@ -550,7 +558,7 @@ Textbook Context: ${(textbookText || topic).slice(0, 3000)}`;
 });
 
 // API: Blurting Active Recall Evaluation
-app.post('/api/blurting/evaluate', async (req, res) => {
+app.post('/api/blurting/evaluate', makeRateLimiter(), async (req, res) => {
   try {
     const body = getSafeJsonBody(req, res);
     if (!body) return;

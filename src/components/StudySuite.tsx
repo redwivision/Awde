@@ -56,6 +56,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
   const [blurtTimer, setBlurtTimer] = useState(180); // 3 mins
   const [isBlurtRunning, setIsBlurtRunning] = useState(false);
   const [blurtResult, setBlurtResult] = useState<BlurtingRecallResult | null>(null);
+  const [blurtError, setBlurtError] = useState<string | null>(null);
   const [isEvaluatingBlurt, setIsEvaluatingBlurt] = useState(false);
 
   // SRS Flashcards State
@@ -162,6 +163,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
       });
       const data = res.data as any;
       if (data.success) {
+        setBlurtError(null);
         setBlurtResult({
           accuracyScore: data.accuracyScore,
           recalledKeyPoints: data.recalledKeyPoints || [],
@@ -169,9 +171,22 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
           feedback: data.feedback,
           feedbackAmharic: data.feedbackAmharic
         });
+      } else {
+        const isOffline = data?.error === 'offline';
+        setBlurtResult(null);
+        setBlurtError(
+          isOffline
+            ? (isAmharic
+                ? 'ከበይነመረብ ጋር ስላልተገናኘህ የብሉርቲንግ ውጤት ማግኘት አልቻልን። እንደገና ተገናኝና ገጹን ጫን።'
+                : "You're offline, so the blurting evaluation isn't available. Reconnect and reload.")
+            : (isAmharic
+                ? 'የብሉርቲንግ ውጤት ማግኘት አልተሳካም። እንደገና ሞክር።'
+                : "Couldn't evaluate your blurting. Please try again.")
+        );
       }
     } catch (e) {
       console.error(e);
+      setBlurtError(isAmharic ? 'የብሉርቲንግ ውጤት ማግኘት አልተሳካም።' : "Couldn't evaluate your blurting. Please try again.");
     } finally {
       setIsEvaluatingBlurt(false);
     }
@@ -473,6 +488,11 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
             </div>
 
             {/* Blurting Results Analysis */}
+            {blurtError && (
+              <div className="p-4 rounded-xl bg-rose-950/30 border border-rose-500/30 text-sm text-rose-200">
+                {blurtError}
+              </div>
+            )}
             {blurtResult && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}

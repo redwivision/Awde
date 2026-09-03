@@ -40,6 +40,7 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
   const [showExplanation, setShowExplanation] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const [filterDifficulty, setFilterDifficulty] = useState<string>('all');
 
   const isAmharic = language === 'am';
@@ -98,14 +99,27 @@ try {
         count: 4,
         difficulty: 'hard'
       });
-      const data = res.data as { success?: boolean; questions?: QuizQuestion[] };
+      const data = res.data as { success?: boolean; questions?: QuizQuestion[]; error?: string };
       if (data.success && data.questions) {
+        setGenerateError(null);
         const newQs: QuizQuestion[] = data.questions;
         setQuestions((prev) => [...prev, ...newQs]);
         if (onAddCustomQuestions) onAddCustomQuestions(newQs);
+      } else {
+        const isOffline = data.error === 'offline';
+        setGenerateError(
+          isOffline
+            ? (language === 'am'
+                ? 'ከበይነመረብ ጋር ስላልተገናኘህ ተጨማሪ ጥያቄዎችን ማመንጨት አይቻልም። እንደገና ተገናኝና ገጹን ጫን።'
+                : "You're offline, so I can't generate more questions. Reconnect and reload.")
+            : (language === 'am'
+                ? 'ተጨማሪ ጥያቄዎችን ማመንጨት አልተሳካም። እንደገና ሞክር።'
+                : "Couldn't generate more questions. Please try again.")
+        );
       }
     } catch (e) {
       console.error('Failed to generate extra quiz:', e);
+      setGenerateError(language === 'am' ? 'ተጨማሪ ጥያቄዎችን ማመንጨት አልተሳካም።' : "Couldn't generate more questions. Please try again.");
     } finally {
       setIsGeneratingMore(false);
     }
@@ -148,6 +162,12 @@ try {
             </button>
           </div>
         </div>
+
+        {generateError && (
+          <div className="px-4 py-2 -mt-2 text-xs text-rose-300 bg-rose-950/30 border border-rose-500/30 rounded-lg">
+            {generateError}
+          </div>
+        )}
 
         {!isCompleted && currentQ ? (
           <div className="space-y-6">

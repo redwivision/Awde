@@ -10,6 +10,7 @@ import {
 import { DEFAULT_TEXTBOOK_WORKSPACES } from './data/textbookWorkspaces';
 import { AESTHETIC_THEMES } from './data/themes';
 import { loadWorkspaces as loadWorkspacesFromStorage } from './data/persistence';
+import { useOnlineStatus } from './lib/api';
 import { WorkspaceSidebar } from './components/WorkspaceSidebar';
 import { LandingPage } from './components/LandingPage';
 import { HomePage } from './components/HomePage';
@@ -31,7 +32,8 @@ import {
   ChevronRight,
   ShieldCheck,
   Sparkles,
-  Command
+  Command,
+  WifiOff
 } from 'lucide-react';
 
 export default function App() {
@@ -59,21 +61,27 @@ export default function App() {
   // Landing page is the entry point on every fresh app load.
   const [isLandingOpen, setIsLandingOpen] = useState(true);
 
-  // Offline mode banner — shown when no AI keys configured
-  const [showOfflineBanner, setShowOfflineBanner] = useState(false);
+  // Fallback-mode banner — shown when the server has no Gemini key, so AI
+  // features use deterministic offline generators. Distinct from device
+  // offline (no network at all), which is handled by the online-status hook.
+  const [showFallbackBanner, setShowFallbackBanner] = useState(false);
+
+  // Live device connectivity. When offline, AI requests short-circuit in
+  // lib/api.ts and show a notice instead of hanging.
+  const isDeviceOnline = useOnlineStatus();
 
   useEffect(() => {
-    // Check if running in offline mode (no Gemini key)
-    const checkOfflineMode = async () => {
+    // Check if the server is running without a Gemini key (fallback mode)
+    const checkFallbackMode = async () => {
       try {
         const res = await fetch('/api/health');
         const data = await res.json();
-        setShowOfflineBanner(!data.hasGeminiKey);
+        setShowFallbackBanner(!data.hasGeminiKey);
       } catch {
-        setShowOfflineBanner(true);
+        setShowFallbackBanner(true);
       }
     };
-    checkOfflineMode();
+    checkFallbackMode();
   }, []);
 
   const [isAestheticsModalOpen, setIsAestheticsModalOpen] = useState(false);
@@ -263,8 +271,26 @@ export default function App() {
     />
   ) : (
     <div className="flex h-screen w-screen bg-slate-950 text-slate-100 font-sans overflow-hidden select-none">
-      {/* Offline Mode Banner */}
-      {showOfflineBanner && (
+      {/* Device Offline Banner — network completely unavailable */}
+      {!isDeviceOnline && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-red-600/95 backdrop-blur-sm text-white px-4 py-2 flex items-center justify-center gap-2 text-xs font-medium shadow-lg">
+          <WifiOff className="w-3.5 h-3.5" />
+          <span>
+            {isAmharic
+              ? 'ከበይነ መረብ ጋር አልተገናኘም። የAI ባህሪያት በአሁኑ ጊዜ አይገኙም። በይነመረቡ ሲመለስ ገጹን እንደገና ይጫኑ።'
+              : 'You are offline. AI features are unavailable — reconnect and reload to continue.'}
+          </span>
+          <button
+            onClick={() => window.location.reload()}
+            className="ml-2 px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors font-semibold"
+          >
+            {isAmharic ? 'እንደገና ጫን' : 'Reload'}
+          </button>
+        </div>
+      )}
+
+      {/* Fallback Mode Banner — server running without a Gemini key */}
+      {showFallbackBanner && isDeviceOnline && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500/95 backdrop-blur-sm text-amber-950 px-4 py-2 flex items-center justify-center gap-2 text-xs font-medium shadow-lg">
           <Sparkles className="w-3.5 h-3.5" />
           <span>
@@ -273,7 +299,7 @@ export default function App() {
               : 'Offline Mode: Using deterministic fallback generators. Configure GEMINI_API_KEY to unlock live AI features.'}
           </span>
           <button
-            onClick={() => setShowOfflineBanner(false)}
+            onClick={() => setShowFallbackBanner(false)}
             className="ml-2 px-2 py-0.5 rounded bg-amber-900/20 hover:bg-amber-900/30 transition-colors"
           >
             {isAmharic ? 'ዝጋ' : 'Dismiss'}

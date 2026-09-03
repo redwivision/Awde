@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { postJson } from '../lib/api';
+import { postJson, isOnline } from '../lib/api';
 import {
   ConceptNode,
   FeynmanDialogueTurn,
@@ -173,7 +173,7 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
         chatHistory: newDialogue.map((d) => ({ speaker: d.speaker, text: d.text }))
       });
 
-      const data = res.data as { success?: boolean; evaluation?: any; isFallback?: boolean };
+      const data = res.data as { success?: boolean; evaluation?: any; isFallback?: boolean; error?: string };
       if (data.success && data.evaluation) {
         const evalData: FeynmanEvaluation = {
           nodeId: selectedNode.id,
@@ -252,6 +252,28 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
             console.error('Error saving experiment log:', e);
           }
         }
+      } else {
+        // Fallback: network unavailable or server error. Show a clear message
+        // in the dialogue instead of silently doing nothing.
+        const isOffline = data.error === 'offline';
+        const offlineReply = isOnline()
+          ? (isAmharic
+              ? 'የኔ ግንኙነት ተቋርጧል። እባክህ እንደገና ሞክር።'
+              : 'My connection hiccuped — try that again in a moment.')
+          : (isAmharic
+              ? 'ከበይነመረብ ጋር ስላልተገናኘህ አሁን ማስተማር አይችልም። እንደገና ተገናኝና ገጹን ጫን።'
+              : "You're offline, so I can't evaluate right now. Reconnect and reload to continue!");
+
+        setDialogue((prev) => [
+          ...prev,
+          {
+            id: 'turn_rooty_offline_' + Date.now(),
+            speaker: 'rooty',
+            text: offlineReply,
+            emotion: 'confused',
+            timestamp: Date.now()
+          }
+        ]);
       }
     } catch (err) {
       console.error('Feynman evaluation error:', err);
