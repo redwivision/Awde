@@ -52,6 +52,8 @@ Students today rely on static textbooks that force rote-reading and memorization
 | 🌍 **Bilingual** | Full English ⇄ Amharic (አማርኛ) toggle across all content, analogies, quizzes, and Rooty's critique |
 | 🎨 **Theming** | Multiple design aesthetics incl. Nordic Minimal, Scholar Parchment, Obsidian Cyber, and the warm "Addis Espresso" heritage theme |
 | 📴 **Offline-First** | Works fully offline with deterministic fallback generators — no API key required |
+| 🔍 **Node Mastery Drawer** | Slide-in detail panel for every concept with 5 tabs: Localized Analogy, Concept Core (detailed explanation + key takeaways + related concepts), Common Traps, Rules & Formulas, and Ask Rooty |
+| 💡 **Ask Rooty (Q&A)** | Lightweight chat in the node drawer — ask any question about a concept and get a clear, jargon-free answer with Ethiopian cultural analogies |
 
 ---
 
@@ -100,7 +102,7 @@ Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
 ## Architecture
 
 ```
-├── server.ts                 # Express + Gemini AI backend (4 endpoints, with fallbacks)
+├── server.ts                 # Express + Gemini AI backend (5 endpoints, with fallbacks)
 ├── server/
 │   ├── ai.ts                 # Gemini client + offline fallback generators
 │   └── textbook.ts           # PDF processing & textbook ingestion
@@ -131,6 +133,7 @@ Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
 |---|---|
 | `POST /api/mindmap/generate` | Deconstruct textbook text → full unit (nodes, connections, quizzes, flashcards) |
 | `POST /api/feynman/evaluate` | Grade a Feynman explanation with the "Rooty" evaluator persona |
+| `POST /api/node/ask` | Lightweight Q&A — ask a question about a concept node, get a clear answer |
 | `POST /api/quiz/generate` | Generate unlimited diagnostic quiz questions |
 | `POST /api/blurting/evaluate` | Grade a Blurting-Method active-recall dump |
 | `POST /api/textbook/process` | Process uploaded PDF → generate full workspace |
@@ -148,6 +151,8 @@ State is persisted to `localStorage` (`awde_workspaces_v1` primary store, with `
 - ✅ **Offline banner** — informs users when running in offline mode
 - ✅ **Workspace navigation** — book → unit → topic hierarchy fully wired
 - ✅ **Interactive feature set** — all 6 study modes are functional with live client/server wiring
+- ✅ **Enriched concept nodes** — detailed explanations, key takeaways, and related concepts in the node drawer
+- ✅ **Ask Rooty Q&A** — lightweight in-drawer chat for asking questions about any concept
 - ✅ **Test suite** — 56 unit tests passing (Vitest)
 - ✅ **Bilingual support** — complete English/Amharic toggle across all UI
 - ✅ **Theme system** — 5 design aesthetics with CSS variable theming

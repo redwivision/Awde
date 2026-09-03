@@ -9,7 +9,8 @@ import {
   generateFallbackUnit,
   generateFallbackFeynmanEvaluation,
   generateFallbackQuestions,
-  generateFallbackBlurting
+  generateFallbackBlurting,
+  generateFallbackNodeAnswer
 } from './server/ai';
 import { processTextbookPdf } from './server/textbook';
 
@@ -148,10 +149,11 @@ Your task is to take a textbook unit, chapter, or topic, and deconstruct it into
 CRITICAL MANDATES:
 1. Break into 4 to 6 logical ConceptNodes.
 2. Structure nodes with depthLevel: 1 for Core Foundation, 2 for Mechanism/Law, 3 for Real-world Application.
-3. Every node MUST have both English AND rich Amharic translations (label, summary, misconceptions).
-4. Every node MUST have a localized, culturally resonant analogy (especially connecting to Ethiopian daily life, culture, engineering, e.g. Jebena Buna, Injera Mitad, Merkato trade, Equb savings, Blue Nile/GERD, Addis Ababa Light Rail, Teff farming, Telem plowing) so students grasp it deeply.
-5. Create logical connections (depends_on, causes, contains, transforms_into) between nodes with coordinates x (150 to 750) and y (100 to 450).
-6. Include 3-4 rigorous textbook quiz questions with Amharic options and 2-3 flashcards.
+3. Every node MUST have both English AND rich Amharic translations (label, summary, detailedExplanation, keyTakeaways, misconceptions).
+4. Every node MUST have a detailedExplanation (2-4 sentences going deeper than the summary) and 3-5 keyTakeaways (concise bullet points of the most important things to remember).
+5. Every node MUST have a localized, culturally resonant analogy (especially connecting to Ethiopian daily life, culture, engineering, e.g. Jebena Buna, Injera Mitad, Merkato trade, Equb savings, Blue Nile/GERD, Addis Ababa Light Rail, Teff farming, Telem plowing) so students grasp it deeply.
+6. Create logical connections (depends_on, causes, contains, transforms_into) between nodes with coordinates x (150 to 750) and y (100 to 450).
+7. Include 3-4 rigorous textbook quiz questions with Amharic options and 2-3 flashcards.
 
 Format response strictly as valid JSON matching the requested schema.`;
 
@@ -195,6 +197,10 @@ Primary Language: ${language === 'am' ? 'Amharic (አማርኛ) prioritized alon
                   masteryStatus: { type: Type.STRING },
                   summary: { type: Type.STRING },
                   summaryAmharic: { type: Type.STRING },
+                  detailedExplanation: { type: Type.STRING },
+                  detailedExplanationAmharic: { type: Type.STRING },
+                  keyTakeaways: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  keyTakeawaysAmharic: { type: Type.ARRAY, items: { type: Type.STRING } },
                   keyFormulasOrRules: { type: Type.ARRAY, items: { type: Type.STRING } },
                   commonMisconceptions: { type: Type.ARRAY, items: { type: Type.STRING } },
                   misconceptionsAmharic: { type: Type.ARRAY, items: { type: Type.STRING } },
@@ -215,7 +221,7 @@ Primary Language: ${language === 'am' ? 'Amharic (አማርኛ) prioritized alon
                   x: { type: Type.INTEGER },
                   y: { type: Type.INTEGER }
                 },
-                required: ['id', 'label', 'labelAmharic', 'category', 'depthLevel', 'summary', 'summaryAmharic', 'localizedAnalogy', 'x', 'y']
+                required: ['id', 'label', 'labelAmharic', 'category', 'depthLevel', 'summary', 'summaryAmharic', 'detailedExplanation', 'keyTakeaways', 'keyFormulasOrRules', 'commonMisconceptions', 'misconceptionsAmharic', 'localizedAnalogy', 'prerequisites', 'x', 'y']
               }
             },
             connections: {
@@ -412,6 +418,70 @@ Evaluate this Feynman attempt now.`;
   } catch (error: any) {
     console.error('Error evaluating Feynman attempt:', error);
     res.status(500).json({ error: safeErrorMessage(error, 'Evaluation failed. Please try again.') });
+  }
+});
+
+// API: Ask Rooty — lightweight Q&A about a concept node
+app.post('/api/node/ask', async (req, res) => {
+  try {
+    const body = getSafeJsonBody(req, res);
+    if (!body) return;
+
+    const { nodeLabel, nodeSummary, question, language, chatHistory } = body;
+
+    if (!question || !String(question).trim()) {
+      return res.status(400).json({ error: 'Question is required.' });
+    }
+
+    const ai = getGeminiClient();
+
+    if (!ai) {
+      return res.json({
+        success: true,
+        isFallback: true,
+        ...generateFallbackNodeAnswer(nodeLabel, question)
+      });
+    }
+
+    const systemPrompt = `You are "Rooty", a sharp, witty, and encouraging AI tutor in the Awde learning system.
+Your job is to answer student questions about a specific concept clearly and intuitively.
+- Use plain language, avoid jargon, and include Ethiopian cultural analogies when helpful.
+- Keep answers concise (3-5 sentences) but insightful.
+- If the student's question is vague, gently redirect them to be more specific.
+- Support both English and Amharic (አማርኛ). Respond in the language the student uses.
+- Be warm and encouraging, like a brilliant older sibling helping with homework.`;
+
+    const prompt = `Concept: ${nodeLabel}
+Standard Definition: ${nodeSummary || 'No summary available.'}
+
+Student's question: "${question}"
+
+${chatHistory && chatHistory.length > 0 ? `Previous conversation:\n${JSON.stringify(chatHistory.slice(-6))}` : ''}
+
+Answer the student's question now. Be clear, concise, and encouraging.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.7-flash',
+      contents: prompt,
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            answer: { type: Type.STRING },
+            answerAmharic: { type: Type.STRING }
+          },
+          required: ['answer', 'answerAmharic']
+        }
+      }
+    });
+
+    const parsed = JSON.parse(response.text || '{}');
+    res.json({ success: true, answer: parsed.answer, answerAmharic: parsed.answerAmharic });
+  } catch (error: any) {
+    console.error('Error in node ask:', error);
+    res.status(500).json({ error: safeErrorMessage(error, 'Could not get an answer. Please try again.') });
   }
 });
 

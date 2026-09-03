@@ -46,6 +46,20 @@ export const DEFAULT_TEXTBOOK_WORKSPACES: TextbookWorkspace[] = [
             masteryStatus: 'mastered',
             summary: 'Splitting vectors into orthogonal components (Ax = A cos θ, Ay = A sin θ) and scalar multiplication.',
             summaryAmharic: 'ቬክተርን ወደ አግድም እና ቀጥታ ክፍሎች መከፋፈል እና ስኬላር ማባዛት።',
+            detailedExplanation: 'Every vector in a two-dimensional plane can be decomposed into two independent perpendicular parts—one along the x-axis and one along the y-axis. This decomposition is essential because it allows us to analyze motion in each direction separately rather than dealing with diagonal movement as a single complicated operation. The dot product, meanwhile, measures how much two vectors align with each other and yields a single number (scalar), not another vector, making it the bridge between geometric direction and algebraic computation.',
+            detailedExplanationAmharic: 'በሁለት አቅጣጫ ያለ መ創造 ViewerViewer ቬክተር ሁለት ተጠያቂ አግድም ክፍሎች ሊፈለል ይችላል — አንዱ በx አቅጣጫ ላይ ሌላው ደግሞ በy አቅጣጫ ላይ። ይህ ክፍፍል ሁለቱ አቅጣጫዎችን ብቻ በተየበ ሁኔታ ለመመልከት ያስፈልጋል። Dot Product ደግሞ ሁለት ቬክተሮች እንዴት እንደሚዋሰኑ ይተርቃል።',
+            keyTakeaways: [
+              'Any 2D vector can be split into independent x and y components using cos and sin of the angle.',
+              'The dot product of two vectors produces a scalar, not a vector.',
+              'Component decomposition is the foundation for solving projectile and force problems in 2D.',
+              'Two vectors are perpendicular when their dot product equals zero.'
+            ],
+            keyTakeawaysAmharic: [
+              'ማንኛውም 2D ቬክተር በማእዘን cos እና sin አማካኝነት ወደ x እና y ክፍሎች ሊፈለል ይችላል።',
+              'ሁለት ቬክተሮች Dot Product ውጤቱ ስኬላር (ቁጥር) ነው ቬክተር አይደለም።',
+              'ክፍፍል በ2D ጉዳዮች መፍትሔ ላይ መሠረታዊ ነው።',
+              'ሁለት ቬክተሮች Dot Product እኩል 0 ከሆነ አግድም ናቸው።'
+            ],
             keyFormulasOrRules: ['A · B = |A||B| cos(θ)', 'Ax = A cos(θ), Ay = A sin(θ)'],
             commonMisconceptions: ['Thinking dot product results in a vector rather than a pure scalar value.'],
             misconceptionsAmharic: ['Dot Product ውጤቱ ቬክተር ሳይሆን ቁጥር (ስኬላር) መሆኑን መዘንጋት።'],
@@ -72,6 +86,20 @@ export const DEFAULT_TEXTBOOK_WORKSPACES: TextbookWorkspace[] = [
             masteryStatus: 'learning',
             summary: 'Independence of horizontal motion (constant velocity) and vertical motion (free-fall acceleration g).',
             summaryAmharic: 'አግድም እንቅስቃሴው ቋሚ ፍጥነት ሲኖረው፣ ቀጥታ እንቅስቃሴው በስበት ፍጥነት (g) የሚመራ ነው።',
+            detailedExplanation: 'Once a projectile leaves the launcher, no horizontal force acts on it (ignoring air resistance), so it maintains constant horizontal velocity. Vertically, gravity continuously accelerates the object downward at approximately 9.8 m/s², causing the parabolic trajectory. These two motions are mathematically independent, meaning you can solve for time of flight using the vertical component and then apply that same time to find horizontal distance traveled.',
+            detailedExplanationAmharic: 'ፕሮጀክታይሉ ከመ곸технологiya በወጡ በኋላ አግድም አቅጣጫ ላይ ምንም ጉልበት አይፈልግም (የአየር ግፊትን አልብስን)， ስለዚህ ቋሚ ፍጥነቱን ያግዛል። በቀጥታ አቅጣጫ ላይ ደግሞ የስበት ጉልበት በhedron ወደ ታች ይነካል። ሁለቱ እንቅስቃሴዎች በቃ Lite ተሰልፈው ይፈላል።',
+            keyTakeaways: [
+              'Horizontal and vertical motions of a projectile are independent and can be analyzed separately.',
+              'No horizontal acceleration acts on a projectile after launch (air resistance neglected).',
+              'The time of flight is determined entirely by the vertical component of initial velocity.',
+              'The path traced is a parabola because vertical displacement depends on t² while horizontal depends on t.'
+            ],
+            keyTakeawaysAmharic: [
+              'ፕሮጀክታይል አግድም እና ቀጥታ እንቅስቃሴ ተጠያቂ ናቸው።',
+              'ከመ停产 በኋላ አግድም ላይ ምንም ማ提速 አይፈለግም።',
+              'የጊዜ ጉዞ በቀጥታ መነሻ ፍጥነት ላይ ብቻ ይሰረዛል።',
+              'ይህ ፓራቦላዊ ጉዞ ይሆናል።'
+            ],
             keyFormulasOrRules: ['x = v0x * t', 'y = v0y * t - 0.5 * g * t^2', 'Max Range R = (v0^2 * sin 2θ) / g'],
             commonMisconceptions: ['Believing an object maintains forward force after leaving the hand/launcher.'],
             misconceptionsAmharic: ['ከተወረወረ በኋላ ወደፊት የሚገፋ ጉልበት አብሮት ይጓዛል ብሎ ማሰብ።'],
@@ -98,6 +126,20 @@ export const DEFAULT_TEXTBOOK_WORKSPACES: TextbookWorkspace[] = [
             masteryStatus: 'learning',
             summary: 'Net work done on an object equals its change in kinetic energy: W_net = ΔKE = 0.5*m*(vf^2 - vi^2).',
             summaryAmharic: 'በአንድ አካል ላይ የተሰራው የተጣራ ሥራ ከተንቀሳቃሽ ጉልበቱ ለውጥ (Kinetic Energy) ጋር እኩል ነው።',
+            detailedExplanation: 'The Work-Energy Theorem directly links force, displacement, and speed change without needing to track acceleration step by step. If the net work is positive, the object speeds up; if negative, it slows down. This principle becomes especially powerful in conservative systems (like gravity alone) where total mechanical energy is conserved, allowing us to equate initial kinetic plus potential energy to final kinetic plus potential energy and solve problems without calculating intermediate accelerations.',
+            detailedExplanationAmharic: 'የሥራ ጉልበት ቲዎረም ጉልበት፣ ርቀት እና የፍጥነት ለውጥ በቀጥታ ያገናኛል። የተጣራ ሥራ አዎንታዊ ከሆነ ፍጥነቱ ይጨምራል፤ አሉታዊ ከሆነ ይቀንሳል። ይህ በተፈጥሮ ሥርዓት ውስጥ ግልጽ ይሆናል።',
+            keyTakeaways: [
+              'Net work equals the change in kinetic energy: W_net = ΔKE.',
+              'Positive net work speeds an object up; negative net work slows it down.',
+              'In conservative systems, mechanical energy (KE + PE) is conserved and can be used to bypass acceleration calculations.',
+              'Work is zero if force is perpendicular to displacement (e.g., carrying a load horizontally).'
+            ],
+            keyTakeawaysAmharic: [
+              'የተጣራ ሥራ ከተንቀሳቃሽ ጉልበት ለውጥ ጋር እኩል ነው።',
+              'አዎንታዊ ሥራ ፍጥነት ይጨምራል፤ አሉታዊ ሥራ ይቀንሳል።',
+              'በተፈጥሮ ሥርዓት ውስጥ የጉልበት ጥበቃ ይጠብቃል።',
+              'ንክክቱ በርቀት አግድም ከሆነ ሥራ ዜሮ ነው።'
+            ],
             keyFormulasOrRules: ['W = F · d = ΔKE', 'ME_initial = ME_final (conservative systems)'],
             commonMisconceptions: ['Thinking carrying a heavy load across a flat floor does thermodynamic physical work on the load.'],
             misconceptionsAmharic: ['ጭነት ተሸክሞ በአግድም ሲራመዱ የስበት ኃይል ሥራ ይሰራል ብሎ ማሰብ (ማእዘኑ 90 ዲግሪ ስለሆነ ሥራ ዜሮ ነው)።'],
@@ -175,6 +217,20 @@ export const DEFAULT_TEXTBOOK_WORKSPACES: TextbookWorkspace[] = [
             masteryStatus: 'learning',
             summary: 'Antiparallel sugar-phosphate backbones held by hydrogen bonds between complementary bases (A=T, G≡C).',
             summaryAmharic: 'በሃይድሮጅን ቦንድ የተያያዙ ቤዞች (A ከ T ጋር፣ G ከ C ጋር)።',
+            detailedExplanation: 'The double helix is held together by weak hydrogen bonds between complementary nitrogenous bases: two bonds between adenine and thymine, and three between guanine and cytosine. The two sugar-phosphate backbones run in opposite directions (antiparallel), which is critical because the enzyme that copies DNA can only read in one direction (3\' to 5\'). The base pairing rules (Chargaff\'s rules) ensure that the amount of adenine always equals thymine, and guanine always equals cytosine in any sample of DNA.',
+            detailedExplanationAmharic: 'ድርብ ጠመዝማዛው በአን taraf ቤዞች መካከል ያሉት የሃይድሮጅን ቦንዶች ይይዟል። ሁለቱ የշኩcker ፎስፌት የጀርባ አካላት በተቃራኒ አቅጣጫ ይዘዋል። ይህ የዲኤንኤ ቅጅ ለማድረግ ያስፈልጋል።',
+            keyTakeaways: [
+              'Adenine pairs with thymine via 2 hydrogen bonds; guanine pairs with cytosine via 3.',
+              'The two DNA strands run antiparallel (one 5\'→3\', the other 3\'→5\').',
+              'Chargaff\'s rule: %A = %T and %G = %C for any double-stranded DNA.',
+              'Hydrogen bonds are weak enough to allow DNA to unzip for replication and transcription.'
+            ],
+            keyTakeawaysAmharic: [
+              'አዴኒን ከታይሚን ጋር 2 ሃይድሮጅን ቦንድ ያገናኛል፤ ጉઆኒን ከሲቶሲን ጋር 3 ያገናኛል።',
+              'ሁለቱ የዲኤንኤ ክፍሎች ተቃራኒ አቅጣጫ ይዘዋል።',
+              'Chargaff ሕግ፣ %A = %T እና %G = %C።',
+              'ሃይድሮጅን ቦንዶች ቀላሉ ማብቀቅ ይችላሉ።'
+            ],
             keyFormulasOrRules: ['Chargaff\'s Rule: %A = %T, %G = %C', 'Antiparallel: 5\' to 3\' opposite 3\' to 5\''],
             commonMisconceptions: ['Assuming covalent bonds connect the complementary bases instead of easily unzipped hydrogen bonds.'],
             misconceptionsAmharic: ['ቤዞቹ በጠንካራ ቦንድ ሳይሆን በቀላሉ በሚፈታ ሃይድሮጅን ቦንድ የተያያዙ መሆናቸውን መዘንጋት።'],
@@ -201,6 +257,20 @@ export const DEFAULT_TEXTBOOK_WORKSPACES: TextbookWorkspace[] = [
             masteryStatus: 'unstudied',
             summary: 'RNA Polymerase reads the template DNA strand 3\'->5\' and synthesizes single-stranded pre-mRNA 5\'->3\', substituting Uracil (U) for Thymine (T).',
             summaryAmharic: 'አርኤንኤ ፖሊመሬዝ የዲኤንኤውን ኮድ በማንበብ አርኤንኤ ያዘጋጃል፤ ታይሚን (T) በዩራሲል (U) ይተካል።',
+            detailedExplanation: 'Transcription begins when RNA Polymerase binds to a promoter region on DNA, unwinding a short section of the double helix. It then reads the template strand in the 3\' to 5\' direction while building the complementary mRNA strand in the 5\' to 3\' direction—a one-way process dictated by the enzyme\'s structure. Uracil replaces thymine in RNA because the cell does not invest energy in methylating uracil into thymine for temporary RNA copies, making RNA a cheaper, single-use alternative to DNA.',
+            detailedExplanationAmharic: 'ትራንስክሪፕሽን አርኤንኤ ፖሊመሬዝ በዲኤንኤ ላይ የሚያገኘው ቦታ ላይ በመቀጠል ያለውን ድርብ ጠመዝማዛ ይከፈታል። ቀጥታ 3\' ወደ 5\' አቅጣጫ በማንበብ በ5\' ወደ 3\' አቅጣጫ mRNA ያዘጋጃል። ይህ ሂደት በፖሊመሬዝ መዋせ ብቻ የሚገ莠 ነው። ታይሚን በዩራሲል መተካቱ ተэкономically ትክክለኛ ነው።',
+            keyTakeaways: [
+              'RNA Polymerase reads the DNA template strand 3\'→5\' and builds mRNA 5\'→3\'.',
+              'Only one DNA strand (the template strand) is transcribed, not both.',
+              'Uracil (U) replaces Thymine (T) in the RNA transcript.',
+              'The pre-mRNA produced will later be processed (spliced) before leaving the nucleus.'
+            ],
+            keyTakeawaysAmharic: [
+              'አርኤንኤ ፖሊመሬዝ የዲኤንኤውን ኮድ በ3\'→5\' ያነብ እና mRNA በ5\'→3\' ያዘጋጃል።',
+              'ከሁለቱ የዲኤንኤ ክፍሎች አንዱ (ኮዱ) ብቻ ይገለበጣል።',
+              'ዩራሲል (U) ታይሚን (T) ይተካል።',
+              'pre-mRNA ከኒውክሊየስ በመውጣት ቀደም ይሰራ讽ለ።'
+            ],
             keyFormulasOrRules: ['DNA template -> RNA transcript', 'A pairs with U, C pairs with G'],
             commonMisconceptions: ['Thinking both DNA strands are transcribed simultaneously (only the template strand is read).'],
             misconceptionsAmharic: ['ሁለቱም የዲኤንኤ ክፍሎች በአንድ ጊዜ ይገለበጣሉ ብሎ ማሰብ።'],
@@ -421,6 +491,20 @@ export function createCustomTextbookWorkspace(
         masteryStatus: 'unstudied',
         summary: `Comprehensive synthesized knowledge breakdown for "${tName}" extracted from ${fileName}.`,
         summaryAmharic: `ከቀረበው የመማሪያ መጽሐፍ የተዘጋጀ ማብራሪያ።`,
+        detailedExplanation: `This concept involves the core principles underlying ${tName}, including the foundational mechanisms, governing equations, and boundary conditions that determine behavior in this domain. Understanding it requires connecting theoretical definitions to concrete applications and recognizing how constraints shape the system's response. Mastering this topic provides a platform for tackling more advanced derivatives and interdisciplinary problems.`,
+        detailedExplanationAmharic: `ይህ ጽንሰ-ሀሳብ ${tName} የሚወስነውን መሠረታዊ ጉድጓዶች አካትቷል።`,
+        keyTakeaways: [
+          `The central principle of ${tName} governs how the system behaves under varying conditions.`,
+          `Key equations and boundary constraints determine quantitative outcomes.`,
+          `Connecting theory to real-world examples deepens conceptual understanding.`,
+          `Reviewing common pitfalls helps avoid frequent errors in analysis.`
+        ],
+        keyTakeawaysAmharic: [
+          `${tName} ዋናው መርህ የስርዓት ተግባርን ይወስናል።`,
+          'ቀመሮች እና የወሰን መመ_RETURNTRANSFER ትክክለኛውን ውጤት ይወስናሉ።',
+          'ምክንያቱን ከተግባር ጋር ማገናኘት የጽንሰ-ሀሳብን ግንኙነት ያስፋል።',
+          'የተለመዱ ስህተቶችን መንከዝ ስህተትን ይከላከላል።'
+        ],
         keyFormulasOrRules: [`Core equation / invariant for ${tName}`, 'Conservation and symmetry properties'],
         commonMisconceptions: [`Common beginner pitfall when analyzing ${tName}.`],
         misconceptionsAmharic: ['በጥናት ወቅት የሚከሰቱ የተለመዱ ስህተቶች።'],

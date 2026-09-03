@@ -25,6 +25,20 @@ export const DEFAULT_UNITS: TopicUnit[] = [
         masteryStatus: 'mastered',
         summary: 'If system A is in thermal equilibrium with B, and B with C, then A and C are in equilibrium. Temperature is the physical quantity that determines whether systems are in equilibrium.',
         summaryAmharic: 'ሁለት አካላት ከሶስተኛ አካል ጋር በተናጠል በሙቀት ሚዛን ላይ ከሆኑ፣ እርስ በርሳቸውም በሙቀት ሚዛን ላይ ናቸው። የሙቀት መጠን (Temperature) የዚህ ሚዛን መለኪያ ነው።',
+        detailedExplanation: 'Temperature is the shared macroscopic property that all systems in thermal equilibrium must agree upon. The Zeroth Law establishes temperature as a meaningful, measurable quantity by guaranteeing that thermometers work: if a thermometer reads the same value for two objects, those objects will not exchange net heat even when placed in contact. This transitive relationship (A~B, B~C implies A~C) may seem obvious, but it is the logical foundation upon which all of thermodynamics is built — without it, the concept of temperature itself would be inconsistent.',
+        detailedExplanationAmharic: 'የሙቀት መጠን (Temperature) በሙቀት ሚዛን ውስጥ ያሉ ሁሉም ሥርዓቶች መስማማቸው ያለባቸው የጥንድ ማክሮስኮፒክ ባህሪ ነው። ዜሮተኛው ሕግ የሙቀት መጠንን ትርጉም ያለው መሆኑን በማረጋገጥ ይረዳል፤ የሙቀት ማነጻጸሪያው ለሁለት እቃዎች ተመሳሳይ ቁጥር ሲያሳይ እነዚህ እቃዎች በተ䨠ሩ ጊዜ ውስጣዊ ሙቀት አለመቀየራቸውን ያረጋግጣል። ይህ የትር𝙖⇓ታ ግንኙነት (A~B, B~C ምለhemn A~C) ሊያስэkit ይችላል፣ ነገር ግን የቴርሞዳይናሚክስ ሁሉም ሐሳብ ላይ የተመሰረተው ሎጋዊ መሠረት ነው።',
+        keyTakeaways: [
+          'The Zeroth Law defines temperature as the property that determines thermal equilibrium.',
+          'If two systems are each in equilibrium with a third, they are in equilibrium with each other (transitivity).',
+          'Net heat flow between systems at the same temperature is always zero.',
+          'This law makes thermometers possible and meaningful.'
+        ],
+        keyTakeawaysAmharic: [
+          'ዜሮተኛው ሕግ የሙቀት መጠንን የሙቀት ሚዛን ይወስናል ብሎ ይገልጻል።',
+          'ሁለት ሥርዓቶች ከሶስተኛ አካል ጋር በሙቀት ሚዛን ላይ ከሆኑ፣ እርስ በርሳቸውም በሙቀት ሚዛን ላይ ናቸው።',
+          'በተመሳሳይ ቴምፕሬቸር ላይ ያሉ ሥርዓቶች መካከል የሙቀት ፍሰት ሁልጊዜ ዜሮ ነው።',
+          'ይህ ሕግ የሙቀት ማነጻጸሪያዎችን ትርጉም ያላቸው አድርጎ ያደርጋል።'
+        ],
         keyFormulasOrRules: [
           'T_A = T_B and T_B = T_C => T_A = T_C',
           'Net heat exchange Q_net = 0 at thermal equilibrium'
@@ -60,6 +74,20 @@ export const DEFAULT_UNITS: TopicUnit[] = [
         masteryStatus: 'feynman_tested',
         summary: 'The change in internal energy (ΔU) of a closed system equals the heat added to the system (Q) minus the work done by the system on its surroundings (W).',
         summaryAmharic: 'የአንድ ሥርዓት ውስጣዊ ጉልበት ለውጥ (ΔU) ከተሰጠው ሙቀት (Q) ሲቀነስ ሥርዓቱ የሰራው ሥራ (W) ጋር እኩል ነው። ጉልበት አይፈጠርም አይጠፋምም!',
+        detailedExplanation: 'The First Law is the thermodynamic expression of universal energy conservation. In any closed system, the internal energy can only change through two pathways: adding heat from the surroundings (which increases ΔU) or performing work on the surroundings (which decreases ΔU). A common source of confusion is the sign convention — when work is done ON the system (compression), it adds energy, so ΔU = Q + W_on. This law sets an absolute limit: you cannot extract more energy from a system than was originally put in.',
+        detailedExplanationAmharic: 'አንደኛው ሕግ የውኔርሰል ጉልበት ጥበቃን የሚገልጽ የቴርሞዳይናሚክስ መግለጫ ነው። በማንኛውም ዝግራ ሥርዓት ውስጥ ውስጣዊ ጉልበት በሁለት መንገዶች ብቻ ሊቀይር ይችላል: ከወጭ ሙቀት መጨመር (ΔU ያሳድጋል) ወይም በወጭ ላይ ሥራ መፈጸም (ΔU ይቀንሳል)። የምልክት ው花草幕vention አለመረጋገጡ ብዙ ጊዜ ያስተዋይ ስህተት ነው፤ በሥርዓቱ ላይ ሥራ ሲሰራ (Compression) ጉልበት ይጨምራል።',
+        keyTakeaways: [
+          'Energy cannot be created or destroyed — only transferred or transformed.',
+          'ΔU = Q - W (work done BY the system) or ΔU = Q + W_on (work done ON the system).',
+          'For isobaric processes, work equals pressure times volume change (W = PΔV).',
+          'The First Law sets a conservation constraint but says nothing about direction — that is the Second Law.'
+        ],
+        keyTakeawaysAmharic: [
+          'ጉልበት አይፈጠርም አይጠፋምም — ብቻ ይቀየራል ወይም ይሸጋገራል።',
+          'ΔU = Q - W (ሥርዓቱ የሰራው ሥራ) ወይም ΔU = Q + W_on (በሥርዓቱ ላይ የተሰራው ሥራ)።',
+          'በአስተ.gmsattika ሂደቶች ሥራ የግፊት እና የአ兴地域 ለውጥ ነው (W = PΔV)።',
+          'አንደኛው ሕግ የጉልበት ጥበቃ ገደማ ይቀኛል ግን የአቅጣጫን ጥያቄ አይፈጥርም።'
+        ],
         keyFormulasOrRules: [
           'ΔU = Q - W (or ΔU = Q + W_on)',
           'W = P * ΔV (Isobaric work done during gas expansion)'
@@ -95,6 +123,22 @@ export const DEFAULT_UNITS: TopicUnit[] = [
         masteryStatus: 'learning',
         summary: 'Conduction occurs via direct molecular vibration in solids; Convection through bulk fluid/gas circulation currents; Radiation via electromagnetic waves requiring no physical medium.',
         summaryAmharic: 'ኮንዳክሽን በጠንካራ አካላት ሞለኪውሎች ንክኪ፣ ኮንቬክሽን በፈሳሾች/አየር ዝውውር ሞገዶች፣ ራዲየሽን ደግሞ ያለ ምንም ማስተላለፊያ ቁስ በብርሃን/ኤሌክትሮማግኔቲክ ሞገድ ይጓዛል።',
+        detailedExplanation: 'Conduction transfers kinetic energy through direct atomic collisions — when a hot surface touches a cold one, faster-vibrating atoms slam into slower neighbors, passing energy step by step through the material. Convection relies on bulk fluid motion: as a fluid is heated near a surface, it expands, becomes less dense, and rises, carrying thermal energy with it while cooler, denser fluid sinks to replace it, creating a continuous circulation loop. Radiation is fundamentally different — it requires no medium at all, because it is the emission and absorption of electromagnetic waves by charged particles. This is why the Sun can heat the Earth across the vacuum of space.',
+        detailedExplanationAmharic: 'ኮንዳክሽን በቀጥታ የአቶም ግጭት አማካኝነት የኪነቲክ ጉልበት ይከፍላል። ኮንቬክሽን ደግሞ የፈሳሽ ስርዓት አጠቃላይ ዝውውር ላይ የተመሰረተ ነው፤ ፈሳሹ ሲheirocket ይቀለል ይነሳል እና ሙቀት ያ携带着 ይሆናል። ራዲየሽን ግን ምንም ማስተላለፊያ ቁስ አያስፈልገውም፤ ባለ<_charge> ቁጠባዎች የኤሌክትሮማግኔቲክ ሞገዶች ሲለምኑ ነው። ይህ ነው ፀሐይ በህዋ ባዶ ቦታ ምድርን ስትሞላ ሙቀት ስትልካለች።',
+        keyTakeaways: [
+          'Conduction: direct molecular contact, dominant in solids, described by Fourier\'s Law.',
+          'Convection: bulk fluid circulation driven by density differences, dominant in liquids and gases.',
+          'Radiation: electromagnetic wave transfer requiring no medium, follows Stefan-Boltzmann Law (P ∝ T⁴).',
+          'Metals are excellent conductors due to free electrons, which is why they feel cold to touch even at room temperature.',
+          'All three modes can occur simultaneously in real-world scenarios.'
+        ],
+        keyTakeawaysAmharic: [
+          'ኮንዳክሽን: በቀጥታ የሞለኪውል ግንኙነት፣ በጠንካራ አካላት ውስጥ ይ统治anderaል።',
+          'ኮንቬክሽን: በድensity ልዩነት የሚሰራ የፈሳሽ ዝውውር፣ በፈሳሾች እና አየር ውስጥ ይ统治anderaል።',
+          'ራዲየሽን: ያለ ማስተላለፊያ ቁስ የኤሌክትሮማግኔቲክ ሞገድ ስለሆነ ሁልጊዜ ይሰራል።',
+          'ብረቶች በነጻ ኤሌክትሮኖች ምክንያት ልክ ቢያዩ ፈጣን አስተላላፊ ናቸው።',
+          'በእውነተኛ ዓለም ሶስቱ መንገዶች በአንድ ጊዜ ሊሠሩ ይችላሉ።'
+        ],
         keyFormulasOrRules: [
           'Conduction: q = -k * A * (dT/dx) (Fourier\'s Law)',
           'Radiation: P = ε * σ * A * T^4 (Stefan-Boltzmann Law)'
@@ -129,6 +173,22 @@ export const DEFAULT_UNITS: TopicUnit[] = [
         masteryStatus: 'unstudied',
         summary: 'Heat cannot spontaneously flow from a colder to hotter body. In any spontaneous cyclic process, the total entropy (disorder) of an isolated universe always increases (ΔS >= 0).',
         summaryAmharic: 'ሙቀት በራሱ ጊዜ ከቀዝቃዛ ወደ ሞቃት አካል አይፈስም። በማንኛውም የተፈጥሮ ሂደት የዓለማችን አጠቃላይ ኢንትሮፒ (ግርግር/ስርዓት-አልበኝነት) ሁልጊዜ ይጨምራል።',
+        detailedExplanation: 'The Second Law introduces an arrow of time into physics: while energy is conserved (First Law), not all energy transformations are equally probable. Entropy quantifies the number of microscopic arrangements a system can adopt — a state with more possible arrangements is more probable and thus has higher entropy. Heat flows from hot to cold not because of any force, but because there are overwhelmingly more microscopic states where energy is spread out than concentrated. This statistical inevitability is why no heat engine can be 100% efficient — some energy must always be dispersed to the cold reservoir as waste heat.',
+        detailedExplanationAmharic: 'ሁለተኛው ሕግ ወደ ፊዚክስ የጊዜ ቀስት ያስገባል። ጉልበት ጥበቃ ሲሆን (አንደኛው ሕግ) ሁሉም የጉልበት ለውጦች እኩል ዕድለኛ አይደሉም። ኢንትሮፒ አንድ ሥርዓት ሊይዝ የሚችለውን የመ☃️zza አቀራረብ ብዛት ይሰማራል። ሙቀት ከሞቃት ወደ ቀዝቃዛ ሲፈስ ይህ ጉልበት በተበተነ ሁኔታ ባለው በብዛት ባለው የመ☃️zza ሁኔታ ስለሆነ ነው። ይህ ስታቲስቲካዊ ያልOutOfRangeException ነው ማለት ነው ማለት ነው።',
+        keyTakeaways: [
+          'Heat spontaneously flows from hot to cold, never the reverse without external work.',
+          'Entropy (ΔS ≥ 0) always increases for irreversible processes in isolated systems.',
+          'The Carnot efficiency sets the absolute maximum: η_max = 1 - (T_cold / T_hot).',
+          'No heat engine can achieve 100% efficiency — some energy must always be wasted.',
+          'Living organisms do not violate the 2nd law because they increase entropy in their surroundings.'
+        ],
+        keyTakeawaysAmharic: [
+          'ሙቀት በራሱ ጊዜ ከሞቃት ወደ ቀዝቃዛ ይፈስሳል፣ ከውጭ ሥራ ሳይሆን በodash reverse አይፈስም።',
+          'ኢንትሮፒ (ΔS ≥ 0) በመና纾vable ሂደቶች ሁልጊዜ ይጨምራል።',
+          'የካርኖት ብቃት ከፍተኛውን ወሰን ይወስናል: η_max = 1 - (T_cold / T_hot)።',
+          'ምንም የሙቀት ሞተር 100% ብቃት ሊያሳይ አይችልም።',
+          'የህይወት አካላት ከባህላቸው ኢንትሮፒን በማሳደግ ሁለተኛውን ሕግ አይፈ Rough አይም።'
+        ],
         keyFormulasOrRules: [
           'ΔS = Q_rev / T',
           'Carnot Efficiency η_max = 1 - (T_cold / T_hot)',
@@ -164,6 +224,22 @@ export const DEFAULT_UNITS: TopicUnit[] = [
         masteryStatus: 'unstudied',
         summary: 'A heat engine absorbs heat from a hot reservoir (Q_H), converts part into mechanical work (W), and exhausts waste heat to a cold sink (Q_C). The Carnot cycle defines the theoretical upper limit of efficiency.',
         summaryAmharic: 'የሙቀት ሞተር ከሞቃት ምንጭ ሙቀት ወስዶ፣ ከፊሉን ወደ ጠቃሚ ሥራ በመቀየር፣ የተረፈውን ወደ ቀዝቃዛ ቦታ ያወጣል። የካርኖት ዑደት ከፍተኛውን የብቃት ወሰን ይወስናል።',
+        detailedExplanation: 'A heat engine works by exploiting a temperature difference between a hot source and a cold sink. Heat flows from the hot reservoir, part is converted to useful mechanical work (like spinning a turbine), and the remainder must be rejected to the cold sink — this rejection is unavoidable because the Second Law forbids complete conversion of heat to work in a cycle. The Carnot cycle, consisting of reversible isothermal and adiabatic steps, achieves the maximum possible efficiency because it eliminates all sources of irreversibility (friction, rapid temperature gradients). Real engines always fall short because they operate with irreversible processes.',
+        detailedExplanationAmharic: 'የሙቀት ሞተር ከሞቃት ምንጭ እና ከቀዝቃዛ ቦታ መካከል ያለውን የቴምፕሬቸር ልዩነት በመጠቀም ይሠራል። ሙቀት ከሞቃት ምንጭ ይፈስሳል፣ ከፊሉ ወደ ጠቃሚ ሥራ (እንደ ተርባይን ያለ በ棨霁λοτ) ይቀየራል፣ ቀጥታ ቀጥታ ቀሪው ወደ ቀዝቃዛ ቦታ መ了半天 输出 ያለበት ነው። የካርኖት ዑደት በተመለሰ በ فلاش ሁኔታ የሚሠሩ ደረጃዎች በመጠቀም ከፍተኛውን ብቃት ያሳይ ምክንያቱም የማይመለስ ሂደቶችን (ፍሪክሽን, ፈጣን ቴምፕሬቸር gradients) ያስሟቸዋል።',
+        keyTakeaways: [
+          'Heat engines convert thermal energy to mechanical work using a hot source and cold sink.',
+          'Efficiency η = 1 - (Q_C / Q_H) — some heat must always be rejected.',
+          'The Carnot cycle gives the theoretical maximum: η_max = 1 - (T_C / T_H) in Kelvin.',
+          'Temperature difference is key: greater ΔT means greater potential efficiency.',
+          'Real engines are always less efficient than Carnot due to irreversible losses.'
+        ],
+        keyTakeawaysAmharic: [
+          'የሙቀት ሞተሮች የሙቀት ጉልበትን ወደ ሥራ ይቀይራሉ።',
+          'ብቃት η = 1 - (Q_C / Q_H) — ሙቀት ሁልጊዜ መ半天_output ያለበት ነው።',
+          'የካርኖት ዑደት ከፍተኛውን ይሰጣል: η_max = 1 - (T_C / T_H) በኬልቪን።',
+          'የቴምፕሬቸር ልዩነት ቁልፍ ነው: የፍጥነት ΔT ብዙ ብቃት ያስተላልፋል።',
+          'እውነተኛ ሞተሮች ሁልጊዜ ከካርኖት ዝቅተኛ ብቃት አላቸው።'
+        ],
         keyFormulasOrRules: [
           'Efficiency η = W / Q_H = (Q_H - Q_C) / Q_H = 1 - (Q_C / Q_H)',
           'Carnot η_max = 1 - (T_C / T_H) where temperatures must be in Kelvin'
@@ -332,6 +408,22 @@ export const DEFAULT_UNITS: TopicUnit[] = [
         masteryStatus: 'learning',
         summary: 'Anaerobic breakdown of 1 glucose molecule (6-carbon) into 2 pyruvate molecules (3-carbon), yielding a net gain of 2 ATP and 2 NADH without requiring oxygen.',
         summaryAmharic: 'አንድ ባለ 6 ካርቦን ግሉኮስ ያለ ኦክስጅን እርዳታ ወደ ሁለት ባለ 3 ካርቦን ፓይሩቬት ሲሰበር 2 ATP እና 2 NADH የሚያስገኝ መነሻ ሂደት።',
+        detailedExplanation: 'Glycolysis occurs in two phases: the energy investment phase (steps 1-5), where 2 ATP molecules are consumed to phosphorylate glucose and split it into two 3-carbon fragments, and the energy payoff phase (steps 6-10), where 4 ATP and 2 NADH are generated by substrate-level phosphorylation. The pathway is universal across nearly all living organisms, suggesting it evolved very early in Earth\'s history when the atmosphere lacked oxygen. Because it does not require oxygen or mitochondria, glycolysis is the sole ATP source for anaerobic organisms and provides a rapid (though low-yield) energy burst for aerobic cells.',
+        detailedExplanationAmharic: 'ግላይኮላይሲስ በሁለት ደረጃዎች ይከሰታል: የጉልበት ማሰራቂያ ደረጃ (ደረጃ 1-5) ውስጥ 2 ATP ለግሉኮስ磷酸化 ይጠቀማል፣ እና የጉልበት ዝናብ ደረጃ (ደረጃ 6-10) ውስጥ 4 ATP እና 2 NADH ይመነጭታሉ። ይህ ሂደት ሁሉም የህይወት አካላት ውስጥ ተመሳሳይ ሲሆን በግልጽ ጊዜ ተ RuntimeMethod መሆኑን ያሳያል። ኦክስጅን ወይም ማይቶኮንድሪያ አያስፈልገውም ማለት ነው።',
+        keyTakeaways: [
+          'Glycolysis splits one glucose (6C) into two pyruvate (3C) molecules in the cytoplasm.',
+          'Net yield: 2 ATP and 2 NADH per glucose (invests 2 ATP, produces 4 ATP).',
+          'It is anaerobic — no oxygen required — and occurs in the cytosol.',
+          'The pathway is evolutionarily ancient and universal across nearly all life forms.',
+          'Substrate-level phosphorylation directly transfers phosphate groups to ADP to form ATP.'
+        ],
+        keyTakeawaysAmharic: [
+          'ግላይኮላይሲስ አንድ ግሉኮስ (6C) ወደ ሁለት ፓይሩቬት (3C) በሳይቶፕላዝም ውስጥ ይሰብራል።',
+          'የተጣራ ምርት: ከግሉኮስ 2 ATP እና 2 NADH (2 ATP ይሰራል፣ 4 ATP ያመርታል)።',
+          'አ氧cubic ነው — ኦክስጅን አያስፈልገውም — በሳይቶ/tosol ውስጥ ይከሰታል።',
+          'ይህ ሂደት በተፈጥሮ ጊዜ ያረጅ እና ሁሉም የህይወት ቅርጾች ውስጥ ተመሳሳይ ነው።',
+          'Substrate-level phosphorylation በቀጥታ phosphate ቡዎችን ወደ ADP በመላ贿 ATP ይፈጥራል።'
+        ],
         keyFormulasOrRules: [
           'Glucose + 2 NAD+ + 2 ADP + 2 Pi -> 2 Pyruvate + 2 NADH + 2 ATP + 2 H2O',
           'Net ATP yield = 2 (Invests 2 ATP, generates 4 ATP)'
@@ -366,6 +458,22 @@ export const DEFAULT_UNITS: TopicUnit[] = [
         masteryStatus: 'learning',
         summary: 'Pyruvate enters the mitochondrial matrix, converts to Acetyl-CoA, and undergoes an 8-step cyclical oxidation releasing CO2 and harvesting high-energy electrons onto NADH and FADH2.',
         summaryAmharic: 'ፓይሩቬት ወደ ማይቶኮንድሪያ በመግባት ወደ አሴታይል-ኮኤ ይቀየራል፤ ዑደቱ CO2 እያወጣ ከፍተኛ ጉልበት ያላቸውን ኤሌክትሮኖች በNADH እና FADH2 ላይ ያከማቻል።',
+        detailedExplanation: 'Before entering the Krebs Cycle, each pyruvate loses one carbon as CO2 and gains coenzyme A to form Acetyl-CoA (the link reaction), generating 1 NADH in the process. Acetyl-CoA (2C) then merges with oxaloacetate (4C) to form citrate (6C), which is progressively oxidized through eight enzymatic steps, releasing 2 CO2, generating 3 NADH, 1 FADH2, and producing 1 GTP (equivalent to ATP) per turn. Because one glucose yields two pyruvates, the entire cycle runs twice per glucose molecule. The Krebs Cycle itself produces very little ATP directly — its primary role is to charge electron carrier molecules (NADH and FADH2) for the electron transport chain.',
+        detailedExplanationAmharic: 'ፓይሩቬት ከክሬብስ ዑደት በመግባቱ ቀደም አንድ ካርቦን በCO2 ይ丢失፣ Coenzyme A በመቀበል ወደ አሴታይል-ኮኤ ይቀየራል (የአውታር ሂደት)። አሴታይል-ኮኤ (2C) ከኦክሳሎአሴታት (4C) ጋር ተቀብሎ ዘይት (6C) ያደርጋል፣ ይህም በ8 የተዘረጉ ደረጃዎች ውስጥ ተξቷል። አንድ ግሉኮስ ሁለት ፓይሩቬት ስለሚሰጥ ዑደቱ ሁለት ጊዜ ይከልካል። ክሬብስ ዑደት በቀጥታ ብዙ ATP አይሰጥም — ዋና ተግባሩ የኤሌክትሮን ባትሪዎችን (NADH እና FADH2) ማስ充滿 ነው።',
+        keyTakeaways: [
+          'Pyruvate is converted to Acetyl-CoA (link reaction) before entering the cycle.',
+          'Per glucose (2 turns): 6 NADH, 2 FADH2, 2 ATP/GTP, and 4 CO2 released.',
+          'Oxaloacetate (4C) regenerates each turn, making the cycle truly catalytic.',
+          'The Krebs Cycle\'s main output is electron carriers (NADH, FADH2), not ATP directly.',
+          'Each turn releases 2 CO2 — this is where the carbon in glucose leaves the body.'
+        ],
+        keyTakeawaysAmharic: [
+          'ፓይሩቬት ከክሬብስ ዑደት በመግባቱ ቀደም ወደ አሴታይል-ኮኤ ይቀየራል።',
+          'ከግሉኮስ (2 ዞሮች): 6 NADH, 2 FADH2, 2 ATP/GTP, እና 4 CO2 ይወጣሉ።',
+          'ኦክሳሎአሴታት (4C) በእያንዳንዱ ዞር ዳግመ ይፈጥራል፣ ዑደቱን አስተካክሎ ያደርጋል።',
+          'ክሬብስ ዑደት ዋና ምርቱ የኤሌክትሮን ባትሪዎች (NADH, FADH2) ነው፣ ATP በቀጥታ አይደለም።',
+          'እያንዳንዱ ዞር 2 CO2 ይወጣል — ይህ ግሉኮስ ያለው ካርቦን ከሰውነት ውስጥ የሚወጣበት ቦታ ነው።'
+        ],
         keyFormulasOrRules: [
           'Per Glucose (2 cycles): 2 ATP, 6 NADH, 2 FADH2, 4 CO2 released',
           'Oxaloacetate (4C) combines with Acetyl-CoA (2C) to form Citrate (6C)'
@@ -400,6 +508,22 @@ export const DEFAULT_UNITS: TopicUnit[] = [
         masteryStatus: 'unstudied',
         summary: 'NADH and FADH2 donate electrons to inner membrane protein complexes. The electron flow pumps H+ protons across into the intermembrane space, creating a proton gradient that spins ATP Synthase to forge ~28-34 ATP.',
         summaryAmharic: 'NADH እና FADH2 ኤሌክትሮኖችን ያስተላልፋሉ። ይህ ፍሰት የፕሮቶን ልዩነት ፈጥሮ የATP ሲንቴዝ ሞተርን በማሽከርከር በብዛት ~30 ATP ያመርታል።',
+        detailedExplanation: 'The electron transport chain (ETC) consists of four protein complexes embedded in the inner mitochondrial membrane. NADH donates electrons at Complex I and FADH2 at Complex II; as electrons pass through the chain, energy is released and used to pump H+ protons from the matrix into the intermembrane space, building a steep electrochemical gradient (proton-motive force). Oxygen sits at the end of the chain as the final electron acceptor — it combines with spent electrons and free protons to form water, which is why breathing oxygen is essential for life. The accumulated protons then flow back through ATP Synthase, a remarkable molecular rotary turbine, driving the mechanical synthesis of ADP + Pi into approximately 28-34 ATP molecules per glucose.',
+        detailedExplanationAmharic: 'የኤሌክትሮን ማስተላለፊያ ሰንሰለት (ETC) በማይቶኮንድሪያል ውስጣዊ ጠርዝ ላይ የተገ사ሉ አራት የፕሮቲን ቅንぷቶች አሏቸው። NADH በComplex I ኤሌክትሮኖች ይሰጣል፤ ኤሌክትሮኖች በሰንሰለቱ በሚያልፉ ጊዜ ኃይል ይለቅቃል እና H+ ፕሮቶኖችን ከማትሪክስ ወደ መካከለኛ ጠርዝ ለማስገደብ ይጠቀማል። ኦክስጅን በሰንሰለቱ መጨረሻ ላይ የመጨረሻው ኤሌክትሮን ተቀባይ ነው፤ ይህ ነው አየር ስለ生命的 አስፈላጥ የሚሆነው። የተጠቁት ፕሮቶኖች በATP Synthase ተመላሽ ሲያልፉ የADP + Pi ማረካ FITS ያለ ቅንጡ ይከፍታሉ።',
+        keyTakeaways: [
+          'The ETC uses electron energy from NADH/FADH2 to pump H+ protons across the inner mitochondrial membrane.',
+          'Oxygen is the final electron acceptor — without it, the entire chain backs up and ATP production halts.',
+          'The proton gradient (chemiosmosis) drives ATP Synthase, a molecular rotary motor.',
+          'Oxidative phosphorylation produces ~28-34 ATP per glucose — far more than glycolysis alone.',
+          'Cyanide and carbon monoxide kill by blocking Complex IV, preventing oxygen from accepting electrons.'
+        ],
+        keyTakeawaysAmharic: [
+          'ETC ከNADH/FADH2 የሚመጣውን የኤሌክትሮን ጉልበት H+ ፕሮቶኖችን ለማስገደብ ይጠቀማል።',
+          'ኦክስጅን የመጨረሻው ኤሌክትሮን ተቀባይ ነው — ካለነገር ሰንሰለቱ ይቆማል።',
+          'የፕሮቶን ልዩነት (chemiosmosis) የATP Synthase የሞለኪውል ሞተርን ያስተላልፋል።',
+          'ኦክሲداءቲቭ ፎስፎሪሌሽን ከግሉኮስ ~28-34 ATP ያመርታል — ከግላይኮляይሲስ ብዙ ይшекandere።',
+          '사이안айд እና ካርቦን ሞኖክሳይድ Complex IV በማስܙ赃榆 ይገድላሉ።'
+        ],
         keyFormulasOrRules: [
           'Total aerobic yield per glucose molecule: ~30 to 32 ATP',
           'Oxygen is the final electron acceptor, forming H2O: 1/2 O2 + 2e- + 2H+ -> H2O',
@@ -507,6 +631,22 @@ export const DEFAULT_UNITS: TopicUnit[] = [
         masteryStatus: 'mastered',
         summary: 'Graphs consist of Vertices V and Edges E. Adjacency lists take O(V + E) space (optimal for sparse graphs), while matrices take O(V^2) space.',
         summaryAmharic: 'ግራፎች ከነጥቦች (Vertices) እና መስመሮች (Edges) የተሰሩ ናቸው። አጃሰንሲ ሊስት O(V+E) ቦታ ሲይዝ፣ ማትሪክስ O(V^2) ይይዛል።',
+        detailedExplanation: 'An adjacency matrix stores a 2D boolean array where entry (i,j) is true if an edge exists from vertex i to j. This allows O(1) edge existence checks but wastes space for sparse graphs since most entries are false. An adjacency list stores for each vertex a list of its neighbors, using exactly V + E space — ideal when most vertices have few connections. The choice between them is a classic space-time tradeoff: matrices favor dense graphs with frequent edge queries, while lists favor sparse graphs where memory efficiency matters more. In directed graphs, the matrix is asymmetric, while in undirected graphs it is symmetric.',
+        detailedExplanationAmharic: 'አጃሰንሲ ማትሪክስ 2D boolean ማ奋力 ይይዛል ውስጥ (i,j) ቦታ ከነጥብ i ወደ j መስመር ካለ እውነት ነው። ይህ O(1) የመስመር ማረጋገጫ ይሰጣል ግን ለ sparse ግራፎች ቦታ ያባባል። አጃሰንሲ ሊስት እያንዳንዱ ነጥብ ለighboringዎቹ ሊስት ይይዛል። ማትሪክስ ለ dense ግራፎች ተስ HồFUL፣ ሊስት ግን ለ sparse ግራፎች ይጠቅማል።',
+        keyTakeaways: [
+          'Adjacency matrix: O(V²) space, O(1) edge lookup — best for dense graphs.',
+          'Adjacency list: O(V + E) space, O(degree) edge lookup — best for sparse graphs.',
+          'For Dijkstra with adjacency list, the total complexity is O((V + E) log V) using a binary heap.',
+          'Directed graphs produce asymmetric matrices; undirected graphs produce symmetric ones.',
+          'The right representation can be the difference between a working program and a memory overflow.'
+        ],
+        keyTakeawaysAmharic: [
+          'አጃሰንሲ ማትሪክስ: O(V²) ቦታ, O(1) መስመር ማረጋገጫ — ለ dense ግራፎች ምርጥ።',
+          'አጃሰንሲ ሊስት: O(V + E) ቦታ, O(degree) መስመር ማረጋገጫ — ለ sparse ግራፎች ምርጥ።',
+          'ዲጅክስትራ ከአጃሰንሲ ሊስት ጋር ቢሠራ O((V + E) log V) ይሆናል።',
+          'የተመዘገቡ ግራፎች ማትሪክስን አስመስለዋል፤ ያልተመዘገቡትን ግን አይሰЛИ̱ርም።',
+          'ትክክለኛው አቀራረብ መ.program መ寐_working እና የ memoriam ገደማ መካከል ልዩነት ሊፈጥር ይችላል።'
+        ],
         keyFormulasOrRules: [
           'Sparse Graph: |E| << |V|^2 -> Use Adjacency List',
           'Dense Graph: |E| ≈ |V|^2 -> Adjacency Matrix allows O(1) edge lookup'
@@ -537,6 +677,22 @@ export const DEFAULT_UNITS: TopicUnit[] = [
         masteryStatus: 'feynman_tested',
         summary: 'A greedy algorithm that finds the shortest path from a starting node to all others in a weighted graph with non-negative edge weights using a Min-Priority Queue in O((V + E) log V) time.',
         summaryAmharic: 'አሉታዊ ክብደት በሌላቸው ግራፎች ውስጥ ከመነሻ ነጥብ ወደ ሁሉም አቋራጩን መንገድ በMin-Priority Queue በፍጥነት O((V+E)logV) የሚያገኝ አልጎሪዝም።',
+        detailedExplanation: 'Dijkstra\'s algorithm works by maintaining a tentative distance to every vertex, starting with 0 for the source and infinity for all others. At each step, it greedily extracts the unvisited vertex with the smallest tentative distance and "relaxes" all its outgoing edges — meaning it checks whether going through this vertex offers a shorter path to any neighbor. The greedy choice is safe only because all edge weights are non-negative: once a vertex is extracted with minimum distance, no future path can improve upon it. The priority queue is the key data structure that efficiently tracks which unvisited vertex currently has the smallest distance, enabling the O((V+E) log V) complexity with a binary heap.',
+        detailedExplanationAmharic: 'ዲጅክስትራ አልጎሪዝም ሁሉም ነጥብ ላይ የተመዘገበ ገምታዊ ርቀት በመጠቀም ይሠራል። በእያንዳንዱ ደረጃ በ ገምታዊ ርቀት ትንሹን የያዘውን ነጥብ ይወስዳል እና ሁሉም ወጪ መስመሮችን ያረጋግጣል። ይህ የ greedy ምርጫ በፍጹም የተጠበቀ ነው ማለት ሁሉም ክብደት አሉታዊ አይደለም። Priority queue ዋናው የመረጃ መዋቅር ነው።',
+        keyTakeaways: [
+          'Dijkstra uses a greedy strategy: always visit the nearest unvisited vertex next.',
+          'Relaxation updates: if dist[u] + w(u,v) < dist[v], then a shorter path is found through u.',
+          'Requires non-negative edge weights — negative weights break the greedy assumption.',
+          'With a binary min-heap priority queue, time complexity is O((V + E) log V).',
+          'Bellman-Ford should be used instead when negative edge weights are present.'
+        ],
+        keyTakeawaysAmharic: [
+          'ዲጅክስትራ የgreedy ስልት ይጠቀማል: ሁልጊዜ በቀጥታ ትንሹ ነጥብ ይጎበኛል።',
+          'Relaxation updates: if dist[u] + w(u,v) < dist[v], ከu በኋላ ለውጡ ትንሽ ነው።',
+          'አሉታዊ ክብደት ይፈልጋል — አሉታዊ ክብደት የgreedy መርሁን ይፈርሳል።',
+          'በ binary min-heap priority queue O((V + E) log V) ይሆናል።',
+          'አሉታዊ ክብደት ካለ Bellman-Ford መጠቀም አለበት።'
+        ],
         keyFormulasOrRules: [
           'Relaxation condition: if dist[u] + weight(u, v) < dist[v] then dist[v] = dist[u] + weight(u, v)',
           'Requires all edge weights w >= 0 (fails on negative cycles; use Bellman-Ford instead)'

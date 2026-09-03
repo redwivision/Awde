@@ -77,6 +77,20 @@ export function generateFallbackUnit(topic?: string | null, subject?: string | n
         masteryStatus: 'unstudied',
         summary: 'Carbon forms four covalent bonds due to sp3, sp2, or sp hybridization, creating tetrahedral, trigonal planar, or linear geometries.',
         summaryAmharic: 'ካርቦን በsp3, sp2 ወይም sp ሃይብሪዳይዜሽን አማካኝነት አራት ጠንካራ ኮቫለንት ቦንዶችን ይፈጥራል።',
+        detailedExplanation: 'Carbon is unique among elements because its 2s and 2p orbitals can mix (hybridize) in three distinct ways. In sp3 hybridization, one s and three p orbitals blend into four equivalent orbitals arranged in a tetrahedron at 109.5°, as seen in methane (CH4). In sp2 hybridization, one s and two p orbitals form three planar orbitals at 120° with one leftover p orbital that creates a pi bond, as in ethene (C2H4). In sp hybridization, one s and one p orbital form two linear orbitals at 180°, leaving two p orbitals for pi bonding, as in ethyne (C2H2). The geometry dictated by hybridization determines molecular shape, bond angles, and reactivity.',
+        detailedExplanationAmharic: 'ካርቦን በ轨道 ልውውጥ ልዩ ነው። sp3 ሃይብሪዳይዜሽን ውስጥ አንድ s እና ሦስት p ቦንዶች በ109.5° በክብብ የተቀመጡ አራት እኩል ቦንዶችን ይፈጥራሉ። sp2 ላይ ሦስት የፍላት ቦንዶች በ120° ይሆኑና አንድ ተቀሪ p ቦንድ ፓይ ቦንድ ይፈጥራል። sp ላይ ሁለት ቀጥታ ቦንዶች በ180° ይሆኑና ሁለት ተቀሪ p ቦንዶች ፓይ ቦንዶችን ይፈጥራሉ።',
+        keyTakeaways: [
+          'Carbon can form four bonds because it has four valence electrons.',
+          'sp3 = tetrahedral (109.5°), sp2 = trigonal planar (120°), sp = linear (180°).',
+          'Hybridization determines molecular geometry and bond angles.',
+          'Pi bonds form from unhybridized p orbitals and are weaker than sigma bonds.'
+        ],
+        keyTakeawaysAmharic: [
+          'ካርቦን አራት የቫለንስ ኤሌክትሮኖች ስላለው አራት ቦንዶችን ይሰራል።',
+          'sp3 = ትትራACHEDRAL (109.5°), sp2 = TRIGONAL PLANAR (120°), sp = LINEAR (180°)።',
+          'ሃይብሪዳይዜሽን የሞለኪውል ቅርጽን እና የቦንድ አንግሎችን ይወስናል።',
+          'ፓይ ቦንዶች ከተቀሩ p ቦንዶች ይፈጥራሉ ከሲግማ ቦንዶችም ደካማ ናቸው።'
+        ],
         keyFormulasOrRules: ['sp3 = 109.5° tetrahedral', 'sp2 = 120° planar', 'sp = 180° linear'],
         commonMisconceptions: ['Thinking double bonds are twice as strong as single bonds (pi bond is weaker than sigma).'],
         misconceptionsAmharic: ['ድርብ ቦንድ ከነጠላ ቦንድ በሁለት እጥፍ ይጠነክራል ብሎ ማሰብ (ፓይ ቦንድ ከሲግማ ደካማ ነው)።'],
@@ -103,6 +117,20 @@ export function generateFallbackUnit(topic?: string | null, subject?: string | n
         masteryStatus: 'unstudied',
         summary: 'Saturated alkanes (C_n H_2n+2) contain single bonds; unsaturated alkenes (C_n H_2n) and alkynes (C_n H_2n-2) contain reactive double and triple bonds.',
         summaryAmharic: 'አልኬኖች ነጠላ ቦንድ ያላቸው ያልጠገቡ ሲሆኑ፣ አልኪኖች እና አልካይኖች ደግሞ ድርብና ባለ ሶስት ቦንድ አላቸው።',
+        detailedExplanation: 'Hydrocarbons are classified by the types of carbon-carbon bonds they contain. Alkanes are saturated — every carbon is bonded to the maximum number of hydrogens via single sigma bonds, making them relatively unreactive. Alkenes contain at least one C=C double bond (one sigma + one pi bond), and the pi bond is a region of high electron density that readily undergoes addition reactions. Alkynes contain C≡C triple bonds (one sigma + two pi bonds), making them even more electron-rich and reactive. The general formulas CnH2n+2 (alkanes), CnH2n (alkenes), and CnH2n-2 (alkynes) let you determine the degree of unsaturation from the molecular formula alone.',
+        detailedExplanationAmharic: 'ሃይድሮካርቦኖች በነጠላ፣ ድርብ እና ባለ ሶስት ቦንዶች ይ猬分裂። አልኬኖች ነጠላ ቦንዶች ብቻ አላቸው፣ አልኪኖች ድርብ ቦንድ አላቸው፥ አልካይኖች ግን ባለ ሶስት ቦንድ አላቸው።',
+        keyTakeaways: [
+          'Alkanes (single bonds) are saturated and relatively unreactive.',
+          'Alkenes (double bonds) and alkynes (triple bonds) are unsaturated and more reactive.',
+          'The pi bond in alkenes/alkynes is the reactive site for addition reactions.',
+          'Use CnH2n+2, CnH2n, CnH2n-2 to identify the hydrocarbon type from its formula.'
+        ],
+        keyTakeawaysAmharic: [
+          'አልኬኖች (ነጠላ ቦንድ) ያልጠገቡ እና ዝህረት ያላቸው ናቸው።',
+          'አልኪኖች (ድርብ ቦንድ) እና አልካይኖች (ባለ ሶስት ቦንድ) የተገነባ አልሆኑ እና በጣም ፈጣን ምላሽ ይሰጣሉ።',
+          'ፓይ ቦንድ በአልኪኖች/አልካይኖች ውስጥ ለመደመር ምላሽ ቦታ ነው።',
+          'CnH2n+2, CnH2n, CnH2n-2 በቀላል ፎርሙላ ሃይድሮካርቦን ዓይነቱን ይወስናሉ።'
+        ],
         keyFormulasOrRules: ['Alkane: CnH2n+2', 'Alkene: CnH2n', 'Alkyne: CnH2n-2'],
         commonMisconceptions: ['Assuming saturated fats/alkanes are more chemically reactive than unsaturated ones.'],
         misconceptionsAmharic: ['የጠገቡ (saturated) ሃይድሮካርቦኖች ከድርብ ቦንዶች የበለጠ ፈጣን ምላሽ ይሰጣሉ ብሎ ማሰብ።'],
@@ -129,6 +157,20 @@ export function generateFallbackUnit(topic?: string | null, subject?: string | n
         masteryStatus: 'unstudied',
         summary: 'Electrophilic addition breaks pi bonds to add atoms without loss, while substitution replaces one bonded atom with a new functional group.',
         summaryAmharic: 'የመደመር ምላሽ ድርብ ቦንድን በመስበር አዳዲስ አተሞችን ያክላል፤ የመተካካት ምላሽ ደግሞ አንዱን አተም በሌላ ይቀይራል።',
+        detailedExplanation: 'Addition reactions occur when a molecule adds across a double or triple bond. The pi bond breaks and two new sigma bonds form. In electrophilic addition (the most common type), an electrophile attacks the electron-rich pi bond first. For example, adding HBr to propene follows Markovnikov\'s rule: hydrogen attaches to the carbon with more hydrogens, and bromine goes to the more substituted carbon. Substitution reactions, by contrast, involve replacing one atom or group with another. In free-radical substitution of alkanes, a hydrogen is replaced by a halogen under UV light. The key distinction: addition increases the number of bonds to carbon, while substitution swaps one for another.',
+        detailedExplanationAmharic: 'የመደመር ምላሽ ማለት ድርብ ቦንድ በመስበር አዳዲስ ቦንዶችን መጨመር ነው። በ марковников ሕግ መሰረት ሃይድሮጅን ብዙ ሃይድሮጅን ወዳለው ካርቦን ይጣመራል። የመተካካት ምላሽ ግን አንድን አተም በሌላ መተካት ነው።',
+        keyTakeaways: [
+          'Addition reactions break pi bonds to add new atoms across a double/triple bond.',
+          'Markovnikov\'s rule: H adds to the carbon with more hydrogens already attached.',
+          'Substitution replaces one atom/group with another without changing the bond count.',
+          'UV light triggers free-radical substitution in alkanes.'
+        ],
+        keyTakeawaysAmharic: [
+          'የመደመር ምላሽ ፓይ ቦንዶችን በመስበር አዳዲስ አተሞችን ያክላል።',
+          'ማርኮቭኒክ岡 ሕግ: ሃይድሮጅን ብዙ ሃይድሮጅን ወዳለው ካርቦን ይጣመራል።',
+          'የመተካካት ምላሽ አንድን አተም በሌላ ይቀይራል ቦንድ ብዛት እንዳይቀይር።',
+          'የ	uv ብርሃን በአልኬኖች ውስጥ የነጠላ ቦንድ መተካካት ያሰማርላል።'
+        ],
         keyFormulasOrRules: ['Markovnikov\'s Rule: Hydrogen adds to the carbon with more hydrogens already attached.'],
         commonMisconceptions: ['Forgetting Markovnikov regioselectivity in asymmetric alkene addition.'],
         misconceptionsAmharic: ['በአልኪን መደመር ወቅት ሃይድሮጅን የትኛው ካርቦን ላይ እንደሚቀላቀል ማምታታት።'],
@@ -298,6 +340,29 @@ export function generateFallbackBlurting(targetKeyPoints?: string[] | null) {
     feedback: 'Good recall of initial principles. Ensure you capture boundary limits and energy transfers.',
     feedbackAmharic: 'የመነሻ መርሆችን በጥሩ ሁኔታ አስታውሰሃል። የቀሩትን የጉልበት ዝውውር ነጥቦች ደግመህ ተመልከት።'
   };
+}
+
+export function generateFallbackNodeAnswer(
+  nodeLabel?: string | null,
+  question?: string | null
+) {
+  const label = nodeLabel || 'this concept';
+  const q = (question || '').toLowerCase();
+  let answer: string;
+  let answerAmharic: string;
+
+  if (q.includes('why') || q.includes('ምን') || q.includes('ለምን')) {
+    answer = `Great question! The reason "${label}" works the way it does comes down to fundamental physical principles. Think of it like this: just as water flows downhill because of gravity, ${label} follows its own governing rule. The key insight is that energy and structure determine behavior — change one, and the other shifts too. Try connecting this to a real-world Ethiopian example, like how the Blue Nile carves the Abay Gorge over millennia.`;
+    answerAmharic = `ጥሩ ጥያቄ ነው! "${label}" እንዴት እንደሚሠራ በመሠረታዊ ፊዚክስ መርሆች ይሰጠናል። ውሃ በ gravite እንደሚወርድ ሁሉ፣ ${label} የተለየ ሕግ ይከተላል። ቁልፍ ማስተን灣 ሁለት ነገር አብሮ መሆናቸውን ነው።`;
+  } else if (q.includes('example') || q.includes('ምሳሌ') || q.includes('how')) {
+    answer = `Here's a concrete way to think about "${label}": imagine you're at Merkato watching a交易 happen. The same transfer principle applies here — one thing changes state or position, and the outcome depends on the conditions. The most important thing to remember is that ${label} isn't abstract — it shows up in daily Ethiopian life, from coffee roasting (Jebena Buna) to building the GERD.`;
+    answerAmharic = `"${label}" ለማሰብ እንዴት ይቻላል: በ መርካቶ ውስጥ ንግድ ሲከሰት ያኔ ይመስላል። ተመሳሳይ ለውጥ መርሆ ይተገበራል — አንድ ነገር ሁኔታ ሲቀይር ውጤቱ በአስተዳደር ላይ ይወሰናል።`;
+  } else {
+    answer = `"${label}" is a core concept that connects to several other ideas in this unit. The essential thing to understand is that it describes a real physical process — not just a formula on paper. Rooty recommends: try explaining it to a younger sibling using only everyday words and a Ethiopian cultural analogy. If you can do that, you truly understand it!`;
+    answerAmharic = `"${label}" የጠቅላላ ጽንሰ-ሀሳብ ነው ከሌሎች ሀሳቦች ጋር የሚገናኝ ነው። ውስጡ ያለውን ትክክለኛ ፊዚካዊ ሂደት መረዳት ነው — በቃላት ብቻ አይደለም። ሩቲ ይመክራል: ለድንግር ባህርይ ቃላት ብቻ ተብሎ ለ婪mente አስተምረው።`;
+  }
+
+  return { answer, answerAmharic };
 }
 
 // The schema shared by every Gemini call (documented in server.ts). Kept here

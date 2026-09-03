@@ -64,6 +64,10 @@ export interface ConceptNode {
   masteryStatus: MasteryStatus;
   summary: string;
   summaryAmharic: string;
+  detailedExplanation: string;
+  detailedExplanationAmharic?: string;
+  keyTakeaways: string[];
+  keyTakeawaysAmharic?: string[];
   keyFormulasOrRules: string[];
   commonMisconceptions: string[];
   misconceptionsAmharic?: string[];
@@ -71,6 +75,12 @@ export interface ConceptNode {
   prerequisites: string[]; // Node IDs
   x: number;
   y: number;
+}
+
+export interface NodeChatMessage {
+  role: 'user' | 'rooty';
+  content: string;
+  contentAmharic?: string;
 }
 
 export interface NodeConnection {
