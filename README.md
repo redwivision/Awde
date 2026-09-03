@@ -4,7 +4,7 @@
 
 **Turn any textbook into an interactive mind-map & Socratic Feynman arena.**
 
-Bilingual (English / Amharic) AI-driven conceptual mastery for Ethiopian STEM students — powered by the Feynman Technique, culturally-grounded analogies, and measurable study-method efficacy.
+Bilingual (English / Amharic) AI-driven conceptual mastery for Ethiopian students — powered by the Feynman Technique, culturally-grounded analogies, and measurable study-method efficacy.
 
 </div>
 
