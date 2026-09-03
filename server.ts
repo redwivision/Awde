@@ -99,7 +99,7 @@ app.post('/api/textbook/process', upload.single('file'), async (req, res) => {
 
     const bookTitle = String(req.body?.bookTitle || '').trim() || req.file.originalname.replace(/\.pdf$/i, '').replace(/_/g, ' ');
     const subject = String(req.body?.subject || 'Science').trim() || 'Science';
-    const gradeLevel = String(req.body?.gradeLevel || 'Secondary School').trim() || 'Secondary School';
+    const gradeLevel = String(req.body?.gradeLevel || 'Not specified').trim() || 'Not specified';
 
     const { workspace, extractedPages, textLength } = await processTextbookPdf(
       req.file.buffer,

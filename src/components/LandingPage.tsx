@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Languages,
   ShieldCheck,
+  Palette,
   BookOpen,
   Zap,
   AlertCircle,
@@ -16,14 +17,17 @@ import {
   Clock,
   Globe
 } from 'lucide-react';
-import { LanguageMode } from '../types';
+import { DesignAesthetic, LanguageMode } from '../types';
 import { AwdeLogo } from './AwdeLogo';
+import { AestheticsModal } from './AestheticsModal';
 
 interface LandingPageProps {
   language: LanguageMode;
   onToggleLanguage: () => void;
   onEnterWorkspace: () => void;
   workspacesCount: number;
+  currentAesthetic: DesignAesthetic;
+  onSelectAesthetic: (aesthetic: DesignAesthetic) => void;
 }
 
 /**
@@ -36,9 +40,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   language,
   onToggleLanguage,
   onEnterWorkspace,
-  workspacesCount
+  workspacesCount,
+  currentAesthetic,
+  onSelectAesthetic
 }) => {
   const isAmharic = language === 'am';
+  const [isAestheticsModalOpen, setIsAestheticsModalOpen] = React.useState(false);
 
   const t = {
     badge: isAmharic ? 'ለኢትዮጵያ የተሰራ የሳይንስ መማሪያ' : 'Built for Ethiopian STEM learners',
@@ -165,20 +172,35 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <div className="max-w-6xl mx-auto px-6 sm:px-8 py-10 sm:py-16 flex flex-col gap-10 sm:gap-14">
 
         {/* Top bar */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <AwdeLogo size="lg" isAmharic={isAmharic} />
-          <button
-            onClick={onToggleLanguage}
-            style={{
-              backgroundColor: 'var(--app-surface, #ffffff)',
-              borderColor: 'var(--app-border, #cbd5e1)',
-              color: 'var(--app-text, #020617)'
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
-          >
-            <Languages className="w-4 h-4 text-emerald-500" />
-            {language === 'am' ? 'Switch to English' : 'በአማርኛ ይመልከቱ'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsAestheticsModalOpen(true)}
+              style={{
+                backgroundColor: 'var(--app-surface, #ffffff)',
+                borderColor: 'var(--app-border, #cbd5e1)',
+                color: 'var(--app-text, #020617)'
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
+              aria-label={isAmharic ? 'የዲዛይን ገጽታ ይምረጡ' : 'Choose design aesthetic'}
+            >
+              <Palette className="w-4 h-4 text-emerald-500" />
+              {isAmharic ? 'ገጽታ' : 'Theme'}
+            </button>
+            <button
+              onClick={onToggleLanguage}
+              style={{
+                backgroundColor: 'var(--app-surface, #ffffff)',
+                borderColor: 'var(--app-border, #cbd5e1)',
+                color: 'var(--app-text, #020617)'
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
+            >
+              <Languages className="w-4 h-4 text-emerald-500" />
+              {language === 'am' ? 'Switch to English' : 'በአማርኛ ይመልከቱ'}
+            </button>
+          </div>
         </div>
 
         {/* Hero Section */}
@@ -377,6 +399,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </p>
         </div>
       </div>
+      <AestheticsModal
+        isOpen={isAestheticsModalOpen}
+        onClose={() => setIsAestheticsModalOpen(false)}
+        currentAesthetic={currentAesthetic}
+        onSelectAesthetic={onSelectAesthetic}
+        language={language}
+      />
     </div>
   );
 };

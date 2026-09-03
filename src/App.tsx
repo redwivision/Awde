@@ -100,6 +100,13 @@ export default function App() {
     ? workspaces.find((w) => w.id === activeWorkspaceId) || null
     : null;
 
+  const currentWorkspace = workspaces.find((w) => w.units.some((u) => u.id === currentUnitId));
+  const sidebarUnits = activeWorkspace
+    ? activeWorkspace.units
+    : activeTab === 'library'
+      ? units
+      : currentWorkspace?.units || units;
+
   // Save to localStorage
   useEffect(() => {
     localStorage.setItem('awde_workspaces_v1', JSON.stringify(workspaces));
@@ -251,6 +258,8 @@ export default function App() {
       onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}
       onEnterWorkspace={() => setIsLandingOpen(false)}
       workspacesCount={workspaces.length}
+      currentAesthetic={aesthetic}
+      onSelectAesthetic={setAesthetic}
     />
   ) : (
     <div className="flex h-screen w-screen bg-slate-950 text-slate-100 font-sans overflow-hidden select-none">
@@ -274,7 +283,7 @@ export default function App() {
 
       {/* Workspace Persistent / Collapsible Sidebar */}
       <WorkspaceSidebar
-        units={units}
+        units={sidebarUnits}
         currentUnitId={currentUnitId}
         onSelectUnit={handleOpenUnit}
         selectedNodeId={selectedNode?.id}

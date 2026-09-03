@@ -33,7 +33,7 @@ export const UploadPdfModal: React.FC<UploadPdfModalProps> = ({
   const [fileObj, setFileObj] = useState<File | null>(null);
   const [bookTitle, setBookTitle] = useState<string>('');
   const [subject, setSubject] = useState<string>('Physics');
-  const [gradeLevel, setGradeLevel] = useState<string>('Grade 11 National Curriculum');
+  const [gradeLevel] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [activeStep, setActiveStep] = useState<'upload' | 'review'>('upload');
@@ -153,7 +153,7 @@ const handleCreateWorkspace = async () => {
     form.append('file', fileObj);
     form.append('bookTitle', bookTitle.trim());
     form.append('subject', subject.trim() || 'Science');
-    form.append('gradeLevel', gradeLevel.trim() || 'Secondary School');
+    form.append('gradeLevel', gradeLevel.trim());
 
     const result = await postFormData<{ workspace: TextbookWorkspace }>('/api/textbook/process', form, { timeoutMs: 120000 });
 
