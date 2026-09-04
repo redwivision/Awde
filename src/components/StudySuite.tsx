@@ -18,13 +18,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Volume2,
-  VolumeX,
   Plus,
-  Flame,
-  Award,
-  BookOpen,
-  ArrowRight,
-  ShieldCheck
+  Flame
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -221,8 +216,8 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl">
           <div className="flex items-center gap-2">
             <Brain className="w-5 h-5 text-emerald-400" />
-            <span className="font-bold text-white text-sm">
-              {isAmharic ? 'የሳይንሳዊ ጥናት ዘዴዎች ማዕከል' : 'Cognitive Study Suite'}
+            <span className="font-bold text-white text-sm font-display antialiased">
+              {isAmharic ? 'የሳይንሳዊ ጥናት ዘዴዎች ማዕከል' : 'Focus'}
             </span>
           </div>
 
@@ -236,7 +231,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
               }`}
             >
               <Clock className="w-3.5 h-3.5" />
-              <span>{isAmharic ? 'ፖሞዶሮ (Pomodoro)' : 'Pomodoro Focus'}</span>
+              <span>{isAmharic ? 'ፖሞዶሮ (Pomodoro)' : 'Focus timer'}</span>
             </button>
 
             <button
@@ -248,7 +243,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
               }`}
             >
               <Flame className="w-3.5 h-3.5" />
-              <span>{isAmharic ? 'ብለርቲንግ (Blurting)' : 'Blurting Recall'}</span>
+              <span>{isAmharic ? 'ብለርቲንግ (Blurting)' : 'Say it all out'}</span>
             </button>
 
             <button
@@ -260,7 +255,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>{isAmharic ? 'ፍላሽካርድ (SRS)' : 'Spaced Repetition'}</span>
+              <span>{isAmharic ? 'ፍላሽካርድ (SRS)' : 'Flashcards'}</span>
             </button>
           </div>
         </div>
@@ -283,7 +278,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  {isAmharic ? 'የጥናት ጊዜ (25m)' : 'Deep Work (25m)'}
+                  {isAmharic ? 'የጥናት ጊዜ (25m)' : 'Study (25m)'}
                 </button>
                 <button
                   onClick={() => {
@@ -322,7 +317,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
                   }`}
                 >
                   {isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                  <span>{isRunning ? (isAmharic ? 'አፍታ ቆም አድርግ' : 'Pause') : (isAmharic ? 'ጀምር' : 'Start Focus')}</span>
+                  <span>{isRunning ? (isAmharic ? 'አፍታ ቆም አድርግ' : 'Pause') : (isAmharic ? 'ጀምር' : 'Start')}</span>
                 </button>
 
                 <button
@@ -341,7 +336,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
               <div className="pt-4 border-t border-slate-800 w-full flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
                 <span className="flex items-center gap-1.5">
                   <Volume2 className="w-4 h-4 text-emerald-400" />
-                  {isAmharic ? 'የማተኮሪያ ድምጽ፡' : 'Ambient Focus Noise:'}
+                  {isAmharic ? 'የማተኮሪያ ድምጽ፡' : 'Focus noise:'}
                 </span>
                 <div className="flex items-center gap-1.5">
                   {(['none', 'binaural', 'krar'] as const).map((mode) => (
@@ -366,10 +361,10 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
               <div>
                 <h3 className="text-sm font-bold text-slate-200 flex items-center gap-1.5">
                   <AlertCircle className="w-4 h-4 text-amber-400" />
-                  {isAmharic ? 'የሀሳብ ማዘናጊያ መጣያ' : 'Distraction Parking Lot'}
+                  {isAmharic ? 'የሀሳብ ማዘናጊያ መጣያ' : 'Write down distracting thoughts'}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {isAmharic ? 'በጥናት መሃል የሚመጡብህን ሀሳቦች እዚህ ጻፋቸውና ወደ ጥናትህ ተመለስ' : 'Jot intrusive thoughts here so they don\'t break your flow.'}
+                  {isAmharic ? 'በጥናት መሃል የሚመጡብህን ሀሳቦች እዚህ ጻፋቸውና ወደ ጥናትህ ተመለስ' : 'Got a thought? Write it here so you can get back to studying.'}
                 </p>
               </div>
 
@@ -384,7 +379,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
                       setNewDistraction('');
                     }
                   }}
-                  placeholder={isAmharic ? 'ሀሳብህን ጣልበት...' : 'Quick thought...'}
+                  placeholder={isAmharic ? 'ሀሳብህን ጣልበት...' : 'Your thought...'}
                   className="flex-1 bg-slate-950 text-xs text-slate-100 p-2 rounded-lg border border-slate-800 focus:outline-none focus:border-emerald-500"
                 />
                 <button
@@ -423,7 +418,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
               </div>
 
               <div className="pt-2 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between">
-                <span>Completed Cycles:</span>
+                <span>Done sessions:</span>
                 <span className="font-bold text-emerald-400 font-mono">{cyclesCompleted}</span>
               </div>
             </div>
@@ -436,13 +431,12 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Flame className="w-5 h-5 text-amber-400" />
-                  {isAmharic ? 'የብለርቲንግ ፈጣን ማስታወስ ልምምድ' : 'The Blurting Method (Active Retrieval)'}
+                  {isAmharic ? 'የብለርቲንግ ፈጣን ማስታወስ ልምምድ' : 'Say everything you remember'}
                 </h3>
                 <p className="text-xs text-slate-400 mt-1">
                   {isAmharic
                     ? '3 ደቂቃ ተሰጥቶሃል፤ ስለ ርዕሱ የምታስታውሰውን ሁሉ ያለማቋረጥ ጻፍ። ከዚያ AI ምን እንዳስታወስክ እና ምን እንደረሳህ ይገመግማል!'
-                    : 'Take 3 minutes to dump every concept, formula, and step you remember from memory. AI will grade what you recalled vs missed!'}
+                    : 'You have 3 minutes. Write down everything you remember without looking. Then AI tells you what you got and what you missed.'}
                 </p>
               </div>
 
@@ -459,7 +453,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
                       : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                   }`}
                 >
-                  {isBlurtRunning ? 'Pause Timer' : 'Start 3m Sprint'}
+                  {isBlurtRunning ? 'Pause' : 'Start 3m Sprint'}
                 </button>
               </div>
             </div>
@@ -483,7 +477,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
                 className="px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-950 transition-all"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>{isEvaluatingBlurt ? 'AI is Evaluating...' : 'Evaluate My Blurting'}</span>
+                <span>{isEvaluatingBlurt ? 'Checking...' : 'Check my memory'}</span>
               </button>
             </div>
 
@@ -501,10 +495,10 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
               >
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-bold text-white">
-                    {isAmharic ? 'የማስታወስ ምዘና ውጤት' : 'Active Recall Diagnostic'}
+                    {isAmharic ? 'የማስታወስ ምዘና ውጤት' : 'What you remembered'}
                   </h4>
                   <span className="text-sm font-bold font-mono px-2.5 py-1 rounded bg-amber-950 text-amber-300 border border-amber-800">
-                    Retrieval Score: {blurtResult.accuracyScore}%
+                    {isAmharic ? 'ውጤት' : 'Score'}: {blurtResult.accuracyScore}%
                   </span>
                 </div>
 
@@ -512,7 +506,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
                   <div className="p-4 rounded-lg bg-emerald-950/20 border border-emerald-500/30 space-y-2">
                     <span className="font-bold text-emerald-400 flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      {isAmharic ? 'በትክክል ያስታወስካቸው ነጥቦች' : 'Successfully Retrieved Concepts:'}
+                      {isAmharic ? 'በትክክል ያስታወስካቸው ነጥቦች' : 'You remembered these:'}
                     </span>
                     <ul className="space-y-1 list-disc list-inside text-emerald-200">
                       {blurtResult.recalledKeyPoints.map((pt, i) => (
@@ -524,7 +518,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
                   <div className="p-4 rounded-lg bg-rose-950/20 border border-rose-500/30 space-y-2">
                     <span className="font-bold text-rose-400 flex items-center gap-1.5">
                       <AlertCircle className="w-3.5 h-3.5" />
-                      {isAmharic ? 'የተዘነጉ ቁልፍ ነጥቦች' : 'Forgotten / Missed Concepts:'}
+                      {isAmharic ? 'የተዘነጉ ቁልፍ ነጥቦች' : 'You missed these:'}
                     </span>
                     <ul className="space-y-1 list-disc list-inside text-rose-200">
                       {blurtResult.missedKeyPoints.map((pt, i) => (
@@ -535,7 +529,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
                 </div>
 
                 <p className="text-xs text-slate-300 leading-relaxed pt-2 border-t border-slate-900">
-                  <strong>AI Feedback:</strong> {isAmharic ? blurtResult.feedbackAmharic : blurtResult.feedback}
+                  <strong>AI feedback:</strong> {isAmharic ? blurtResult.feedbackAmharic : blurtResult.feedback}
                 </p>
               </motion.div>
             )}
@@ -548,8 +542,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-cyan-400" />
-                  {isAmharic ? 'የተዘረጋ የክለሳ ስርዓት (Leitner SRS)' : 'Leitner Spaced Repetition Deck'}
+                  {isAmharic ? 'የተዘረጋ የክለሳ ስርዓት (Leitner SRS)' : 'Flashcards'}
                 </h3>
                 <p className="text-xs text-slate-400 mt-1">
                   Card {fcIndex + 1} of {flashcards.length}
@@ -582,7 +575,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
                   <span className="font-mono">
                     {isFlipped ? (isAmharic ? 'መልስ (Back)' : 'Answer') : (isAmharic ? 'ጥያቄ (Front)' : 'Prompt')}
                   </span>
-                  <span className="text-[11px] text-cyan-400">Click to flip ↷</span>
+                  <span className="text-[11px] text-cyan-400">Click to flip</span>
                 </div>
 
                 <div className="my-auto py-4">
@@ -599,7 +592,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
                 </div>
 
                 <div className="text-[11px] text-slate-500">
-                  Box {flashcards[fcIndex].boxLevel} • Next Review: {flashcards[fcIndex].nextReviewDate || 'Today'}
+                  Stage {flashcards[fcIndex].boxLevel} • Next look: {flashcards[fcIndex].nextReviewDate || 'Today'}
                 </div>
               </div>
             )}
@@ -615,7 +608,7 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
                   onClick={() => handleRateFlashcard(-1)}
                   className="p-3 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 text-rose-200 border border-rose-700 text-xs font-bold transition-colors"
                 >
-                  {isAmharic ? 'ረሳሁት (Again)' : 'Again (Box 1)'}
+                  {isAmharic ? 'ረሳሁት (Again)' : 'Forgot it'}
                 </button>
                 <button
                   onClick={() => handleRateFlashcard(0)}
@@ -627,13 +620,13 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
                   onClick={() => handleRateFlashcard(1)}
                   className="p-3 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-200 border border-emerald-700 text-xs font-bold transition-colors"
                 >
-                  {isAmharic ? 'አስታወስኩ (Good)' : 'Good (+1 Box)'}
+                  {isAmharic ? 'አስታወስኩ (Good)' : 'Got it'}
                 </button>
                 <button
                   onClick={() => handleRateFlashcard(2)}
                   className="p-3 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-200 border border-cyan-700 text-xs font-bold transition-colors"
                 >
-                  {isAmharic ? 'ቀላል ነው (Easy)' : 'Easy (+2 Box)'}
+                  {isAmharic ? 'ቀላል ነው (Easy)' : 'Easy'}
                 </button>
               </motion.div>
             )}

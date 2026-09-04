@@ -229,7 +229,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* ============ HERO ============ */}
         <motion.section
           style={{ opacity: heroOpacity }}
-          className="relative min-h-[80vh] flex flex-col items-center justify-center text-center max-w-3xl mx-auto"
+          className="relative min-h-[80vh] pt-10 pb-24 flex flex-col items-center justify-center text-center max-w-3xl mx-auto"
         >
           <motion.h1
             initial={{ opacity: 0, y: 24 }}

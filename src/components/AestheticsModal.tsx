@@ -45,8 +45,8 @@ export const AestheticsModal: React.FC<AestheticsModalProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-white tracking-tight">
-                    {isAmharic ? 'የዲዛይን ውበት እና ገጽታ ይምረጡ' : 'Choose Design Aesthetic'}
+                  <h2 className="text-lg font-bold text-white tracking-tight font-display antialiased">
+                    {isAmharic ? 'የዲዛይን ውበት እና ገጽታ ይምረጡ' : 'Choose a Theme'}
                   </h2>
                   <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">
                     {AESTHETIC_THEMES.length} {isAmharic ? 'ገጽታዎች' : 'Styles'}
@@ -55,7 +55,7 @@ export const AestheticsModal: React.FC<AestheticsModalProps> = ({
                 <p className="text-xs text-slate-400 mt-0.5">
                   {isAmharic
                     ? 'ለማጥናት ምቹ የሆነውን የገጽታ ቀለም እና የብርሃን መጠን ይምረጡ።'
-                    : 'Personalize your learning environment. Changes apply across all visual tools & persist automatically.'}
+                    : 'Pick colors and brightness that feel good to you.'}
                 </p>
               </div>
             </div>
@@ -181,7 +181,7 @@ export const AestheticsModal: React.FC<AestheticsModalProps> = ({
           <div className="p-4 border-t border-slate-800/90 bg-slate-950/60 flex items-center justify-between text-xs text-slate-400">
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{isAmharic ? 'ምርጫዎ በራስ-ሰር ይቀመጣል' : 'Aesthetic choice is saved automatically.'}</span>
+              <span>{isAmharic ? 'ምርጫዎ በራስ-ሰር ይቀመጣል' : 'Your pick is saved.'}</span>
             </div>
             <button
               onClick={onClose}

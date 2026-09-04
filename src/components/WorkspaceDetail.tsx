@@ -96,7 +96,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
             className="inline-flex items-center gap-1 text-xs font-semibold hover:underline shrink-0"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            {isAmharic ? 'ወደ መጻሕፍት ማዕከል ተመለስ' : 'Back to Library'}
+            {isAmharic ? 'ወደ መጻሕፍት ማዕከል ተመለስ' : 'Back to Books'}
           </button>
         </div>
 
@@ -123,7 +123,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
                 {workspace.gradeOrLevel}
               </span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight mt-1 leading-tight">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight mt-1 leading-tight font-display antialiased">
               {isAmharic ? workspace.titleAmharic : workspace.title}
             </h1>
             {workspace.sourcePdfName && (
@@ -138,7 +138,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
           <div style={{ borderColor: 'var(--app-border, #cbd5e1)' }} className="shrink-0 sm:min-w-[190px] rounded-xl border p-3">
             <div className="flex items-center justify-between text-xs font-semibold mb-1">
               <span style={{ color: 'var(--app-text-muted, #475569)' }}>
-                {isAmharic ? 'አጠቃላይ ብቃት' : 'Overall Mastery'}
+                {isAmharic ? 'አጠቃላይ ብቃት' : 'Learned'}
               </span>
               <span className="font-mono" style={{ color: 'var(--app-accent, #4f46e5)' }}>
                 {workspace.overallMastery}%
@@ -155,10 +155,10 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
             </div>
             <div style={{ color: 'var(--app-text-muted, #475569)' }} className="flex items-center gap-3 text-[11px] mt-2">
               <span className="flex items-center gap-1">
-                <Layers className="w-3 h-3" /> {workspace.units.length} {isAmharic ? 'ክፍሎች' : 'Units'}
+                <Layers className="w-3 h-3" /> {workspace.units.length} {isAmharic ? 'ክፍሎች' : 'Lessons'}
               </span>
               <span className="flex items-center gap-1">
-                <Network className="w-3 h-3" /> {graph.topicNodes.length} {isAmharic ? 'ርዕሶች' : 'Topics'}
+                <Network className="w-3 h-3" /> {graph.topicNodes.length} {isAmharic ? 'ርዕሶች' : 'Ideas'}
               </span>
             </div>
           </div>
@@ -166,7 +166,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
-        {/* Whole-Book Multi-Level Mind-Map */}
+        {/* Whole-Book Multi-Level Map */}
         <div className="flex-1 min-h-0 relative" ref={containerRef}>
           <div
             onWheel={handleWheel}
@@ -280,7 +280,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
                     opacity={0.85}
                     fontSize={10}
                   >
-                    {isAmharic ? 'የመጽሐፍ መነሻ' : 'Book Root'} • {graph.unitNodes.length} {isAmharic ? 'ክፍሎች' : 'Units'}
+                    {isAmharic ? 'የመጽሐፍ መነሻ' : 'Book Root'} • {graph.unitNodes.length} {isAmharic ? 'ክፍሎች' : 'Lessons'}
                   </text>
                 </g>
 
@@ -434,13 +434,13 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
             <div className="flex items-center justify-between px-1">
               <h2 className="text-sm font-bold tracking-tight flex items-center gap-2">
                 <Layers className="w-4 h-4" style={{ color: 'var(--app-accent, #4f46e5)' }} />
-                {isAmharic ? 'የመጽሐፉ ምዕራፎች' : 'Units & Chapters'}
+                {isAmharic ? 'የመጽሐፉ ምዕራፎች' : 'Lessons'}
               </h2>
               <span
                 style={{ color: 'var(--app-text-muted, #475569)' }}
                 className="text-[10px] font-mono"
               >
-                {workspace.units.length} {isAmharic ? 'ክፍሎች' : 'units'}
+                {workspace.units.length} {isAmharic ? 'ክፍሎች' : 'lessons'}
               </span>
             </div>
 
@@ -473,7 +473,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
                 <div>
                   <div className="flex justify-between text-[10px] font-semibold mb-1">
                     <span style={{ color: 'var(--app-text-muted, #475569)' }}>
-                      {isAmharic ? 'ብቃት' : 'Mastery'}
+                      {isAmharic ? 'ብቃት' : 'Learned'}
                     </span>
                     <span className="font-mono" style={{ color: 'var(--app-accent, #4f46e5)' }}>
                       {unitMastery(unit.id)}%
@@ -500,7 +500,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
                     className="flex-1 px-3 py-2.5 min-h-[40px] rounded-lg text-xs font-bold flex items-center justify-center gap-1 hover:opacity-90 shadow-sm"
                   >
                     <Network className="w-3.5 h-3.5" />
-                    {isAmharic ? 'ማይንድ-ማፕ' : 'Mind-Map'}
+                    {isAmharic ? 'ማይንድ-ማፕ' : 'Map'}
                   </button>
                   <button
                     onClick={() => {
@@ -514,14 +514,14 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
                     className="flex-1 px-3 py-2.5 min-h-[40px] rounded-lg text-xs font-semibold flex items-center justify-center gap-1 border hover:opacity-80"
                   >
                     <MessageSquare className="w-3.5 h-3.5" style={{ color: 'var(--app-accent, #4f46e5)' }} />
-                    {isAmharic ? 'ሩቲን' : 'Feynman'}
+                    {isAmharic ? 'ሩቲን' : 'Teach Rooty'}
                   </button>
                 </div>
 
                 <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--app-text-muted, #475569)' }}>
                   <ChevronRight className="w-3 h-3" />
                   <span>
-                    {unit.nodes.length} {isAmharic ? 'ርዕሶች' : 'topics'} •{' '}
+                    {unit.nodes.length} {isAmharic ? 'ርዕሶች' : 'ideas'} •{' '}
                     {unit.quizQuestions.length} {isAmharic ? 'ጥያቄዎች' : 'Qs'} •{' '}
                     {unit.flashcards.length} {isAmharic ? 'ካርዶች' : 'flashcards'}
                   </span>
@@ -538,10 +538,10 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
             >
               <p className="text-[11px] font-semibold flex items-center justify-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--app-accent, #4f46e5)' }} />
-                {isAmharic ? 'ከአጠቃላይ መጻሕፍት ማዕከል አዲስ መጽሐፍ ያስገቡ' : 'Import a new textbook from the Library'}
+                {isAmharic ? 'ከአጠቃላይ መጻሕፍት ማዕከል አዲስ መጽሐፍ ያስገቡ' : 'Add a new book from your Books'}
               </p>
               <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-[10px] mt-1">
-                {isAmharic ? 'አንድ መጽሐፍ ይጨምሩ' : 'Use "Import Textbook PDF" on the home page'}
+                {isAmharic ? 'አንድ መጽሐፍ ይጨምሩ' : 'Use "Add a book (PDF)" from the Books page'}
               </p>
             </div>
           </div>

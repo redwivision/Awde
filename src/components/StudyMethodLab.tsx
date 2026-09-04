@@ -8,24 +8,10 @@ import {
   StudyMethod
 } from '../types';
 import {
-  FlaskConical,
-  Sparkles,
-  TrendingUp,
   Brain,
-  Network,
-  MessageSquare,
-  HelpCircle,
   Clock,
   CheckCircle2,
-  ArrowRight,
-  Flame,
-  Zap,
-  BarChart3,
-  Award,
-  ChevronRight,
-  RotateCcw,
-  Target,
-  Plus
+  ArrowRight
 } from 'lucide-react';
 
 interface StudyMethodLabProps {
@@ -131,49 +117,49 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
   const studyProtocols = [
     {
       id: 'hybrid_synergy',
-      name: isAmharic ? 'የእይታና የፌይንማን ቅንብር' : 'The Dual Nexus: Map + Feynman',
-      badge: '94% Retention Avg',
+      name: isAmharic ? 'የእይታና የፌይንማን ቅንብር' : 'Map it, then explain it',
+      badge: '94% Remember Avg',
       badgeColor: 'bg-emerald-950 text-emerald-300 border-emerald-700',
       duration: '8-10 min',
       description: isAmharic
         ? 'በመጀመሪያ በMind-Map ካርታ ላይ የጽንሰ-ሀሳቦቹን ግኑኝነት ይመልከቱ፣ ከዚያም ሩቲን (Rooty) በቀላል ቋንቋ ያስተምሩ።'
-        : 'Frame structural connections on the Mind-Map for 3 mins, then teach Rooty with zero jargon for 5 mins.',
+        : 'Look at the map for 3 minutes, then teach Rooty using everyday words for 5 minutes.',
       steps: [
-        { label: 'Step 1: Mind-Map Framing', desc: 'Scan prerequisite nodes and causal links.' },
-        { label: 'Step 2: Socratic Feynman', desc: 'Break down the concept to Rooty using real-world analogies.' },
-        { label: 'Step 3: Delta Verification', desc: 'Answer 1 cold recall twist question to verify retention.' }
+        { label: 'Step 1: Look at the Map', desc: 'See how the ideas connect.' },
+        { label: 'Step 2: Explain it out loud', desc: 'Teach Rooty with simple real-world examples.' },
+        { label: 'Step 3: Check what you know', desc: 'Answer one tricky question to make sure.' }
       ],
       targetTab: 'mindmap' as const
     },
     {
       id: 'socratic_deep',
-      name: isAmharic ? 'የፌይንማን ጥልቅ ውይይት' : 'Pure Socratic Feynman Mastery',
-      badge: '88% Retention Avg',
+      name: isAmharic ? 'የፌይንማን ጥልቅ ውይይት' : 'Explain it out loud',
+      badge: '88% Remember Avg',
       badgeColor: 'bg-indigo-950 text-indigo-300 border-indigo-700',
       duration: '5-7 min',
       description: isAmharic
         ? 'ምንም አይነት የማስታወሻ ደብተር ሳይመለከቱ ጽንሰ-ሀሳቡን ከባዶ ለሩቲ ያስረዱ። ሩቲ ውስብስብ ቃላትን ይመረምራል።'
-        : 'Explain the core idea from scratch. Rooty acts as an authentic student challenging jargon and gaps.',
+        : 'Explain the big idea from scratch. Rooty plays the student and asks you to make it simple.',
       steps: [
-        { label: 'Step 1: Jargon-Free Definition', desc: 'State the rule in 8th-grade terms.' },
-        { label: 'Step 2: Ethiopian Real-World Analogy', desc: 'Use cultural physical models (Jebena, Injera, Market).' },
-        { label: 'Step 3: Boundary Defense', desc: 'Defend what happens when variables hit zero.' }
+        { label: 'Step 1: Say it simply', desc: 'Use words a 10-year-old would understand.' },
+        { label: 'Step 2: Use real examples', desc: 'Think of Jebena, Injera, or Market.' },
+        { label: 'Step 3: Hold the line', desc: 'What happens when a number becomes zero?' }
       ],
       targetTab: 'feynman' as const
     },
     {
       id: 'spatial_scaffolding',
-      name: isAmharic ? 'የእይታ አወቃቀር ካርታ' : 'Spatial Scaffolding & Clustering',
-      badge: '80% Speed Boost',
+      name: isAmharic ? 'የእይታ አወቃቀር ካርታ' : 'Make a mind map',
+      badge: '80% Faster',
       badgeColor: 'bg-cyan-950 text-cyan-300 border-cyan-700',
       duration: '4-6 min',
       description: isAmharic
         ? 'በአእምሮ ውስጥ ያለውን የመረጃ ትስስር በስዕላዊ መንገድ ማገናኘት እና የጎደሉ ክፍሎችን መሙላት።'
-        : 'Map causal dependencies and prerequisites across chapters to cement spatial memory.',
+        : 'Connect the ideas in a picture to help your brain remember where everything fits.',
       steps: [
-        { label: 'Step 1: Prerequisite Scan', desc: 'Trace where energy/formulas flow from.' },
-        { label: 'Step 2: Node Deep-Dive', desc: 'Inspect cultural analogies on the mastery drawer.' },
-        { label: 'Step 3: Active Recall Quiz', desc: 'Test instant recognition.' }
+        { label: 'Step 1: Find what comes first', desc: 'See where each idea comes from.' },
+        { label: 'Step 2: Dig deeper', desc: 'Look at the examples for each idea.' },
+        { label: 'Step 3: Take a quiz', desc: 'Check that it sticks.' }
       ],
       targetTab: 'mindmap' as const
     }
@@ -185,21 +171,13 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
         {/* Header Title Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
           <div>
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-indigo-950 border border-indigo-500/40 text-indigo-400">
-                <FlaskConical className="w-5 h-5" />
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-100">
-                {isAmharic ? 'የጥናት ዘዴዎች ላብራቶሪ' : 'Cognitive Method Laboratory'}
-              </h1>
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">
-                Efficacy Proof Engine
-              </span>
-            </div>
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-100 font-display antialiased">
+              {isAmharic ? 'የጥናት ዘዴዎች ላብራቶሪ' : 'Your progress'}
+            </h1>
             <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
               {isAmharic
                 ? 'የራስዎን የአእምሮ አሰራር ይወቁ! የተለያዩ የጥናት ዘዴዎችን በመቀላቀል፣ ከጥናት በፊትና በኋላ ያለውን የእውቀት ልዩነት (Efficacy Delta) በተጨባጭ ይለኩ።'
-                : 'Discover how your brain learns best. Test, combine, and validate high-leverage study methods with measurable Before-vs-After recall deltas.'}
+                : 'Find out how your brain learns best. Try different ways to study and see how much you remember before and after.'}
             </p>
           </div>
 
@@ -207,7 +185,7 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
               <div className="text-[10px] font-mono text-slate-400 uppercase">
-                {isAmharic ? 'አማካይ እድገት' : 'Avg Recall Delta'}
+                {isAmharic ? 'አማካይ እድገት' : 'Progress'}
               </div>
               <div className="text-lg font-black text-emerald-400">
                 +{avgDelta}%
@@ -216,7 +194,7 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
 
             <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center">
               <div className="text-[10px] font-mono text-slate-400 uppercase">
-                {isAmharic ? 'የተመዘገቡ ሙከራዎች' : 'Validated Trials'}
+                {isAmharic ? 'የተመዘገቡ ሙከራዎች' : 'Tries'}
               </div>
               <div className="text-lg font-black text-indigo-400">
                 {experiments.length}
@@ -228,12 +206,11 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
         {/* Experiment Protocols Grid */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider font-mono flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-400" />
-              {isAmharic ? 'የሚሞከሩ የጥናት ፕሮቶኮሎች' : 'Recommended Study Method Protocols'}
+            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+              {isAmharic ? 'የሚሞከሩ የጥናት ፕሮቶኮሎች' : 'Ways to study'}
             </h2>
             <span className="text-xs text-slate-400">
-              {isAmharic ? 'አንዱን መርጠው ሙከራ ይጀምሩ' : 'Select a protocol to launch a trial'}
+              {isAmharic ? 'አንዱን መርጠው ሙከራ ይጀምሩ' : 'Pick one and give it a try'}
             </span>
           </div>
 
@@ -290,7 +267,7 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
                     }}
                     className="mt-5 w-full py-2.5 px-4 min-h-[40px] rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
                   >
-                    <span>{isAmharic ? 'ሙከራውን ጀምር' : 'Launch Protocol Trial'}</span>
+                    <span>{isAmharic ? 'ሙከራውን ጀምር' : 'Try this'}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -304,13 +281,12 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-emerald-400" />
-                {isAmharic ? 'የተረጋገጡ የጥናት ውጤቶች ማህደር' : 'Validated Efficacy Log & Recall Deltas'}
+                {isAmharic ? 'የተረጋገጡ የጥናት ውጤቶች ማህደር' : 'How much you remembered'}
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
                 {isAmharic
                   ? 'እያንዳንዱ ክፍለ-ጊዜ ከመጀመሩ በፊትና በኋላ የተመዘገቡ ተጨባጭ የውጤት እድገቶች'
-                  : 'Real measurable recall spikes recorded before & after Socratic and visual sessions'}
+                  : 'Your scores before and after each study session'}
               </p>
             </div>
           </div>
@@ -319,12 +295,12 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-slate-800 text-slate-400 font-mono text-[11px] uppercase">
-                  <th className="py-2.5 px-3">{isAmharic ? 'ጽንሰ-ሀሳብ' : 'Concept Node'}</th>
-                  <th className="py-2.5 px-3">{isAmharic ? 'የተጠቀሙት ዘዴዎች' : 'Methods Used'}</th>
-                  <th className="py-2.5 px-3 text-center">{isAmharic ? 'ከጥናት በፊት' : 'Pre-Recall'}</th>
-                  <th className="py-2.5 px-3 text-center">{isAmharic ? 'ከጥናት በኋላ' : 'Post-Recall'}</th>
-                  <th className="py-2.5 px-3 text-center">{isAmharic ? 'የእውቀት ጭማሪ' : 'Efficacy Delta'}</th>
-                  <th className="py-2.5 px-3">{isAmharic ? 'የውጤት ደረጃ' : 'Synergy Level'}</th>
+                  <th className="py-2.5 px-3">{isAmharic ? 'ጽንሰ-ሀሳብ' : 'Concept'}</th>
+                  <th className="py-2.5 px-3">{isAmharic ? 'የተጠቀሙት ዘዴዎች' : 'Used'}</th>
+                  <th className="py-2.5 px-3 text-center">{isAmharic ? 'ከጥናት በፊት' : 'Before'}</th>
+                  <th className="py-2.5 px-3 text-center">{isAmharic ? 'ከጥናት በኋላ' : 'After'}</th>
+                  <th className="py-2.5 px-3 text-center">{isAmharic ? 'የእውቀት ጭማሪ' : 'Growth'}</th>
+                  <th className="py-2.5 px-3">{isAmharic ? 'የውጤት ደረጃ' : 'Level'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -376,12 +352,12 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
             </div>
             <div>
               <div className="text-xs font-bold text-slate-100">
-                {isAmharic ? 'የእርስዎ የግል የጥናት ቀመር (Optimal Cognitive Synergy)' : 'Your Optimal Cognitive Synergy Recipe'}
+                {isAmharic ? 'የእርስዎ የግል የጥናት ቀመር (Optimal Cognitive Synergy)' : 'What works for you'}
               </div>
               <p className="text-[11px] text-slate-300 mt-0.5">
                 {isAmharic
                   ? 'ከመረጃዎ በመነሳት፡ 3 ደቂቃ በMind-Map ካርታ ላይ መመልከት + 6 ደቂቃ ሩቲን ማስተማር 94% የተረጋጋ የማስታወስ አቅም ይሰጥዎታል።'
-                  : 'Based on your trials: 3 min Mind-Map Framing + 6 min Rooty Socratic Teaching generates your highest recall jump (+57%).'}
+                  : 'From your tries: 3 minutes looking at the map + 6 minutes teaching Rooty gives your best jump in remembering (+57%).'}
               </p>
             </div>
           </div>
@@ -389,7 +365,7 @@ export const StudyMethodLab: React.FC<StudyMethodLabProps> = ({
             onClick={() => onNavigateToMethod('mindmap')}
             className="px-3.5 py-2.5 min-h-[40px] rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shrink-0 transition-colors shadow-sm"
           >
-            {isAmharic ? 'ካርታውን ክፈት' : 'Start Synergy Session'}
+            {isAmharic ? 'ካርታውን ክፈት' : 'Start learning'}
           </button>
         </div>
       </div>

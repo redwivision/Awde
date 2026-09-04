@@ -1,5 +1,5 @@
 import React from 'react';
-import { Network, MessageSquare, FlaskConical, Compass, ArrowRight, Check } from 'lucide-react';
+import { Compass, ArrowRight, Check } from 'lucide-react';
 import { LanguageMode } from '../types';
 
 interface OnboardingTourProps {
@@ -9,19 +9,20 @@ interface OnboardingTourProps {
   onComplete: () => void;
 }
 
-interface StepDef {
-  icon: React.ReactNode;
+interface Spot {
+  selector?: string;
+  box?: boolean;
   title: string;
   titleAmharic: string;
   body: string;
   bodyAmharic: string;
+  /** where the tooltip sits relative to the target */
+  side?: 'below' | 'above';
 }
 
 /**
- * OnboardingTour — a short, first-run guide that walks a new user through
- * the four core parts of the workspace. It is intentionally a lightweight
- * intro modal rather than a DOM-hijacking spotlight so it stays robust and
- * never gets in the way.
+ * OnboardingTour — a short, first-run spotlight that points at the REAL
+ * buttons on screen and uses words so simple a child could follow along.
  */
 export const OnboardingTour: React.FC<OnboardingTourProps> = ({
   isOpen,
@@ -31,113 +32,217 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 }) => {
   const isAmharic = language === 'am';
   const [step, setStep] = React.useState(0);
+  const [spot, setSpot] = React.useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const tooltipRef = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    if (isOpen) setStep(0);
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  const steps: StepDef[] = [
+  const steps: Spot[] = [
     {
-      icon: <Compass className="w-6 h-6" />,
-      title: 'Welcome to Awde',
-      titleAmharic: 'እንኳን ወደ አውደ በደህና መጡ',
-      body: 'Awde turns any textbook into a map you can walk through — so you understand it, not just memorise it.',
-      bodyAmharic: 'አውደ ማንኛውንም መጽሐፍ ወደ መጓዝ የሚችሉበት ካርታ ይቀይረዋል — ለማስታወስ ሳይሆን ለመረዳት።'
+      title: 'Welcome',
+      titleAmharic: 'እንኳን ደህና መጡ',
+      body: 'Awde helps you really understand school work, not just memorize it. This short tour shows you where everything is.',
+      bodyAmharic: 'አውደ የትምህርት ቤት ትምህርትን ለማስታወስ ብቻ ሳይሆን በእውነት እንድትረዱ ይረዳዎታል። ይህ አጭር መመሪያ ቦታዎቹን ያሳየዎታል።'
     },
     {
-      icon: <Network className="w-6 h-6" />,
-      title: 'Mind-Maps that reward structure',
-      titleAmharic: 'አወቃቀርን የሚያሳዩ የእይታ ካርታዎች',
-      body: 'Open Mind-Map Studio to see a whole unit as connected ideas — explore from the book root down to each topic.',
-      bodyAmharic: 'የእይታ ካርታ ስቱዲዮን ከፍተው አንድ ክፍል እንደ ተያያዙ ሀሳቦች ይመልከቱ — ከመጽሐፉ እስከ እያንዳንዱ ርዕስ።'
+      selector: '[data-tour="books"]',
+      side: 'below',
+      title: 'Your books',
+      titleAmharic: 'መጻሕፍትዎ',
+      body: 'This shows all your books. Tap one to open it.',
+      bodyAmharic: 'ይህ ሁሉንም መጻሕፍትዎን ያሳያል። ለመክፈት አንዱን ይንኩ።'
     },
     {
-      icon: <MessageSquare className="w-6 h-6" />,
+      selector: '[data-tour="map"]',
+      side: 'below',
+      title: 'See it as a map',
+      titleAmharic: 'እንደ ካርታ ይመልከቱ',
+      body: 'Every lesson becomes a map of ideas that connect. Open the map to explore it.',
+      bodyAmharic: 'እያንዳንዱ ትምህርት የተያያዙ ሀሳቦች ካርታ ይሆናል። ለመመርመር ካርታውን ይክፈቱ።'
+    },
+    {
+      selector: '[data-tour="teach"]',
+      side: 'below',
       title: 'Teach Rooty',
       titleAmharic: 'ሩቲን አስተምሩ',
-      body: 'In the Feynman Arena, explain a concept in plain words to Rooty. If you can teach it simply, you truly know it.',
-      bodyAmharic: 'በፈይንድማን አሬና ሀሳብን በቀላል ቃላት ለሩቲ ያስረዱ። በቀላሉ ማስተማር ከቻሉ በእርግጥ ታውቀዋላችሁ።'
-    },
-    {
-      icon: <FlaskConical className="w-6 h-6" />,
-      title: 'Measure your recall',
-      titleAmharic: 'የማስታወስ መጠንዎን ይለኩ',
-      body: 'The Method Laboratory measures your recall before and after studying, so you can see real progress — not just a score.',
-      bodyAmharic: 'የጥናት ላብራቶሪ ከመጠናቅዎ በፊት እና በኋላ ማስታወስዎን ይለካል — ውጤት ብቻ ሳይሆን እውነተኛ እድገት ያሳያል።'
+      body: 'Rooty is a friendly robot. Explain a thing to him in your own simple words. If you can explain it, you learned it.',
+      bodyAmharic: 'ሩቲ ደግ ሮቦት ነው። ነገርን በራስዎ ቀላል ቃላት ያስረዱት። ማስረዳት ከቻሉ ተምረዋል ማለት ነው።'
     }
   ];
 
   const current = steps[step];
   const isLast = step === steps.length - 1;
 
+  const stepTo = (i: number) => {
+    setStep(i);
+    setSpot(null);
+  };
+
+  // Measure a target element and store its viewport box. The sidebar buttons
+  // are always rendered on screen, so we measure directly rather than
+  // scrolling — that avoids the page/sidebar chasing that caused blank steps.
+  const measureSpot = (selector: string) => {
+    const el = document.querySelector<HTMLElement>(selector);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setSpot({ top: r.top, left: r.left, width: r.width, height: r.height });
+  };
+
+  // Recompute highlight whenever the active step changes. Give the browser a
+  // tick so the new step's layout has settled, then fall back to centering if
+  // the target can't be found.
+  React.useEffect(() => {
+    if (!isOpen) return;
+    if (!current.selector) {
+      setSpot(null);
+      return;
+    }
+    const id = window.setTimeout(() => {
+      if (document.querySelector(current.selector as string)) {
+        measureSpot(current.selector as string);
+      } else {
+        setSpot(null);
+      }
+    }, 60);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, step]);
+
+  // Keep the highlight glued to the target on scroll / resize of ANY ancestor.
+  React.useEffect(() => {
+    if (!isOpen || !current.selector) return;
+    const update = () => {
+      const el = document.querySelector<HTMLElement>(current.selector as string);
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setSpot({ top: r.top, left: r.left, width: r.width, height: r.height });
+    };
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    const raf = requestAnimationFrame(update);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, step]);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
+  React.useEffect(() => {
+    if (isOpen) stepTo(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
   const finish = () => {
     onComplete();
     onClose();
   };
 
-  return (
-    <div
-      className="fixed inset-0 z-[90] flex items-center justify-center p-4"
-      aria-modal="true"
-      role="dialog"
-    >
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+  const tooltipAbove = current.side === 'above' || (spot && spot.top < 200);
 
+  // Welcome step (no target): don't black out the whole screen — keep the
+  // workspace clearly visible behind a soft glass card. Spotlight steps use a
+  // full dim + glowing cutout instead.
+  const isSpotlight = Boolean(spot);
+
+  return (
+    <div className="fixed inset-0 z-[80]" aria-modal="true" role="dialog">
+      {/* Spotlight veil: a faint radial dim that keeps the dark workspace fully
+          readable while slightly shading the edges — never blanks the screen. */}
+      {isSpotlight && spot && (
+        <div
+          className="absolute inset-0"
+          onClick={onClose}
+          aria-hidden="true"
+          style={{
+            background: `radial-gradient(circle 340px at ${spot.left + spot.width / 2}px ${
+              spot.top + spot.height / 2
+            }px, rgba(2,6,23,0.05) 0%, rgba(2,6,23,0.38) 74%, rgba(2,6,23,0.55) 100%)`
+          }}
+        />
+      )}
+
+      {/* Spotlight highlight around the target */}
+      {spot && (
+        <div
+          className="absolute z-[81] pointer-events-none rounded-xl"
+          style={{
+            top: spot.top - 6,
+            left: spot.left - 6,
+            width: spot.width + 12,
+            height: spot.height + 12,
+            boxShadow: '0 0 0 4px var(--app-accent, #6366f1), 0 0 40px rgba(99,102,241,0.6)',
+            border: '2px solid #ffffff'
+          }}
+        />
+      )}
+
+      {/* Tooltip card */}
       <div
+        ref={tooltipRef}
+        className="absolute z-[82] left-1/2 -translate-x-1/2 w-[min(90vw,26rem)] rounded-3xl overflow-hidden shadow-2xl"
         style={{
           backgroundColor: 'var(--app-surface, #ffffff)',
           borderColor: 'var(--app-border, #cbd5e1)',
-          color: 'var(--app-text, #020617)'
+          color: 'var(--app-text, #020617)',
+          top: spot
+            ? tooltipAbove
+              ? Math.max(16, spot.top - 260)
+              : spot.top + spot.height + 24
+            : '50%'
         }}
-        className="relative w-full max-w-md rounded-3xl border shadow-2xl overflow-hidden"
       >
-        {/* Accent top strip */}
         <div
           className="h-1.5 w-full"
-          style={{ backgroundColor: 'var(--app-accent, #4f46e5)' }}
+          style={{ backgroundColor: 'var(--app-accent, #6366f1)' }}
         />
-
-        <div className="p-7 sm:p-8">
-          {/* Step icon */}
+        <div className="p-6 sm:p-7">
           <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center"
+            className="w-11 h-11 rounded-xl flex items-center justify-center"
             style={{
-              backgroundColor: 'var(--app-accent-bg, rgba(79, 70, 229, 0.12))',
-              color: 'var(--app-accent, #4f46e5)'
+              backgroundColor: 'var(--app-accent-bg, rgba(99,102,241,0.12))',
+              color: 'var(--app-accent, #6366f1)'
             }}
           >
-            {current.icon}
+            {current.selector ? <Compass className="w-5 h-5" /> : <Compass className="w-5 h-5" />}
           </div>
-
-          <h2 className="mt-5 text-2xl font-extrabold tracking-tight leading-tight">
+          <h2 className="mt-4 text-xl font-extrabold tracking-tight leading-tight">
             {isAmharic ? current.titleAmharic : current.title}
           </h2>
           <p
-            className="mt-3 text-sm leading-relaxed"
+            className="mt-2.5 text-sm leading-relaxed"
             style={{ color: 'var(--app-text-muted, #475569)' }}
           >
             {isAmharic ? current.bodyAmharic : current.body}
           </p>
 
           {/* Progress dots */}
-          <div className="mt-7 flex items-center gap-2">
+          <div className="mt-6 flex items-center gap-2">
             {steps.map((_, i) => (
               <button
                 key={i}
-                onClick={() => setStep(i)}
+                onClick={() => stepTo(i)}
                 aria-label={`Step ${i + 1}`}
                 className="h-1.5 rounded-full transition-all duration-300"
                 style={{
-                  width: i === step ? 28 : 10,
+                  width: i === step ? 26 : 10,
                   backgroundColor:
                     i === step
-                      ? 'var(--app-accent, #4f46e5)'
+                      ? 'var(--app-accent, #6366f1)'
                       : 'var(--app-border, #cbd5e1)'
                 }}
               />
@@ -145,12 +250,9 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
           </div>
         </div>
 
-        {/* Footer controls */}
         <div
-          style={{
-            borderTopColor: 'var(--app-border, #cbd5e1)'
-          }}
-          className="border-t px-7 sm:px-8 py-4 flex items-center justify-between"
+          style={{ borderTopColor: 'var(--app-border, #cbd5e1)' }}
+          className="border-t px-6 sm:px-7 py-4 flex items-center justify-between"
         >
           <button
             onClick={onClose}
@@ -159,11 +261,10 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
           >
             {isAmharic ? 'ዝለል' : 'Skip'}
           </button>
-
           <div className="flex items-center gap-2">
             {!isLast && (
               <button
-                onClick={() => setStep((s) => Math.max(0, s - 1))}
+                onClick={() => stepTo(Math.max(0, step - 1))}
                 className="px-4 py-2 rounded-xl text-xs font-bold border"
                 style={{
                   backgroundColor: 'var(--app-surface-elevated, #f8fafc)',
@@ -174,25 +275,24 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                 {isAmharic ? 'ተመለስ' : 'Back'}
               </button>
             )}
-
             {isLast ? (
               <button
                 onClick={finish}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold"
                 style={{
-                  backgroundColor: 'var(--app-accent, #4f46e5)',
+                  backgroundColor: 'var(--app-accent, #6366f1)',
                   color: 'var(--app-accent-text, #ffffff)'
                 }}
               >
-                {isAmharic ? 'ጀምር' : 'Start learning'}
+                {isAmharic ? 'ጀምር' : 'Let\u2019s go'}
                 <Check className="w-3.5 h-3.5" />
               </button>
             ) : (
               <button
-                onClick={() => setStep((s) => Math.min(steps.length - 1, s + 1))}
+                onClick={() => stepTo(Math.min(steps.length - 1, step + 1))}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold"
                 style={{
-                  backgroundColor: 'var(--app-accent, #4f46e5)',
+                  backgroundColor: 'var(--app-accent, #6366f1)',
                   color: 'var(--app-accent-text, #ffffff)'
                 }}
               >

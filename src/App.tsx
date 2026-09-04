@@ -53,7 +53,8 @@ import {
   ShieldCheck,
   Sparkles,
   Command,
-  WifiOff
+  WifiOff,
+  HelpCircle
 } from 'lucide-react';
 
 const TabSpinner: React.FC = () => (
@@ -91,10 +92,20 @@ export default function App() {
   const [isLandingOpen, setIsLandingOpen] = useState(true);
 
   // First-run onboarding tour — shown the first time the user enters the
-  // workspace, then remembered so it never nags again.
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    return localStorage.getItem('awde_tour_v1') !== 'done';
+  // workspace, then remembered so it never nags again (can be re-opened via
+  // the header Help button at any time).
+  const [tourActive, setTourActive] = useState(false);
+  const [hasSeenTour, setHasSeenTour] = useState(() => {
+    return localStorage.getItem('awde_tour_v2') === 'done';
   });
+
+  // Open the tour the first time, but only AFTER the workspace content has
+  // had a moment to render — otherwise it would point at a blank screen.
+  useEffect(() => {
+    if (isLandingOpen || hasSeenTour || tourActive) return;
+    const t = window.setTimeout(() => setTourActive(true), 900);
+    return () => window.clearTimeout(t);
+  }, [isLandingOpen, hasSeenTour, tourActive]);
 
   // Fallback-mode banner — shown when the server has no Gemini key, so AI
   // features use deterministic offline generators. Distinct from device
@@ -279,19 +290,19 @@ export default function App() {
   const getTabTitle = () => {
     switch (activeTab) {
       case 'mindmap':
-        return isAmharic ? 'የእይታ ካርታ' : 'Mind-Map Studio';
+        return isAmharic ? 'ካርታ' : 'Map';
       case 'feynman':
-        return isAmharic ? 'ሩቲን አስተምር' : 'Feynman Arena (Teach Rooty)';
+        return isAmharic ? 'ሩቲን አስተምር' : 'Teach Rooty';
       case 'experiment_lab':
-        return isAmharic ? 'የጥናት ዘዴዎች ላብራቶሪ' : 'Cognitive Method Laboratory';
+        return isAmharic ? 'ለካ' : 'Measure';
       case 'quiz':
-        return isAmharic ? 'ፈተናዎችና ልምምድ' : 'Active Recall Quizzes';
+        return isAmharic ? 'ፈተና' : 'Quiz';
       case 'studysuite':
-        return isAmharic ? 'የጥናት ማዕከል' : 'Deep Work Suite';
+        return isAmharic ? 'ትኩረት' : 'Focus';
       case 'library':
-        return isAmharic ? 'የመጻሕፍት ማዕከል' : 'Curriculum Library';
+        return isAmharic ? 'መጻሕፍት' : 'Books';
       default:
-        return 'Workspace';
+        return 'Awde';
     }
   };
 
@@ -392,12 +403,12 @@ export default function App() {
                     </span>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-600 shrink-0" />
                     <span className="text-slate-200 font-bold truncate">
-                      {isAmharic ? 'የመጽሐፍ አጠቃላይ እይታ' : 'Book Overview'}
+                      {isAmharic ? 'መጽሐፍ' : 'Book'}
                     </span>
                   </>
                 ) : activeTab === 'library' ? (
                   <span className="text-slate-200 font-bold truncate">
-                    {isAmharic ? 'የመጻሕፍት ማዕከል' : 'Curriculum Library'}
+                    {isAmharic ? 'መጻሕፍት' : 'Books'}
                   </span>
                 ) : (
                   <>
@@ -415,6 +426,18 @@ export default function App() {
 
           {/* Right: Quick Search & Theme Actions */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Onboarding Help */}
+            <button
+              onClick={() => setTourActive(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-950/80 hover:bg-slate-800 text-slate-200 text-xs font-semibold border border-slate-800 transition-colors"
+              title={isAmharic ? 'የመመሪያ ጉብኝት' : 'Show the quick tour'}
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="hidden sm:inline text-xs">
+                {isAmharic ? 'መመሪያ' : 'Tour'}
+              </span>
+            </button>
+
             {/* Command Palette Jump Search */}
             <button
               onClick={() => setIsCommandPaletteOpen(true)}
@@ -610,10 +633,13 @@ export default function App() {
 
       {/* First-run Onboarding Tour */}
       <OnboardingTour
-        isOpen={!isLandingOpen && showOnboarding}
+        isOpen={tourActive}
         language={language}
-        onClose={() => setShowOnboarding(false)}
-        onComplete={() => localStorage.setItem('awde_tour_v1', 'done')}
+        onClose={() => setTourActive(false)}
+        onComplete={() => {
+          setHasSeenTour(true);
+          localStorage.setItem('awde_tour_v2', 'done');
+        }}
       />
     </div>
   );

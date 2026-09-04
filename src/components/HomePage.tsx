@@ -1,22 +1,14 @@
 import React, { useState } from 'react';
 import {
-  Sparkles,
-  BookOpen,
   Network,
   MessageSquare,
   FlaskConical,
-  HelpCircle,
-  Clock,
   ArrowRight,
   Plus,
   Layers,
-  ChevronRight,
-  TrendingUp,
-  Award,
-  CheckCircle2,
-  FileText,
   Search,
-  BookMarked
+  BookMarked,
+  Sparkles
 } from 'lucide-react';
 import {
   LanguageMode,
@@ -38,9 +30,10 @@ interface HomePageProps {
   language: LanguageMode;
 }
 
+const display = "font-display antialiased";
+
 export const HomePage: React.FC<HomePageProps> = ({
   workspaces,
-  currentUnit,
   onSelectUnit,
   onSelectWorkspace,
   onNavigateTab,
@@ -59,7 +52,6 @@ export const HomePage: React.FC<HomePageProps> = ({
   );
 
   const totalTopics = workspaces.reduce((acc, w) => acc + w.totalTopics, 0);
-  const totalUnits = workspaces.reduce((acc, w) => acc + w.totalUnits, 0);
 
   return (
     <div
@@ -69,185 +61,88 @@ export const HomePage: React.FC<HomePageProps> = ({
       }}
       className="w-full h-full flex flex-col overflow-y-auto overflow-x-hidden"
     >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
-        {/* Top Hero Section */}
-        <div
-          style={{
-            backgroundColor: 'var(--app-surface, #ffffff)',
-            borderColor: 'var(--app-border, #cbd5e1)'
-          }}
-          className="relative rounded-3xl p-6 sm:p-10 border shadow-sm overflow-hidden"
-        >
-          {/* Subtle geometric background accent */}
-          <div
-            style={{
-              backgroundColor: 'var(--app-accent-bg, rgba(79, 70, 229, 0.06))'
-            }}
-            className="absolute -right-16 -top-16 w-80 h-80 rounded-full blur-3xl pointer-events-none"
-          />
+      <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-10 py-10 space-y-12">
+        {/* Top welcome */}
+        <section className="max-w-2xl">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.28em] flex items-center gap-2" style={{ color: 'var(--app-accent, #4f46e5)' }}>
+            <Sparkles className="w-3.5 h-3.5" /> {isAmharic ? 'መነሻ' : 'Welcome'}
+          </span>
+          <h1 className={`${display} mt-4 text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.08]`}>
+            {isAmharic
+              ? 'ትምህርቶችዎን በእውነት ይረዱ።'
+              : 'Understand your schoolwork, for real.'}
+          </h1>
+          <p
+            className="mt-5 text-base sm:text-lg leading-relaxed"
+            style={{ color: 'var(--app-text-muted, #475569)' }}
+          >
+            {isAmharic
+              ? 'ከታች ያሉ መጻሕፍትዎን ይክፈቱ፣ ወይም አዲስ መጽሐፍ ያስገቡ።'
+              : 'Open one of your books below, or bring in a new one. Awde works even when you are offline.'}
+          </p>
 
-          <div className="relative z-10 max-w-3xl space-y-4">
-            <div className="flex items-center gap-2">
-              <span
-                style={{
-                  backgroundColor: 'var(--app-accent-bg, rgba(79, 70, 229, 0.12))',
-                  borderColor: 'var(--app-border-strong, #94a3b8)',
-                  color: 'var(--app-accent, #4f46e5)'
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                {isAmharic ? 'የኢትዮጵያ ሳይንስ እና ሂሳብ የጥናት ማዕከል' : 'Cognitive STEM Mastery Platform'}
-              </span>
-              <span
-                style={{ color: 'var(--app-text-muted, #475569)' }}
-                className="text-xs font-medium"
-              >
-                {isAmharic ? 'የስርዓተ-ትምህርት ማይንድ-ማፕ እና ፈይንድማን አሬና' : 'Hierarchical Knowledge Graphs & Socratic Feynman'}
-              </span>
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
-              {isAmharic
-                ? 'በእይታ ማይንድ-ማፕ እና በሶቅራጥስ ውይይት የትምህርት ይዘቶችን ጠንቅቀው ይረዱ'
-                : 'Turn Any Textbook Into an Interactive Mind-Map & Socratic Arena'}
-            </h1>
-
-            <p
-              style={{ color: 'var(--app-text-muted, #475569)' }}
-              className="text-sm sm:text-base leading-relaxed"
-            >
-              {isAmharic
-                ? 'ከመማሪያ መጽሐፍ PDF ተነስተው ሙሉውን የመጽሐፍ ተዋረድ (መጽሐፍ → ምዕራፍ → ርዕስ → ንዑስ ጽንሰ-ሀሳብ) በግልጽ ካርታ ይመልከቱ። ሩቲን (Rooty) በማስተማር የዕውቀት ክፍተቶችን ይዝጉ።'
-                : 'Structure complex STEM textbooks into deep multi-level spatial graphs. Teach concepts in plain everyday language to Rooty to detect hidden misconceptions and prove recall retention.'}
-            </p>
-
-            {/* Hero Quick Action Buttons */}
-            <div className="pt-2 flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => onNavigateTab('mindmap')}
-                style={{
-                  backgroundColor: 'var(--app-accent, #4f46e5)',
-                  color: 'var(--app-accent-text, #ffffff)'
-                }}
-                className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md flex items-center gap-2 hover:opacity-90 transition-all hover:scale-[1.02]"
-              >
-                <Network className="w-4 h-4" />
-                {isAmharic ? 'የእይታ ካርታውን ክፈት' : 'Explore Mind-Map Studio'}
-              </button>
-
-              <button
-                onClick={() => onNavigateTab('feynman')}
-                style={{
-                  backgroundColor: 'var(--app-surface-elevated, #f8fafc)',
-                  borderColor: 'var(--app-border, #cbd5e1)',
-                  color: 'var(--app-text, #020617)'
-                }}
-                className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm border shadow-sm flex items-center gap-2 hover:border-indigo-500 hover:shadow-md hover:-translate-y-0.5 transition-all"
-              >
-                <MessageSquare className="w-4 h-4 text-emerald-500" />
-                {isAmharic ? 'ሩቲን አስተምር (Feynman)' : 'Teach Rooty (Feynman Arena)'}
-              </button>
-
-              <button
-                onClick={onOpenPdfModal}
-                style={{
-                  backgroundColor: 'var(--app-surface-elevated, #f8fafc)',
-                  borderColor: 'var(--app-border, #cbd5e1)',
-                  color: 'var(--app-text, #020617)'
-                }}
-                className="px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm border shadow-sm flex items-center gap-2 hover:border-indigo-500 hover:shadow-md hover:-translate-y-0.5 transition-all"
-              >
-                <Plus className="w-4 h-4 text-indigo-500" />
-                {isAmharic ? 'አዲስ መጽሐፍ (PDF) ጨምር' : 'Import Textbook PDF'}
-              </button>
-            </div>
-
-            {/* Quick Metrics Bar */}
-            <div
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => onNavigateTab('mindmap')}
               style={{
-                borderColor: 'var(--app-border, #cbd5e1)'
+                backgroundColor: 'var(--app-accent, #4f46e5)',
+                color: 'var(--app-accent-text, #ffffff)'
               }}
-              className="pt-6 mt-4 border-t grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm shadow-lg hover:opacity-90 hover:scale-[1.02] transition-all"
             >
-              <div>
-                <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs">
-                  {isAmharic ? 'የመማሪያ መጻሕፍት' : 'Textbook Workspaces'}
-                </p>
-                <p className="text-lg sm:text-xl font-extrabold mt-0.5">{workspaces.length} {isAmharic ? 'መጻሕፍት' : 'Books'}</p>
-              </div>
-              <div>
-                <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs">
-                  {isAmharic ? 'ምዕራፎችና ክፍሎች' : 'Differentiated Units'}
-                </p>
-                <p className="text-lg sm:text-xl font-extrabold mt-0.5">{totalUnits} {isAmharic ? 'ክፍሎች' : 'Units'}</p>
-              </div>
-              <div>
-                <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs">
-                  {isAmharic ? 'የትምህርት ርዕሶች' : 'Structured Topics'}
-                </p>
-                <p className="text-lg sm:text-xl font-extrabold mt-0.5">{totalTopics} {isAmharic ? 'ርዕሶች' : 'Topics'}</p>
-              </div>
-              <div>
-                <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs">
-                  {isAmharic ? 'የጥናት ውጤታማነት' : 'Average Efficacy Jump'}
-                </p>
-                <p className="text-lg sm:text-xl font-extrabold mt-0.5 text-emerald-600 dark:text-emerald-400">+58% Recall Δ</p>
-              </div>
-            </div>
+              <Network className="w-4 h-4" />
+              {isAmharic ? 'ካርታውን ክፈት' : 'Open the map'}
+            </button>
+            <button
+              onClick={onOpenPdfModal}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm border shadow-sm hover:shadow-md transition-all"
+              style={{
+                backgroundColor: 'var(--app-surface, #ffffff)',
+                borderColor: 'var(--app-border, #cbd5e1)',
+                color: 'var(--app-text, #020617)'
+              }}
+            >
+              <Plus className="w-4 h-4" style={{ color: 'var(--app-accent, #4f46e5)' }} />
+              {isAmharic ? 'አዲስ መጽሐፍ ጨምር' : 'Add a book'}
+            </button>
           </div>
-        </div>
+        </section>
 
-        {/* Search & Workspaces Header */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Books list */}
+        <section className="space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
-                <BookMarked className="w-5 h-5 text-indigo-500" />
-                {isAmharic ? 'የመማሪያ መጻሕፍት ማዕከላት (Textbook Workspaces)' : 'Textbook Workspaces & Mind-Maps'}
+              <h2 className={`${display} text-2xl font-extrabold tracking-tight flex items-center gap-2`}>
+                <BookMarked className="w-5 h-5" style={{ color: 'var(--app-accent, #4f46e5)' }} />
+                {isAmharic ? 'መጻሕፍትዎ' : 'Your books'}
               </h2>
-              <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs mt-0.5">
+              <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-sm mt-1">
                 {isAmharic
-                  ? 'እያንዳንዱ መጽሐፍ የራሱ የሆነ የመጽሐፍ፣ የምዕራፎች እና የርዕሶች የእይታ ካርታ አለው'
-                  : 'Multi-level hierarchical graph workspaces for Ethiopian MoE & STEM Curricula'}
+                  ? `${workspaces.length} መጻሕፍት • ${totalTopics} ርዕሶች`
+                  : `${workspaces.length} books • ${totalTopics} topics`}
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div
-                style={{
-                  backgroundColor: 'var(--app-surface, #ffffff)',
-                  borderColor: 'var(--app-border, #cbd5e1)'
-                }}
-                className="relative flex items-center border rounded-xl px-3 py-1.5 w-full sm:w-64"
-              >
-                <Search className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={isAmharic ? 'መጽሐፍ ወይም ትምህርት ይፈልጉ...' : 'Filter workspaces...'}
-                  style={{ color: 'var(--app-text, #020617)' }}
-                  className="bg-transparent text-xs w-full focus:outline-none"
-                />
-              </div>
-
-              <button
-                onClick={onOpenPdfModal}
-                style={{
-                  backgroundColor: 'var(--app-accent, #4f46e5)',
-                  color: 'var(--app-accent-text, #ffffff)'
-                }}
-                className="px-3 py-2.5 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 shadow-sm hover:opacity-90"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                {isAmharic ? 'መጽሐፍ ጨምር' : 'New PDF'}
-              </button>
+            <div
+              style={{
+                backgroundColor: 'var(--app-surface, #ffffff)',
+                borderColor: 'var(--app-border, #cbd5e1)'
+              }}
+              className="relative flex items-center border rounded-full px-4 py-2 w-full sm:w-72"
+            >
+              <Search className="w-4 h-4 shrink-0" style={{ color: 'var(--app-text-muted, #475569)' }} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={isAmharic ? 'መጽሐፍ ይፈልጉ...' : 'Find a book...'}
+                style={{ color: 'var(--app-text, #020617)' }}
+                className="bg-transparent text-sm w-full ml-2 focus:outline-none placeholder:text-slate-400"
+              />
             </div>
           </div>
 
-          {/* Workspaces Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {filteredWorkspaces.map((ws) => (
               <div
                 key={ws.id}
@@ -256,35 +151,40 @@ export const HomePage: React.FC<HomePageProps> = ({
                   backgroundColor: 'var(--app-surface, #ffffff)',
                   borderColor: 'var(--app-border, #cbd5e1)'
                 }}
-                className="rounded-2xl border p-3.5 sm:p-5 shadow-sm hover:shadow-md transition-all group flex flex-col justify-between cursor-pointer"
+                className="rounded-3xl border p-6 shadow-sm hover:shadow-lg transition-all group flex flex-col justify-between cursor-pointer hover:-translate-y-0.5"
               >
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-            <div className="flex items-center flex-wrap gap-1">
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className="text-xs font-bold px-3 py-1 rounded-full"
+                          style={{
+                            backgroundColor: 'var(--app-accent-bg, rgba(79,70,229,0.12))',
+                            color: 'var(--app-accent, #4f46e5)'
+                          }}
+                        >
                           {ws.subject}
                         </span>
                         <span style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs font-medium">
                           {ws.gradeOrLevel}
                         </span>
                       </div>
-                      <h3 className="font-bold text-base mt-1.5 group-hover:text-indigo-500 transition-colors line-clamp-2">
+                      <h3 className={`${display} font-bold text-lg mt-3 leading-snug group-hover:underline`}>
                         {isAmharic ? ws.titleAmharic : ws.title}
                       </h3>
                     </div>
                     <div
                       style={{
-                        backgroundColor: 'var(--app-accent-bg, rgba(79, 70, 229, 0.12))',
+                        backgroundColor: 'var(--app-accent-bg, rgba(79,70,229,0.12))',
                         color: 'var(--app-accent, #4f46e5)'
                       }}
-                      className="p-2.5 rounded-xl shrink-0"
+                      className="p-3 rounded-2xl shrink-0"
                     >
                       <Layers className="w-5 h-5" />
                     </div>
                   </div>
 
-                  {/* Units Chips */}
                   <div className="flex flex-wrap gap-1.5">
                     {ws.units.map((u) => (
                       <button
@@ -294,30 +194,28 @@ export const HomePage: React.FC<HomePageProps> = ({
                           onSelectUnit(u.id);
                           onNavigateTab('mindmap');
                         }}
+                        className="text-xs px-3 py-2 rounded-full border font-medium hover:shadow-sm transition-all"
                         style={{
                           backgroundColor: 'var(--app-surface-elevated, #f8fafc)',
                           borderColor: 'var(--app-border, #cbd5e1)',
                           color: 'var(--app-text, #020617)'
                         }}
-                        className="text-xs px-3 py-2 rounded-lg border font-medium hover:border-indigo-500 transition-colors flex items-center gap-1"
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                         {isAmharic ? u.titleAmharic : u.title}
                       </button>
                     ))}
                   </div>
 
-                  {/* Progress info */}
                   <div>
-                    <div className="flex justify-between text-xs font-semibold mb-1">
+                    <div className="flex justify-between text-xs font-semibold mb-1.5">
                       <span style={{ color: 'var(--app-text-muted, #475569)' }}>
-                        {isAmharic ? 'የእውቀት ብቃት' : 'Mastery Progress'}
+                        {isAmharic ? 'የተማሩት' : 'Learned'}
                       </span>
-                      <span className="font-mono text-indigo-500">{ws.overallMastery}%</span>
+                      <span style={{ color: 'var(--app-accent, #4f46e5)' }}>{ws.overallMastery}%</span>
                     </div>
                     <div
                       style={{ backgroundColor: 'var(--app-surface-elevated, #f8fafc)' }}
-                      className="w-full h-1.5 rounded-full overflow-hidden"
+                      className="w-full h-2 rounded-full overflow-hidden"
                     >
                       <div
                         style={{
@@ -330,30 +228,25 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
                 </div>
 
-                {/* Card Action Buttons */}
                 <div
                   style={{ borderColor: 'var(--app-border, #cbd5e1)' }}
-                  className="pt-4 mt-4 border-t flex items-center justify-between gap-2"
+                  className="pt-5 mt-5 border-t flex items-center justify-between gap-2"
                 >
-                  <div style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs">
-                    {ws.totalUnits} {isAmharic ? 'ክፍሎች' : 'Units'} • {ws.totalTopics} {isAmharic ? 'ርዕሶች' : 'Topics'}
-                  </div>
-
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         if (ws.units[0]) onSelectUnit(ws.units[0].id);
                         onNavigateTab('mindmap');
                       }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-bold"
                       style={{
                         backgroundColor: 'var(--app-accent, #4f46e5)',
                         color: 'var(--app-accent-text, #ffffff)'
                       }}
-                      className="px-3 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1 hover:opacity-90 shadow-sm"
                     >
                       <Network className="w-3.5 h-3.5" />
-                      {isAmharic ? 'ማይንድ-ማፕ' : 'Mind-Map'}
+                      {isAmharic ? 'ካርታ' : 'Map'}
                     </button>
                     <button
                       onClick={(e) => {
@@ -364,132 +257,111 @@ export const HomePage: React.FC<HomePageProps> = ({
                           onNavigateTab('feynman');
                         }
                       }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-semibold border"
                       style={{
                         backgroundColor: 'var(--app-surface-elevated, #f8fafc)',
                         borderColor: 'var(--app-border, #cbd5e1)',
                         color: 'var(--app-text, #020617)'
                       }}
-                      className="px-3 py-2.5 rounded-xl text-xs font-semibold border hover:border-emerald-500 flex items-center gap-1"
                     >
-                      <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />
-                      {isAmharic ? 'ፈይንድማን' : 'Feynman'}
+                      <MessageSquare className="w-3.5 h-3.5" style={{ color: 'var(--app-success, #059669)' }} />
+                      {isAmharic ? 'አስተምር' : 'Teach'}
                     </button>
                   </div>
+                  <ArrowRight className="w-4 h-4" style={{ color: 'var(--app-text-muted, #475569)' }} />
                 </div>
               </div>
             ))}
 
-            {/* Add Custom PDF Card */}
+            {/* Add new book */}
             <div
               onClick={onOpenPdfModal}
               style={{
                 backgroundColor: 'var(--app-surface-elevated, #f8fafc)',
                 borderColor: 'var(--app-border-strong, #94a3b8)'
               }}
-              className="rounded-2xl border-2 border-dashed p-4 sm:p-6 flex flex-col items-center justify-center text-center gap-3 cursor-pointer hover:border-indigo-500 transition-all group"
+              className="rounded-3xl border-2 border-dashed p-6 flex flex-col items-center justify-center text-center gap-3 cursor-pointer hover:border-indigo-500 transition-all group"
             >
               <div
                 style={{
-                  backgroundColor: 'var(--app-accent-bg, rgba(79, 70, 229, 0.12))',
+                  backgroundColor: 'var(--app-accent-bg, rgba(79,70,229,0.12))',
                   color: 'var(--app-accent, #4f46e5)'
                 }}
-                className="p-3.5 rounded-2xl group-hover:scale-110 transition-transform"
+                className="p-4 rounded-2xl group-hover:scale-110 transition-transform"
               >
                 <Plus className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="font-bold text-sm">
-                  {isAmharic ? 'አዲስ የመማሪያ መጽሐፍ (PDF) ያስገቡ' : 'Upload Any STEM Textbook (PDF)'}
+                <h4 className={`${display} font-bold`}>
+                  {isAmharic ? 'አዲስ መጽሐፍ ያስገቡ' : 'Bring in a new book'}
                 </h4>
-                <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs mt-1 max-w-xs">
+                <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-sm mt-1 max-w-xs">
                   {isAmharic
-                    ? 'ስርዓቱ በራሱ ምዕራፎችን በመለየት የመጽሐፉን፣ የምዕራፎቹን እና የርዕሶቹን ተዋረድ ይገነባል'
-                    : 'Awde auto-differentiates units, topics, sub-concepts, and Socratic dialogues instantly.'}
+                    ? 'የትምህርት መጽሐፍ (PDF) ይምረጡ። አውደ ወደ ካርታ ይቀይረዋል።'
+                    : 'Pick a school book (PDF). Awde turns it into a map you can explore.'}
                 </p>
               </div>
-              <span
-                style={{ color: 'var(--app-accent, #4f46e5)' }}
-                className="text-xs font-bold flex items-center gap-1 py-2 px-4"
-              >
-                {isAmharic ? 'ፋይል ይምረጡ' : 'Upload & Build Workspace'} <ArrowRight className="w-3.5 h-3.5" />
-              </span>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* The 3 Cognitive Pillars Section */}
-        <div className="space-y-4">
-          <div className="text-center max-w-xl mx-auto space-y-1">
-            <h2 className="text-xl font-bold tracking-tight">
-              {isAmharic ? 'የአውደ (Awde) ሶስቱ የዕውቀት ምሰሶዎች' : 'The 3 Cognitive Pillars of Deep STEM Retention'}
+        {/* Three simple things you can do */}
+        <section className="space-y-5">
+          <div className="max-w-xl">
+            <h2 className={`${display} text-2xl font-extrabold tracking-tight`}>
+              {isAmharic ? 'ሶስት የሚያደርጉዋቸው ነገሮች' : 'Three things you can do'}
             </h2>
-            <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs text-slate-500">
-              {isAmharic ? 'ማስታወስ ብቻ ሳይሆን መረዳት እና በተግባር ማረጋገጥ' : 'Designed for high-order synthesis rather than rote memorization'}
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div
-              style={{
-                backgroundColor: 'var(--app-surface, #ffffff)',
-                borderColor: 'var(--app-border, #cbd5e1)'
-              }}
-              className="p-3.5 sm:p-5 rounded-2xl border space-y-2.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-            >
-              <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <Network className="w-5 h-5" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[
+              {
+                icon: <Network className="w-5 h-5" />,
+                title: isAmharic ? '1. ይመልከቱ' : '1. See the map',
+                desc: isAmharic
+                  ? 'ሀሳቦች እንዴት እንደሚገናኙ ይመልከቱ።'
+                  : 'See how each idea connects to the next.'
+              },
+              {
+                icon: <MessageSquare className="w-5 h-5" />,
+                title: isAmharic ? '2. ያስረዱ' : '2. Explain it',
+                desc: isAmharic
+                  ? 'ለሩቲ በራስዎ ቃላት ያስረዱ።'
+                  : 'Teach Rooty in your own words.'
+              },
+              {
+                icon: <FlaskConical className="w-5 h-5" />,
+                title: isAmharic ? '3. ይለኩ' : '3. See your progress',
+                desc: isAmharic
+                  ? 'ምን ያህል እንደተማሩ ይመልከቱ።'
+                  : 'Check how much you actually remember.'
+              }
+            ].map((it, i) => (
+              <div
+                key={i}
+                style={{
+                  backgroundColor: 'var(--app-surface, #ffffff)',
+                  borderColor: 'var(--app-border, #cbd5e1)'
+                }}
+                className="p-6 rounded-3xl border space-y-3 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+              >
+                <div
+                  className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                  style={{
+                    backgroundColor: 'var(--app-accent-bg, rgba(79,70,229,0.12))',
+                    color: 'var(--app-accent, #4f46e5)'
+                  }}
+                >
+                  {it.icon}
+                </div>
+                <h3 className={`${display} font-bold text-base`}>{it.title}</h3>
+                <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-sm leading-relaxed">
+                  {it.desc}
+                </p>
               </div>
-              <h3 className="font-bold text-sm">
-                {isAmharic ? '1. ባለብዙ-ደረጃ የእይታ ካርታ' : '1. Multi-Level Structural Maps'}
-              </h3>
-              <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs leading-relaxed">
-                {isAmharic
-                  ? 'ከመጽሐፉ መነሻ እስከ ጥቃቅን ቀመሮች ድረስ ያለውን ግንኙነት እና የምዕራፎች ትስስር በግልጽ የሚያሳይ ካርታ።'
-                  : 'See the macro hierarchy from Book Root → Unit Hubs → Topic Nodes, including cross-unit energy and mechanism links.'}
-              </p>
-            </div>
-
-            <div
-              style={{
-                backgroundColor: 'var(--app-surface, #ffffff)',
-                borderColor: 'var(--app-border, #cbd5e1)'
-              }}
-              className="p-3.5 sm:p-5 rounded-2xl border space-y-2.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-            >
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <MessageSquare className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-sm">
-                {isAmharic ? '2. የፈይንድማን ውይይት (Rooty)' : '2. Socratic Feynman Peer (Rooty)'}
-              </h3>
-              <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs leading-relaxed">
-                {isAmharic
-                  ? 'ሳይንሳዊ ቃላትን (Jargon) አስወግደው በጀበና፣ በመሶብ እና በህዳሴ ግድብ ምሳሌዎች ለሩቲን ያስረዱ። ሩቲን የመረዳት መጠኑን በቅጽበት ይለካል!'
-                  : 'Explain concepts in plain words to Rooty. Rooty flags raw textbook jargon and grades conceptual clarity on a 0-100% meter.'}
-              </p>
-            </div>
-
-            <div
-              style={{
-                backgroundColor: 'var(--app-surface, #ffffff)',
-                borderColor: 'var(--app-border, #cbd5e1)'
-              }}
-              className="p-3.5 sm:p-5 rounded-2xl border space-y-2.5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-            >
-              <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                <FlaskConical className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-sm">
-                {isAmharic ? '3. የውጤታማነት ላብራቶሪ (Efficacy Δ)' : '3. Cognitive Method Laboratory'}
-              </h3>
-              <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs leading-relaxed">
-                {isAmharic
-                  ? 'ከጥናት በፊት እና በኋላ ያለውን የማስታወስ ልዩነት (Recall Δ) በመለካት የትኛው ዘዴ ለአንጎልዎ እንደሚስማማ በሳይንሳዊ መንገድ ይወቁ።'
-                  : 'Track objective Before-vs-After recall jumps (+40% to +85%) to identify your most effective learning methodology.'}
-              </p>
-            </div>
+            ))}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

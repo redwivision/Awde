@@ -14,25 +14,12 @@ import { RootyAvatar } from './RootyAvatar';
 import {
   Send,
   Sparkles,
-  Zap,
-  ShieldCheck,
-  AlertTriangle,
-  Flame,
   Award,
-  HelpCircle,
-  RotateCcw,
-  BookOpen,
   Volume2,
-  VolumeX,
   Mic,
   MicOff,
-  Lightbulb,
   CheckCircle2,
-  ChevronDown,
-  TrendingUp,
-  Brain,
   Gauge,
-  ArrowRight,
   Target
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -75,7 +62,7 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
 
   // Initialize dialogue with Rooty's opening challenge
   useEffect(() => {
-    const openingEnglish = `Alright, teacher! Teach me "${selectedNode.label}". Explain it as if I'm an 8-year-old or someone who has never opened this textbook. No memorized buzzwords — use a real physical analogy!`;
+    const openingEnglish = `Alright, teacher! Explain "${selectedNode.label}" to me like I'm 8 years old. No big fancy words — use a real-life example I can picture!`;
     const openingAmharic = `ሰላም አስተማሪዬ! ስለ "${selectedNode.labelAmharic}" አስረዳኝ። ምንም አይነት ውስብስብ የሳይንስ ቃላት ሳትጠቀም፣ አንድ የ8 ዓመት ልጅ በሚገባው ቀላል የዕለት ተዕለት ምሳሌ አስተምረኝ!`;
 
     setDialogue([
@@ -258,9 +245,9 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
         const conceptLabel = selectedNode.label || 'this concept';
         const isOffline = data.error === 'offline';
         const offlineReply = isOffline
-          ? (isAmharic
-              ? `ከበይነመረብ ጋር ስላልተገናኘህ አሁን ሙሉ ማወक አልችልም። ነገር ግን ይህን ነው ያለብך፡ «${conceptLabel}»ን በቀላል ቃላት ለማስተማር ሞክር — ይህ የፌይንማን ዘዴ መሠረት ነው።`
-              : `I can't do a full evaluation while you're offline, but here's my coaching:\n\nTry explaining "${conceptLabel}" in your own words using a simple everyday analogy. That's the core of the Feynman technique — you're already doing it!`)
+              ? (isAmharic
+              ? `ከበይነመረብ ጋር ስላልተገናኘህ አሁን ሙሉ ማወቅ አልችልም። ነገር ግን ይህን ነው ያለብך፡ «${conceptLabel}»ን በቀላል ቃላት ለማስተማር ሞክር — ይህ በእውነት መረዳት ለመፍጠር መሠረት ነው።`
+              : `I can't do a full evaluation while you're offline, but here's my coaching:\n\nTry explaining "${conceptLabel}" in your own words using a simple everyday analogy. That's the core of teaching it — you're already doing it!`)
           : (isAmharic
               ? `ሰርቨሩን ጋር ችግር አጋጥሞኛል። «${conceptLabel}»ን በቀላል ምሳሌ ማብራራት ሞክር — ይህ ተደራሽ መረዳት እንድትፈጥር ይช่วยሃል።`
               : `I can't reach the server for a full evaluation right now, but here's my coaching:\n\nTry explaining "${conceptLabel}" using a simple, concrete analogy from daily life. That builds genuine understanding — keep going!`);
@@ -286,8 +273,8 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
           id: 'turn_rooty_err_' + Date.now(),
           speaker: 'rooty',
           text: isAmharic
-            ? `ሰርቨሩን ጋር ችግር አጋጥሞኛል። «${conceptLabel}»ን በቀላል ቃላት በመስማራት ሞክር — ይህ ተደራሽ መረዳት እንድትፈጥር ያስተምርሃል።`
-            : `Something went wrong reaching the server, but don't stop! Try explaining "${conceptLabel}" in your own words using a simple analogy — that's how real mastery builds.`,
+            ? `ሰርቨሩን ጋር ችግር አጋጥሞኛል። «${conceptLabel}»ን በቀላል ቃላት በመስማራት ሞክር — ይህ በእውነት መረዳት እንድትፈጥር ያስተምርሃል።`
+            : `Something went wrong reaching the server, but don't stop! Try explaining "${conceptLabel}" in your own words using a simple analogy — that's how real learning builds.`,
           emotion: 'challenging',
           timestamp: Date.now()
         }
@@ -315,7 +302,7 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-bold">
-                {isAmharic ? 'የሚማረው ጽንሰ-ሀሳብ' : 'Target Concept to Teach'}
+                {isAmharic ? 'የሚማረው ጽንሰ-ሀሳብ' : 'Idea to Teach'}
               </span>
               <span className="text-[10px] font-mono text-slate-400">
                 {unit.subject}
@@ -367,10 +354,10 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
               </div>
               <div className="text-[10px] text-slate-400 truncate">
                 {currentScore >= 85
-                  ? (isAmharic ? '🎉 ጽንሰ-ሀሳቡን በሚገባ ተረድቼዋለሁ!' : '🎉 Crystal clear! I completely get it!')
+                  ? (isAmharic ? '🎉 ጽንሰ-ሀሳቡን በሚገባ ተረድቼዋለሁ!' : '🎉 I totally get it!')
                   : currentScore >= 60
-                  ? (isAmharic ? '💡 ምሳሌህ ረድቶኛል፣ ማጠቃለያውን አጠናክር።' : '💡 Your analogy helped. Wrap it up!')
-                  : (isAmharic ? '🤔 ቃላቱ ትንሽ ከብደውኛል፣ አቃለው...' : '🤔 Still a bit complex. Simplify more!')}
+                  ? (isAmharic ? '💡 ምሳሌህ ረድቶኛል፣ ማጠቃለያውን አጠናክር።' : '💡 Getting there! Keep going!')
+                  : (isAmharic ? '🤔 ቃላቱ ትንሽ ከብደውኛል፣ አቃለው...' : '🤔 Still tricky. Try simpler words!')}
               </div>
             </div>
 
@@ -406,19 +393,19 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
         <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
           <span className="text-[10px] font-mono text-slate-400 uppercase font-bold flex items-center gap-1">
             <Target className="w-3 h-3 text-indigo-400" />
-            {isAmharic ? 'የፌይንማን 3ቱ ደረጃዎች' : '3-Step Feynman Pipeline'}
+            {isAmharic ? 'የፌይንማን 3ቱ ደረጃዎች' : '3 Steps to Teach It'}
           </span>
           <div className="space-y-1.5 text-xs">
             <div className={`p-2 rounded-lg border flex items-center justify-between ${currentStep >= 1 ? 'bg-indigo-950/40 border-indigo-500/40 text-indigo-300' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
-              <span className="font-semibold">1. {isAmharic ? 'ቀላል ትርጉም' : 'Simple Definition'}</span>
+              <span className="font-semibold">1. {isAmharic ? 'ቀላል ትርጉም' : 'Say what it means'}</span>
               {currentScore >= 40 && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
             </div>
             <div className={`p-2 rounded-lg border flex items-center justify-between ${currentStep >= 2 ? 'bg-amber-950/40 border-amber-500/40 text-amber-300' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
-              <span className="font-semibold">2. {isAmharic ? 'ተጨባጭ ምሳሌ' : 'Physical Analogy'}</span>
+              <span className="font-semibold">2. {isAmharic ? 'ተጨባጭ ምሳሌ' : 'Give an example'}</span>
               {currentScore >= 70 && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
             </div>
             <div className={`p-2 rounded-lg border flex items-center justify-between ${currentStep >= 3 ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300' : 'bg-slate-900 border-slate-800 text-slate-500'}`}>
-              <span className="font-semibold">3. {isAmharic ? 'የድንበር ጥያቄ' : 'Boundary Defense'}</span>
+              <span className="font-semibold">3. {isAmharic ? 'የድንበር ጥያቄ' : 'Test yourself'}</span>
               {currentScore >= 85 && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
             </div>
           </div>
@@ -439,12 +426,12 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
               <div className="flex items-center gap-2 min-w-0">
                 <Award className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="font-bold text-emerald-300">
-                  {isAmharic ? 'የእውቀት እድገት ተመዝግቧል!' : 'Efficacy Delta Validated!'}
+                  {isAmharic ? 'የእውቀት እድገት ተመዝግቧል!' : 'You grew!'}
                 </span>
                 <span className="text-slate-300">
                   {isAmharic
                     ? `ከጥናት በፊት ከነበረበት +${computedDelta}% እድገት አሳይቷል።`
-                    : `Recall jumped +${computedDelta}% after Socratic teaching.`}
+                    : `Your remember score went up +${computedDelta}%!`}
                 </span>
               </div>
               <button
@@ -487,7 +474,7 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
                   {turn.jargonDetected && turn.jargonDetected.length > 0 && (
                     <div className="mt-2.5 pt-2 border-t border-slate-800 flex items-center gap-1.5 flex-wrap">
                       <span className="text-[10px] font-mono text-amber-400 font-bold">
-                        ⚠️ {isAmharic ? 'የተጠረጠሩ ከባድ ቃላት፡' : 'Jargon flagged:'}
+                        ⚠️ {isAmharic ? 'የተጠረጠሩ ከባድ ቃላት፡' : 'Big words found:'}
                       </span>
                       {turn.jargonDetected.map((j, i) => (
                         <span
@@ -522,7 +509,7 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
           {isLoading && (
             <div className="flex items-center gap-2 text-xs text-slate-400 p-3 bg-slate-900/60 rounded-xl max-w-[90%] border border-slate-800">
               <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-              <span>{isAmharic ? 'ሩቲ ማብራሪያህን እየገመገመ ነው...' : 'Rooty is evaluating your explanation...'}</span>
+              <span>{isAmharic ? 'ሩቲ ማብራሪያህን እየገመገመ ነው...' : 'Rooty is reading your answer...'}</span>
             </div>
           )}
 
@@ -563,7 +550,7 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
                 placeholder={
                   isAmharic
                     ? 'ጽንሰ-ሀሳቡን ለሩቲ በቀላል ምሳሌ ያስረዱ...'
-                    : 'Explain this concept to Rooty using simple everyday words and analogies...'
+                    : 'Tell Rooty about this idea in your own words...'
                 }
                 rows={2}
                 className="w-full bg-slate-950 text-xs sm:text-sm text-slate-100 placeholder-slate-500 p-3 rounded-xl border border-slate-700 focus:outline-none focus:border-indigo-500 resize-none"

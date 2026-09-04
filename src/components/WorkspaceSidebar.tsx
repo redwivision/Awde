@@ -21,7 +21,6 @@ import {
   Search,
   CheckCircle2,
   Flame,
-  ShieldCheck,
   PanelLeftClose,
   PanelLeft,
   BookOpen,
@@ -95,46 +94,52 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
 
   const navItems = [
     {
-      id: 'mindmap' as const,
-      label: 'Mind-Map Studio',
-      labelAmharic: 'የእይታ ካርታ',
-      icon: Network,
-      badge: `${currentUnit?.nodes.length || 0} nodes`
-    },
-    {
-      id: 'feynman' as const,
-      label: 'Teach Rooty (Feynman)',
-      labelAmharic: 'ሩቲን አስተምር (Feynman)',
-      icon: MessageSquare,
-      badge: 'AI Peer'
-    },
-    {
-      id: 'experiment_lab' as const,
-      label: 'Method Laboratory',
-      labelAmharic: 'የጥናት ዘዴዎች ላብ',
-      icon: FlaskConical,
-      badge: 'Efficacy Δ'
-    },
-    {
-      id: 'quiz' as const,
-      label: 'Active Recall & Quizzes',
-      labelAmharic: 'ፈተናዎችና ልምምድ',
-      icon: HelpCircle,
-      badge: `${currentUnit?.quizQuestions.length || 0} Qs`
-    },
-    {
-      id: 'studysuite' as const,
-      label: 'Deep Work Suite',
-      labelAmharic: 'የጥናት ማዕከል',
-      icon: Clock,
-      badge: 'Pomodoro'
-    },
-    {
-      id: 'library' as const,
-      label: 'Home & Curriculum Library',
-      labelAmharic: 'መነሻ እና የመጻሕፍት ማዕከል',
+      id: 'library' as ActiveTab,
+      label: 'Books',
+      labelAmharic: 'መጻሕፍት',
       icon: BookMarked,
-      badge: `${workspacesCount ?? units.length} Books`
+      tour: 'books',
+      sub: isAmharic ? 'ሁሉም የትምህርት መጻሕፍትዎ' : 'All your books'
+    },
+    {
+      id: 'mindmap' as ActiveTab,
+      label: 'Map',
+      labelAmharic: 'ካርታ',
+      icon: Network,
+      tour: 'map',
+      sub: isAmharic ? 'ሀሳቦችን እንደ ካርታ ይመልከቱ' : 'See ideas as a map'
+    },
+    {
+      id: 'feynman' as ActiveTab,
+      label: 'Teach',
+      labelAmharic: 'አስተምር',
+      icon: MessageSquare,
+      tour: 'teach',
+      sub: isAmharic ? 'ለሩቲ ያስረዱ' : 'Explain to Rooty'
+    },
+    {
+      id: 'quiz' as ActiveTab,
+      label: 'Quiz',
+      labelAmharic: 'ፈተና',
+      icon: HelpCircle,
+      tour: 'quiz',
+      sub: isAmharic ? 'ምን እንደተማሩ ይፈትሹ' : 'Test what you learned'
+    },
+    {
+      id: 'experiment_lab' as ActiveTab,
+      label: 'Measure',
+      labelAmharic: 'ለካ',
+      icon: FlaskConical,
+      tour: 'measure',
+      sub: isAmharic ? 'እድገትዎን ይመልከቱ' : 'Watch your memory grow'
+    },
+    {
+      id: 'studysuite' as ActiveTab,
+      label: 'Focus',
+      labelAmharic: 'ትኩረት',
+      icon: Clock,
+      tour: 'focus',
+      sub: isAmharic ? 'በፀጥታ ይማሩ' : 'Study with a timer'
     }
   ];
 
@@ -175,37 +180,48 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       </div>
 
       {/* Main Workspace Navigation Views */}
-      <div className="p-3 border-b border-slate-800/80 shrink-0 space-y-1">
-        <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400 px-2 py-1 font-semibold flex items-center justify-between">
-          {!isCollapsed && <span>{isAmharic ? 'የስራ ቦታ መሳሪያዎች' : 'Workspace Views'}</span>}
-        </div>
+      <div className="p-3 border-b border-slate-800/80 shrink-0 space-y-1.5">
+        {!isCollapsed && (
+          <div className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+            {isAmharic ? 'ምን ማድረግ ይፈልጋሉ?' : 'What do you want to do?'}
+          </div>
+        )}
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (
             <button
               key={item.id}
+              data-tour={item.tour}
               onClick={() => {
                 onSelectTab(item.id);
                 if (isMobileOpen) onCloseMobile();
               }}
               title={isAmharic ? item.labelAmharic : item.label}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 min-h-[40px] rounded-lg text-xs font-semibold transition-all group ${
+              className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                 isActive
-                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-950 font-bold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
+                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-950'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
               }`}
             >
-              <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
+              <Icon
+                className={`w-[18px] h-[18px] shrink-0 ${
+                  isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-200'
+                }`}
+              />
               {!isCollapsed && (
-                <div className="flex items-center justify-between flex-1 min-w-0">
-                  <span className="truncate">{isAmharic ? item.labelAmharic : item.label}</span>
-                  {item.badge && !isActive && (
-                    <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700/60">
-                      {item.badge}
-                    </span>
-                  )}
-                </div>
+                <span className="flex-1 text-left min-w-0">
+                  <span className={isActive ? 'font-bold' : 'font-semibold'}>
+                    {isAmharic ? item.labelAmharic : item.label}
+                  </span>
+                  <span
+                    className={`block truncate text-[11px] font-normal ${
+                      isActive ? 'text-indigo-100' : 'text-slate-500 group-hover:text-slate-400'
+                    }`}
+                  >
+                    {item.sub}
+                  </span>
+                </span>
               )}
             </button>
           );
@@ -217,8 +233,8 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         <div className="flex-1 overflow-y-auto p-3 space-y-3">
           {/* Header with Search & Add Unit */}
           <div className="flex items-center justify-between px-1">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
-              {isAmharic ? 'የትምህርት ክፍሎች' : 'Curricula & Units'}
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              {isAmharic ? 'ክፍሎች' : 'Lessons'}
             </span>
             <button
               onClick={() => {
@@ -239,7 +255,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
               type="text"
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
-              placeholder={isAmharic ? 'ክፍሎችን ፈልግ...' : 'Search units & nodes...'}
+              placeholder={isAmharic ? 'ክፍሎችን ፈልግ...' : 'Find a lesson...'}
               className="w-full bg-slate-950/80 text-xs text-slate-200 placeholder-slate-500 pl-8 pr-2.5 py-2.5 min-h-[40px] rounded-lg border border-slate-800 focus:outline-none focus:border-indigo-500"
             />
           </div>
@@ -296,7 +312,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                         <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
                           <span>{u.gradeOrLevel}</span>
                           <span>•</span>
-                          <span className="text-emerald-400 font-medium">{uPct}% done</span>
+                          <span className="text-emerald-400 font-medium">{uPct}% {isAmharic ? 'ተምረዋል' : 'learned'}</span>
                         </div>
                       </div>
                     </div>
@@ -379,16 +395,14 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         {!isCollapsed && (
           <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 flex items-center justify-between gap-2">
             <div>
-              <div className="text-[10px] font-mono text-slate-400">
-                {isAmharic ? 'የክፍሉ አጠቃላይ ብቃት' : 'Current Unit Mastery'}
+              <div className="text-[10px] font-semibold text-slate-400">
+                {isAmharic ? 'በክፍሉ ውስጥ የተማሩት' : 'Learned in this lesson'}
               </div>
               <div className="text-xs font-bold text-emerald-400">
-                {masteryPercent}% {isAmharic ? 'ተጠናቋል' : 'Complete'}
+                {masteryPercent}%
               </div>
             </div>
-            <div className="w-8 h-8 rounded-lg bg-emerald-950/40 border border-emerald-800/50 flex items-center justify-center text-emerald-400">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
+            <Flame className="w-4 h-4 text-emerald-400" />
           </div>
         )}
 

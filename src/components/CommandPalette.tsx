@@ -84,12 +84,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   }).slice(0, 8);
 
   const tools = [
-    { id: 'mindmap' as const, name: isAmharic ? 'የእይታ ካርታ (Mind-Map)' : 'Mind-Map Graph Canvas', icon: Network },
-    { id: 'feynman' as const, name: isAmharic ? 'ሩቲን አስተምር (Feynman Arena)' : 'Teach Rooty (Feynman Arena)', icon: MessageSquare },
-    { id: 'experiment_lab' as const, name: isAmharic ? 'የጥናት ዘዴዎች ላብራቶሪ (Method Lab)' : 'Cognitive Method Laboratory (Efficacy Δ)', icon: FlaskConical },
-    { id: 'quiz' as const, name: isAmharic ? 'ፈተናዎች (Active Recall Quizzes)' : 'Active Recall Quizzes', icon: HelpCircle },
-    { id: 'studysuite' as const, name: isAmharic ? 'የጥናት ማዕከል (Study Suite)' : 'Study Suite & Pomodoro', icon: Clock },
-    { id: 'library' as const, name: isAmharic ? 'የመጻሕፍት ማዕከል (Textbook Library)' : 'Curriculum & Textbook Library', icon: BookMarked }
+    { id: 'mindmap' as const, name: isAmharic ? 'የእይታ ካርታ (Mind-Map)' : 'Map', icon: Network },
+    { id: 'feynman' as const, name: isAmharic ? 'ሩቲን አስተምር (Feynman Arena)' : 'Teach Rooty', icon: MessageSquare },
+    { id: 'experiment_lab' as const, name: isAmharic ? 'የጥናት ዘዴዎች ላብራቶሪ (Method Lab)' : 'Try It Lab', icon: FlaskConical },
+    { id: 'quiz' as const, name: isAmharic ? 'ፈተናዎች (Active Recall Quizzes)' : 'Remember Quizzes', icon: HelpCircle },
+    { id: 'studysuite' as const, name: isAmharic ? 'የጥናት ማዕከል (Study Suite)' : 'Study Time', icon: Clock },
+    { id: 'library' as const, name: isAmharic ? 'የመጻሕፍት ማዕከል (Textbook Library)' : 'Books', icon: BookMarked }
   ].filter((t) => !query || t.name.toLowerCase().includes(query.toLowerCase()));
 
   return (
@@ -114,7 +114,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={isAmharic ? 'ጽንሰ-ሀሳብ፣ መሳሪያ ወይም ርዕስ ፈልግ...' : 'Search concepts, tools, formulas...'}
+              placeholder={isAmharic ? 'ጽንሰ-ሀሳብ፣ መሳሪያ ወይም ርዕስ ፈልግ...' : 'Find an idea or tool...'}
               className="w-full bg-transparent text-sm text-slate-100 placeholder-slate-500 focus:outline-none"
             />
             <button
@@ -131,7 +131,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             {tools.length > 0 && (
               <div className="space-y-1">
                 <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 px-2 py-0.5 font-bold">
-                  {isAmharic ? 'መሳሪያዎች' : 'Workspace Views'}
+                  {isAmharic ? 'መሳሪያዎች' : 'Quick Jump'}
                 </div>
                 {tools.map((tool) => {
                   const Icon = tool.icon;
@@ -163,7 +163,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             {filteredNodes.length > 0 && (
               <div className="space-y-1">
                 <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 px-2 py-0.5 font-bold">
-                  {isAmharic ? 'ጽንሰ-ሀሳቦች' : 'Concept Nodes'}
+                  {isAmharic ? 'ጽንሰ-ሀሳቦች' : 'Ideas'}
                 </div>
                 {filteredNodes.map((node) => (
                   <button
@@ -185,7 +185,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                         </span>
                       </div>
                       <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                        {node.unitTitle} • 💡 {node.localizedAnalogy.culturalElement}
+                        {node.unitTitle} • {node.localizedAnalogy.culturalElement}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -201,7 +201,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
             {tools.length === 0 && filteredNodes.length === 0 && (
               <div className="py-8 text-center text-xs text-slate-400">
-                {isAmharic ? 'ምንም ውጤት አልተገኘም' : 'No matching concepts or tools found.'}
+                {isAmharic ? 'ምንም ውጤት አልተገኘም' : 'Nothing found. Try a different word!'}
               </div>
             )}
           </div>

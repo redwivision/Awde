@@ -9,16 +9,11 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
-  Filter,
-  CheckCircle2,
   Sparkles,
   Layers,
-  Flame,
   Search,
   BookOpen,
   ArrowUpRight,
-  Info,
-  ShieldCheck,
   LayoutGrid,
   MapPin,
   Move
@@ -135,7 +130,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isAmharic ? 'ጽንሰ-ሀሳቦችን ፈልግ...' : 'Search nodes...'}
+              placeholder={isAmharic ? 'ሀሳቦችን ፈልግ...' : 'Search ideas...'}
               className="w-full sm:w-56 bg-slate-950/90 text-xs text-slate-100 placeholder-slate-500 pl-9 pr-3 py-1.5 rounded-lg border border-slate-800 focus:outline-none focus:border-indigo-500"
             />
           </div>
@@ -146,7 +141,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="bg-slate-950/90 text-xs text-slate-300 px-2.5 py-2 rounded-lg border border-slate-800 focus:outline-none"
             >
-              <option value="all">{isAmharic ? 'ሁሉም ምድቦች' : 'All Categories'}</option>
+              <option value="all">{isAmharic ? 'ሁሉም' : 'All'}</option>
               {categories.map((cat) => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
@@ -157,11 +152,11 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
               onChange={(e) => setStatusFilter(e.target.value)}
               className="bg-slate-950/90 text-xs text-slate-300 px-2.5 py-2 rounded-lg border border-slate-800 focus:outline-none"
             >
-              <option value="all">{isAmharic ? 'ሁሉም ደረጃዎች' : 'All Status'}</option>
-              <option value="unstudied">{isAmharic ? 'አልተጀመረም' : 'Unstudied'}</option>
+              <option value="all">{isAmharic ? 'ሁሉም ደረጃዎች' : 'All Levels'}</option>
+              <option value="unstudied">{isAmharic ? 'አልተጀመረም' : 'New'}</option>
               <option value="learning">{isAmharic ? 'በመማር ላይ' : 'Learning'}</option>
-              <option value="feynman_tested">{isAmharic ? 'በፌይንማን የተረጋገጠ' : 'Feynman'}</option>
-              <option value="mastered">{isAmharic ? 'የተካነ' : 'Mastered'}</option>
+              <option value="feynman_tested">{isAmharic ? 'ለሩቲ የተነገረ' : 'Taught to Rooty'}</option>
+              <option value="mastered">{isAmharic ? 'የተማረ' : 'Learned'}</option>
             </select>
           </div>
         </div>
@@ -180,7 +175,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
               title="Graph Canvas View"
             >
               <MapPin className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{isAmharic ? 'ካርታ' : 'Graph'}</span>
+              <span className="hidden sm:inline">{isAmharic ? 'ካርታ' : 'Map'}</span>
             </button>
             <button
               onClick={() => setViewMode('list')}
@@ -378,7 +373,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
                     } p-4 cursor-pointer transition-all duration-200 backdrop-blur-md`}
                     id={`node-card-${node.id}`}
                   >
-                    {/* Top Row: Category and Mastery Progress */}
+                      {/* Top Row: Category and Learning Progress */}
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${nodeTheme.badge}`}>
                         {node.category}
@@ -430,7 +425,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
                         Level {node.depthLevel}
                       </span>
                       <span className="text-indigo-400 font-medium hover:underline">
-                        {isAmharic ? 'ፅንሰ-ሀሳቡን ክፈት →' : 'Open Concept →'}
+                        {isAmharic ? 'ሀሳቡን ክፈት →' : 'Open Idea →'}
                       </span>
                     </div>
                   </motion.div>
@@ -445,11 +440,11 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
           <div className="max-w-6xl mx-auto space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-white">
+                <h2 className="text-base font-bold text-white font-display antialiased">
                   {isAmharic ? unit.titleAmharic : unit.title}
                 </h2>
                 <p className="text-xs text-slate-400">
-                  {filteredNodes.length} {isAmharic ? 'ጽንሰ-ሀሳቦች ተገኝተዋል' : 'concepts available'}
+                  {filteredNodes.length} {isAmharic ? 'ሀሳቦች ተገኝተዋል' : 'ideas available'}
                 </p>
               </div>
             </div>
@@ -486,7 +481,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
 
                     <div className="mt-3 p-2 rounded-lg bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs">
                       <span className="text-amber-300 font-medium truncate">
-                        💡 {node.localizedAnalogy.culturalElement}
+                        {node.localizedAnalogy.culturalElement}
                       </span>
                       <span className="text-indigo-400 shrink-0 font-bold ml-2">
                         {isAmharic ? 'አጥና' : 'Study'} →
@@ -514,11 +509,11 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
         <div className="flex items-center gap-3 text-xs text-slate-400 shrink-0">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" />
-            <span className="hidden sm:inline">{isAmharic ? 'የተካነ' : 'Mastered'}</span>
+            <span className="hidden sm:inline">{isAmharic ? 'የተማረ' : 'Learned'}</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block" />
-            <span className="hidden sm:inline">{isAmharic ? 'በፌይንማን የተረጋገጠ' : 'Feynman'}</span>
+            <span className="hidden sm:inline">{isAmharic ? 'ለሩቲ የተነገረ' : 'Taught to Rooty'}</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />

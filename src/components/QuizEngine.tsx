@@ -7,18 +7,12 @@ import {
   TopicUnit
 } from '../types';
 import {
-  HelpCircle,
   CheckCircle2,
   XCircle,
   RotateCcw,
   Sparkles,
   Award,
-  Zap,
-  ArrowRight,
   BookOpen,
-  Filter,
-  Layers,
-  ChevronRight,
   Volume2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -140,13 +134,13 @@ try {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 text-xs font-mono font-semibold">
-                Textbook Diagnostic Lab
+                Quiz Time
               </span>
               <span className="text-xs text-slate-400 font-mono">
                 {unit.subject} • {unit.gradeOrLevel}
               </span>
             </div>
-            <h2 className="text-xl font-bold text-white tracking-tight">
+            <h2 className="text-xl font-bold text-white tracking-tight font-display antialiased">
               {isAmharic ? unit.titleAmharic : unit.title}
             </h2>
           </div>
@@ -158,7 +152,7 @@ try {
               className="px-3.5 py-2 min-h-[40px] rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
             >
               <Sparkles className="w-4 h-4 text-emerald-400" />
-              <span>{isGeneratingMore ? 'Generating AI Questions...' : 'Generate 4 More Questions'}</span>
+              <span>{isGeneratingMore ? 'Making questions...' : '4 More Questions'}</span>
             </button>
           </div>
         </div>
@@ -277,7 +271,7 @@ try {
                 >
                   <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase font-mono tracking-wider">
                     <BookOpen className="w-4 h-4" />
-                    <span>{isAmharic ? 'የመልስ ማብራሪያ እና ፅንሰ-ሀሳብ' : 'Pedagogical Solution & Diagnostic'}</span>
+                    <span>{isAmharic ? 'የመልስ ማብራሪያ እና ፅንሰ-ሀሳብ' : "Why That's the Answer"}</span>
                   </div>
                   <p className="text-slate-200">
                     {isAmharic && currentQ.explanationAmharic ? currentQ.explanationAmharic : currentQ.explanation}
@@ -326,25 +320,25 @@ try {
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-2xl font-bold text-white">
-                {isAmharic ? 'የፈተናው ማጠቃለያ!' : 'Quiz Assessment Complete!'}
+              <h3 className="text-2xl font-bold text-white font-display antialiased">
+                {isAmharic ? 'የፈተናው ማጠቃለያ!' : 'You finished!'}
               </h3>
               <p className="text-sm text-slate-400">
                 {isAmharic
                   ? `ከ ${activeQuestions.length} ጥያቄዎች ${correctCount}ቱን በትክክል መልሰሃል።`
-                  : `You scored ${correctCount} out of ${activeQuestions.length} correctly (${scorePercent}%).`}
+                  : `You got ${correctCount} right out of ${activeQuestions.length} (${scorePercent}%).`}
               </p>
             </div>
 
             {/* Score Ring */}
             <div className="p-4 rounded-xl bg-slate-950 max-w-xs mx-auto border border-slate-800 flex items-center justify-around">
               <div>
-                <span className="text-xs text-slate-400 font-mono uppercase">Mastery Level</span>
+                <span className="text-xs text-slate-400 font-mono uppercase">How Much You Learned</span>
                 <p className="text-xl font-extrabold text-emerald-400">{scorePercent}%</p>
               </div>
               <div className="h-8 w-px bg-slate-800" />
               <div>
-                <span className="text-xs text-slate-400 font-mono uppercase">Accuracy</span>
+                <span className="text-xs text-slate-400 font-mono uppercase">Right Answers</span>
                 <p className="text-xl font-extrabold text-cyan-400">{correctCount}/{activeQuestions.length}</p>
               </div>
             </div>
@@ -355,7 +349,7 @@ try {
                 className="px-5 py-2.5 min-h-[40px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-2 transition-colors"
               >
                 <RotateCcw className="w-4 h-4" />
-                <span>{isAmharic ? 'እንደገና ጀምር' : 'Retry Quiz'}</span>
+                <span>{isAmharic ? 'እንደገና ጀምር' : 'Try Again'}</span>
               </button>
 
               <button
@@ -363,7 +357,7 @@ try {
                 className="px-5 py-2.5 min-h-[40px] rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg transition-colors"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>{isAmharic ? 'አዳዲስ ጥያቄዎችን ፍጠር' : 'Generate New Questions'}</span>
+                <span>{isAmharic ? 'አዳዲስ ጥያቄዎችን ፍጠር' : 'More Questions'}</span>
               </button>
             </div>
           </motion.div>

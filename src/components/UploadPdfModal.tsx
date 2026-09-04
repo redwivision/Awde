@@ -216,12 +216,12 @@ const handleCreateWorkspace = async () => {
             </div>
             <div className="min-w-0">
               <h2 className="font-bold text-base tracking-tight truncate">
-                {isAmharic ? 'አዲስ የመማሪያ መጽሐፍ (PDF) ማዘጋጃ' : 'Generate Textbook Mind-Map Workspace'}
+                {isAmharic ? 'አዲስ የመማሪያ መጽሐፍ (PDF) ማዘጋጃ' : 'Add a Book (PDF)'}
               </h2>
               <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs truncate">
                 {isAmharic
                   ? 'ከመጽሐፍ PDF ውስጥ ምዕራፎችን እና ንዑስ ርዕሶችን በራስ-ሰር በመለየት የተሟላ ማይንድ-ማፕ ይገንቡ'
-                  : 'Synthesize Book Root Node → Unit Hubs → Topic Nodes → Socratic Feynman Arenas'}
+                  : 'We\'ll find the chapters and ideas in your PDF and build a map for you.'}
               </p>
             </div>
           </div>
@@ -259,10 +259,10 @@ const handleCreateWorkspace = async () => {
                 </div>
                 <div>
                   <p className="font-semibold text-sm">
-                    {isAmharic ? 'የመማሪያ መጽሐፍዎን (PDF) እዚህ ይጎትቱ' : 'Drag & drop student textbook PDF here'}
+                    {isAmharic ? 'የመማሪያ መጽሐፍዎን (PDF) እዚህ ይጎትቱ' : 'Drop your book PDF here'}
                   </p>
                   <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs mt-0.5">
-                    {isAmharic ? 'ወይም ከኮምፒውተርዎ ይምረጡ (PDF, ከ5MB በታች)' : 'or browse from your device (PDF, max 5MB)'}
+                    {isAmharic ? 'ወይም ከኮምፒውተርዎ ይምረጡ (PDF, ከ5MB በታች)' : 'or pick a file from your computer (PDF, max 5MB)'}
                   </p>
                 </div>
                 <label
@@ -272,7 +272,7 @@ const handleCreateWorkspace = async () => {
                   }}
                   className="cursor-pointer px-4 py-2 rounded-xl text-xs font-semibold shadow-sm hover:opacity-90 transition-opacity"
                 >
-                  {isAmharic ? 'ፋይል ይምረጡ' : 'Browse PDF File'}
+                  {isAmharic ? 'ፋይል ይምረጡ' : 'Pick a PDF'}
                   <input
                     type="file"
                     accept=".pdf,.docx,.txt,.epub"
@@ -285,7 +285,7 @@ const handleCreateWorkspace = async () => {
               {/* Sample Quick-Start Textbooks */}
               <div>
                 <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-xs font-semibold mb-2 uppercase tracking-wider">
-                  {isAmharic ? 'ወይም ከዝግጁ የኢትዮጵያ ሥርዓተ-ትምህርቶች ይሞክሩ' : 'Or Quick-Start With Ethiopian National Curriculum Samples'}
+                  {isAmharic ? 'ወይም ከዝግጁ የኢትዮጵያ ሥርዓተ-ትምህርቶች ይሞክሩ' : 'Or try a sample book'}
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <button
@@ -308,7 +308,7 @@ const handleCreateWorkspace = async () => {
                       </p>
                     </div>
                     <span className="text-[10px] font-medium text-indigo-500 flex items-center gap-1 mt-2">
-                      Load Blueprint <ArrowRight className="w-3 h-3" />
+                      Try it <ArrowRight className="w-3 h-3" />
                     </span>
                   </button>
 
@@ -332,7 +332,7 @@ const handleCreateWorkspace = async () => {
                       </p>
                     </div>
                     <span className="text-[10px] font-medium text-emerald-500 flex items-center gap-1 mt-2">
-                      Load Blueprint <ArrowRight className="w-3 h-3" />
+                      Try it <ArrowRight className="w-3 h-3" />
                     </span>
                   </button>
 
@@ -356,7 +356,7 @@ const handleCreateWorkspace = async () => {
                       </p>
                     </div>
                     <span className="text-[10px] font-medium text-amber-500 flex items-center gap-1 mt-2">
-                      Load Blueprint <ArrowRight className="w-3 h-3" />
+                      Try it <ArrowRight className="w-3 h-3" />
                     </span>
                   </button>
                 </div>
@@ -368,7 +368,7 @@ const handleCreateWorkspace = async () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
                   <label className="text-xs font-semibold block mb-1">
-                    {isAmharic ? 'የመጽሐፉ ስም' : 'Textbook Title'}
+                    {isAmharic ? 'የመጽሐፉ ስም' : 'Book Title'}
                   </label>
                   <input
                     type="text"
@@ -380,7 +380,7 @@ const handleCreateWorkspace = async () => {
                       color: 'var(--app-text, #020617)'
                     }}
                     className="w-full px-3 py-2 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    placeholder="e.g. Grade 11 Physics Student Textbook"
+                    placeholder="e.g. Grade 11 Physics"
                   />
                 </div>
                 <div>
@@ -406,7 +406,7 @@ const handleCreateWorkspace = async () => {
                 <div className="flex items-center gap-2 mb-2">
                   <Layers className="w-4 h-4 text-indigo-500" />
                   <span className="text-xs font-bold tracking-tight">
-                    {isAmharic ? 'AI ማስተካከያ ሂደት' : 'AI Mastery Build'}
+                    {isAmharic ? 'AI ማስተካከያ ሂደት' : 'How it works'}
                   </span>
                 </div>
                 <div
@@ -423,11 +423,11 @@ const handleCreateWorkspace = async () => {
                   <ul className="text-[11px] leading-relaxed space-y-1.5">
                     <li className="flex items-center gap-1.5">
                       <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                      {isAmharic ? 'የPDF ጽሑፍ ማውጣት (Text Extraction)' : 'Extract textbook text from the PDF'}
+                      {isAmharic ? 'የPDF ጽሑፍ ማውጣት (Text Extraction)' : 'Read the text from your PDF'}
                     </li>
                     <li className="flex items-center gap-1.5">
                       <Sparkles className="w-3 h-3 text-indigo-500" />
-                      {isAmharic ? 'AI የእውቀት ካርታ መገንባት' : 'Gemini builds the multi-level mind-map'}
+                      {isAmharic ? 'AI የእውቀት ካርታ መገንባት' : 'Build a learning map with ideas and links'}
                     </li>
                     <li className="flex items-center gap-1.5">
                       <BookOpen className="w-3 h-3 text-indigo-500" />
@@ -435,9 +435,8 @@ const handleCreateWorkspace = async () => {
                     </li>
                   </ul>
                   <p style={{ color: 'var(--app-text-muted, #475569)' }} className="text-[11px] pt-1">
-                    {isAmharic
-                      ? 'በመግፋት ጊዜ AI ፋይሉን በማንበብ የተሟላ የጥናት ካርታ ይገነባል።'
-                      : 'Click build and AI will read the file and structure a complete mastery workspace.'}
+                      {isAmharic ? 'በመግፋት ጊዜ AI ፋይሉን በማንበብ የተሟላ የጥናት ካርታ ይገነባል።'
+                        : 'Tap Build and we\'ll read your file and put together a learning map.'}
                   </p>
                 </div>
               </div>
@@ -504,7 +503,7 @@ const handleCreateWorkspace = async () => {
                 )}
                 {isProcessing
                   ? (isAmharic ? 'እየገነባ ነው...' : 'Building...')
-                  : (isAmharic ? 'የመማሪያ ካርታውን ገንባ' : 'Build Multi-Level Mind Map')}
+                  : (isAmharic ? 'የመማሪያ ካርታውን ገንባ' : 'Build My Map')}
               </button>
             )}
           </div>

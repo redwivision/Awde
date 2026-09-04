@@ -119,7 +119,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
         const label = node?.label || 'this concept';
         const fb = isOffline
           ? { content: `Right now I can't reach the server (you're offline). Here's a quick review while you reconnect:\n\n"${label}" is a core concept — try breaking it down into a simple real-world example. When you're back online, Rooty can give you a deeper breakdown!`, contentAmharic: `አሁን ሰርቨሩን መድረስ አይችልም (ከበይነመረብ ጋር ስላልተገናኘህ)\n\n«${label}» ዋና ጽንሰ-ሀሳብ ነው — በቀላል የዕለት ተዕለት ምሳሌ ለማብራራት ሞክር። በበይነመረብ ሲገናኝ ሩቲ የበለጠ ግልጽ ማብራሪያ ይሰጥልሃል!` }
-          : { content: `I can't reach the server right now, but here's what I know:\n\n"${label}" is best understood by connecting it to something real you can see and touch. Try explaining it out loud using an Ethiopian everyday example — that's the Feynman method!`, contentAmharic: `ሰርቨሩን ማግኘት አልችልም፤ ነገር ግን ያለው ይህን ነው፡\n\n«${label}»ን በትክክል ለማ duyệt ከእርስዋ ጋር ተግባራዊ ነገር ያገናኙት። በኢትዮጵያዊ የዕለት ተዕለት ምሳሌ ያህል በቀላል ቃላት በ\Collections out loud ለማስተማር ሞክር — ይህ የፌይንማን ዘዴ ነው!` };
+          : { content: `I can't reach the server right now, but here's what I know:\n\n"${label}" is best understood by connecting it to something real you can see and touch. Try explaining it out loud using an Ethiopian everyday example — if you can teach it, you really know it!`, contentAmharic: `ሰርቨሩን ማግኘት አልችልም፤ ነገር ግን ያለው ይህን ነው፡\n\n«${label}»ን በትክክል ለማወቅ ከሚታየውና ከሚነካው ነገር ጋር አገናኘው። በኢትዮጵያዊ የዕለት ተዕለት ምሳሌ ጮክ ብለህ ለማስተማር ሞክር — ማስተማር ከቻልክ በእርግጥ ተምረሃል ማለት ነው!` };
         setChatMessages((prev) => [...prev, { role: 'rooty', ...fb }]);
         return;
       }
@@ -135,8 +135,8 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
       setChatMessages((prev) => [
         ...prev,
         { role: 'rooty',
-          content: `I had trouble reaching the server, but here's a starting point:\n\n"${label}" — try breaking it down into a simple analogy from everyday Ethiopian life. That's how true understanding builds!`,
-          contentAmharic: `ሰርቨሩን ጋር ችግር አጋጥሞኛል፣ ነገር ግን የመነሻ ነጥብ ይህ ነው፡\n\n«${label}» — በቀላል የዕለት ተዕለት ምሳሌ ማስተካከል ሞክር። ያ ነው ትክክለኛ መረዳት የሚያድገገው!` }
+          content: `I had trouble reaching the server, but here's a starting point:\n\n"${label}" — try breaking it down into a simple analogy from everyday Ethiopian life. If you can explain it simply, you've got it!`,
+          contentAmharic: `ሰርቨሩን ጋር ችግር አጋጥሞኛል፣ ነገር ግን የመነሻ ነጥብ ይህ ነው፡\n\n«${label}» — በቀላል የዕለት ተዕለት ምሳሌ ለመረዳት ሞክር። በቀላሉ ማስተማር ከቻልክ ጎበዝ ነህ!` }
       ]);
     } finally {
       setChatLoading(false);
@@ -147,13 +147,13 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
     switch (node.masteryStatus) {
       case 'mastered':
         return {
-          text: isAmharic ? 'የተካነ (Mastered)' : 'Mastered',
+          text: isAmharic ? 'የተማረ' : 'Learned',
           color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
           icon: ShieldCheck
         };
       case 'feynman_tested':
         return {
-          text: isAmharic ? 'በፌይንማን የተረጋገጠ' : 'Feynman Verified',
+          text: isAmharic ? 'ለሩቲ የተነገረ' : 'Taught to Rooty',
           color: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
           icon: CheckCircle2
         };
@@ -165,7 +165,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
         };
       default:
         return {
-          text: isAmharic ? 'አልተጀመረም' : 'Unstudied',
+          text: isAmharic ? 'አልተጀመረም' : 'New',
           color: 'bg-slate-800 text-slate-400 border-slate-700',
           icon: BookOpen
         };
@@ -214,7 +214,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                     {status.text}
                   </span>
                 </div>
-                <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2 font-display antialiased">
                   {isAmharic ? node.labelAmharic : node.label}
                 </h2>
                 {isAmharic && (
@@ -244,7 +244,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                 }`}
               >
                 <Coffee className="w-3.5 h-3.5" />
-                <span>{isAmharic ? 'የአገር ውስጥ ማነጻጸሪያ' : 'Localized Analogy'}</span>
+                <span>{isAmharic ? 'ለማስታወስ መንገድ' : 'A way to remember it'}</span>
               </button>
 
               <button
@@ -256,7 +256,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                 }`}
               >
                 <BookOpen className="w-3.5 h-3.5" />
-                <span>{isAmharic ? 'የፅንሰ-ሀሳብ ትንተና' : 'Concept Core'}</span>
+                <span>{isAmharic ? 'ስለ ሀሳቡ' : 'Idea'}</span>
               </button>
 
               <button
@@ -268,7 +268,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                 }`}
               >
                 <AlertTriangle className="w-3.5 h-3.5" />
-                <span>{isAmharic ? 'የተለመዱ ስህተቶች' : 'Common Traps'}</span>
+                <span>{isAmharic ? 'በቀላሉ የሚሳሳት' : 'Easy to get wrong'}</span>
               </button>
 
               <button
@@ -280,7 +280,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>{isAmharic ? 'ቀመሮች እና ሕጎች' : 'Rules & Formulas'}</span>
+                <span>{isAmharic ? 'ቀመሮች እና ሕጎች' : 'Rules and formulas'}</span>
               </button>
 
               <button
@@ -345,7 +345,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                   <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
                     <span className="flex items-center gap-1.5 text-amber-400/90">
                       <Compass className="w-3.5 h-3.5" />
-                      {isAmharic ? 'የአዕምሮ ግንኙነት ምስል' : 'Cognitive Anchor'}
+                      {isAmharic ? 'ለማስታወስ ይረዳል' : 'Helps you remember'}
                     </span>
                     <span>Textbook Unit: {unit.chapter}</span>
                   </div>
@@ -356,12 +356,12 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                   <div className="space-y-0.5">
                     <h4 className="text-sm font-semibold text-white flex items-center gap-1.5">
                       <Zap className="w-4 h-4 text-emerald-400" />
-                      {isAmharic ? 'ለ Rooty ይህንን ነጥብ አስተምራት' : 'Teach Rooty this Node'}
+                      {isAmharic ? 'ለ Rooty ይህንን ሀሳብ አስተምራት' : 'Teach Rooty this Idea'}
                     </h4>
                     <p className="text-xs text-slate-400">
                       {isAmharic
-                        ? 'ያለ ውስብስብ ቃላት በቀላል ምሳሌ አስረድተህ የፌይንማን ማረጋገጫ ውሰድ'
-                        : 'Explain it in plain language without jargon to earn the Feynman seal'}
+                        ? 'ያለ ውስብስብ ቃላት በቀላል ምሳሌ አስረድተህ እንደተማርክ አረጋግጥ'
+                        : 'Explain it in simple words — if you can teach it, you really know it'}
                     </p>
                   </div>
                   <button
@@ -371,7 +371,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                     }}
                     className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-950 flex items-center gap-1.5 transition-all min-w-0"
                   >
-                    <span>{isAmharic ? 'ወደ ሩቲ ሂድ' : 'Enter Arena'}</span>
+                    <span>{isAmharic ? 'መማር ጀምር' : 'Start Teaching'}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -384,7 +384,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                 {/* Core Definition */}
                 <div className="p-5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-3">
                   <h3 className="text-xs font-mono uppercase tracking-wider text-cyan-400">
-                    {isAmharic ? 'መሠረታዊ ማብራሪያ' : 'Standard Core Definition'}
+                    {isAmharic ? 'ምን ማለት ነው' : 'What it means'}
                   </h3>
                   <p className="text-sm text-slate-200 leading-relaxed font-normal">
                     {isAmharic ? node.summaryAmharic : node.summary}
@@ -401,7 +401,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                   <div className="p-5 rounded-xl bg-gradient-to-br from-cyan-950/30 via-slate-900 to-slate-900 border border-cyan-500/20 space-y-3">
                     <h3 className="text-xs font-mono uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
                       <BookOpen className="w-3.5 h-3.5" />
-                      {isAmharic ? 'ዝርዝር ማብራሪያ' : 'Detailed Explanation'}
+                      {isAmharic ? 'ሙሉ ማብራሪያ' : 'The full explanation'}
                     </h3>
                     <p className="text-sm text-slate-200 leading-relaxed">
                       {isAmharic && node.detailedExplanationAmharic ? node.detailedExplanationAmharic : node.detailedExplanation}
@@ -419,7 +419,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                   <div className="p-5 rounded-xl bg-amber-950/20 border border-amber-500/20 space-y-3">
                     <h3 className="text-xs font-mono uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
                       <Lightbulb className="w-3.5 h-3.5" />
-                      {isAmharic ? 'ቁልፍ ነጥቦች' : 'Key Takeaways'}
+                      {isAmharic ? 'ዋናው ሃሳብ' : 'The main idea'}
                     </h3>
                     <ul className="space-y-2">
                       {(isAmharic && node.keyTakeawaysAmharic ? node.keyTakeawaysAmharic : node.keyTakeaways).map((point, idx) => (
@@ -446,7 +446,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                 {node.prerequisites && node.prerequisites.length > 0 && (
                   <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800 space-y-2">
                     <span className="text-xs font-mono text-slate-400 uppercase">
-                      {isAmharic ? 'ቅድመ-ሁኔታዎች' : 'Prerequisites for this Node'}
+                      {isAmharic ? 'መጀመሪያ ያስፈልግሃል' : 'You need first'}
                     </span>
                     <div className="flex flex-wrap gap-2">
                       {node.prerequisites.map((pId) => {
@@ -479,7 +479,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                     <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800 space-y-2.5">
                       <span className="text-xs font-mono text-slate-400 uppercase flex items-center gap-1.5">
                         <ChevronRight className="w-3 h-3" />
-                        {isAmharic ? 'ተዛማሽ ጽንሰ-ሀሳቦች' : 'Related Concepts'}
+                        {isAmharic ? 'ተዛማሽ ሀሳቦች' : 'Related ideas'}
                       </span>
                       <div className="flex flex-wrap gap-2">
                         {related.map((rn) => (
@@ -503,12 +503,12 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                 <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/30 space-y-1">
                   <h3 className="text-sm font-bold text-rose-300 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-rose-400" />
-                    {isAmharic ? 'ተማሪዎች የሚሳሳቱባቸው ነጥቦች' : 'High-Frequency Exam & Intuition Traps'}
+                    {isAmharic ? 'በቀላሉ የሚሳሳት' : 'Easy to get wrong'}
                   </h3>
                   <p className="text-xs text-slate-400">
                     {isAmharic
-                      ? 'ፈተና ላይ የተለመዱ አሳሳች አማራጮች እና የተሳሳቱ አመለካከቶች'
-                      : 'Common conceptual misunderstandings and trick questions'}
+                      ? 'ብዙ ሰዎች የሚሳሳቱበት እና በፈተና ውስጥ የተለመዱ አሳሳች ምርጫዎች'
+                      : 'Places people often mix up or get tricked on a test'}
                   </p>
                 </div>
 
@@ -542,10 +542,10 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                 <div className="p-4 rounded-xl bg-purple-950/20 border border-purple-500/30 space-y-1">
                   <h3 className="text-sm font-bold text-purple-300 flex items-center gap-2">
                     <Layers className="w-4 h-4 text-purple-400" />
-                    {isAmharic ? 'ሕጎች፣ ቀመሮች እና መርሆች' : 'Governing Laws & Mathematical Relations'}
+                    {isAmharic ? 'ሕጎች እና ቀመሮች' : 'Rules and formulas'}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    {isAmharic ? 'በዚህ ጽንሰ-ሀሳብ ውስጥ ያሉ ዋና ዋና ቀመሮች' : 'Key formulas and quantitative statements'}
+                    {isAmharic ? 'የዚህ ሃሳብ ዋና ዋና ቀመሮች' : 'The formulas you need for this idea'}
                   </p>
                 </div>
 
@@ -563,7 +563,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                   </div>
                 ) : (
                   <p className="text-xs text-slate-400 italic">
-                    {isAmharic ? 'ምንም ቀመር የለም (ፅንሰ-ሀሳባዊ ርዕስ ነው)' : 'Conceptual qualitative node without standalone formulas.'}
+                    {isAmharic ? 'ምንም ቀመር የለም (ይህ በቃላት የሚገለጽ ሃሳብ ነው)' : 'This idea is more about words than numbers.'}
                   </p>
                 )}
               </div>
@@ -577,12 +577,12 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                   <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/20 space-y-2 mb-4">
                     <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-2">
                       <HelpCircle className="w-4 h-4" />
-                      {isAmharic ? 'ስለ ጽንሰ-ሀሳቡ ጥያቄ ያቅርቡ' : 'Ask Rooty anything about this concept'}
+                      {isAmharic ? 'ስለ ሀሳቡ ማንኛውንም ጥያቄ ጠይቅ' : 'Ask Rooty anything about this idea'}
                     </h3>
                     <p className="text-xs text-slate-400">
                       {isAmharic
-                        ? '栎-ti ያለ ውስብስብ ቃላት በቀላል ምሳሌ ይመልስልሃል'
-                        : 'Rooty will answer in plain language with Ethiopian cultural analogies when helpful'}
+                        ? 'Rooty በቀላል ቃላት ከኢትዮጵያዊ ምሳሌ ጋር ይመልስልሃል'
+                        : 'Rooty answers in simple words and helps it stick'}
                     </p>
                   </div>
                 )}
@@ -653,7 +653,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
               className="px-3.5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"
             >
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>{isAmharic ? 'የተካነ ብለህ መዝግብ' : 'Mark Mastered'}</span>
+              <span>{isAmharic ? 'ይህንን ተምሬአለሁ' : 'I learned this'}</span>
             </button>
 
             <div className="flex items-center gap-2">
@@ -665,7 +665,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                 className="px-4 py-2.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-xs font-semibold flex items-center gap-1.5 transition-colors"
               >
                 <BookOpen className="w-4 h-4" />
-                <span>{isAmharic ? 'ፈተና ጀምር' : 'Quiz Node'}</span>
+                <span>{isAmharic ? 'ፈተና ጀምር' : 'Take a quiz'}</span>
               </button>
 
               <button
