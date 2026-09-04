@@ -32,8 +32,15 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
   onSelectNode,
   selectedNodeId
 }) => {
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 40, y: 30 });
+  const [zoom, setZoom] = useState(() => {
+    // On a narrow (mobile) screen the map opens zoomed out a bit so the whole
+    // graph fits and is easier to pan around; desktop keeps the fuller view.
+    return typeof window !== 'undefined' && window.innerWidth < 768 ? 0.65 : 1;
+  });
+  const [pan, setPan] = useState(() => {
+    const narrow = typeof window !== 'undefined' && window.innerWidth < 768;
+    return narrow ? { x: -20, y: 20 } : { x: 40, y: 30 };
+  });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,8 +101,9 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
   };
 
   const handleResetView = () => {
-    setZoom(1);
-    setPan({ x: 30, y: 30 });
+    const narrow = typeof window !== 'undefined' && window.innerWidth < 768;
+    setZoom(narrow ? 0.65 : 1);
+    setPan({ x: narrow ? -20 : 30, y: 30 });
   };
 
   // Node filtering

@@ -12,6 +12,8 @@ interface OnboardingTourProps {
 interface Spot {
   selector?: string;
   box?: boolean;
+  /** 'tabs' renders a plain-language list of what each menu item does (mobile). */
+  kind?: 'tabs';
   title: string;
   titleAmharic: string;
   body: string;
@@ -40,7 +42,25 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
   } | null>(null);
   const tooltipRef = React.useRef<HTMLDivElement>(null);
 
-  const steps: Spot[] = [
+  // Mobile has no persistent sidebar (nav is in a slide-over drawer), so the
+  // spotlight targets don't exist. We detect "narrow" and switch the tour to a
+  // card-only flow that explains each tab instead of highlighting it.
+  const [isMobile, setIsMobile] = React.useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+  React.useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // Keep the current step in range when the steps list changes (e.g. rotate).
+  React.useEffect(() => {
+    setStep((s) => Math.min(s, steps.length - 1));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile]);
+
+  const desktopSteps: Spot[] = [
     {
       title: 'Welcome',
       titleAmharic: 'እንኳን ደህና መጡ',
@@ -72,6 +92,24 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
       bodyAmharic: 'ሩቲ ደግ ሮቦት ነው። ነገርን በራስዎ ቀላል ቃላት ያስረዱት። ማስረዳት ከቻሉ ተምረዋል ማለት ነው።'
     }
   ];
+
+  const mobileSteps: Spot[] = [
+    {
+      title: 'Welcome',
+      titleAmharic: 'እንኳን ደህና መጡ',
+      body: 'This is a DEMO, not a finished product to use every day. It shows an idea — turn a textbook into a mind-map and teach it back to a robot. Data is saved only on this device. Enjoy exploring.',
+      bodyAmharic: 'ይህ በየቀኑ የሚጠቀሙበት የተጠናቀቀ ምርት ሳይሆን ማሳያ (DEMO) ነው። የሚያሳየው ሀሳብ፡ የትምህርት መጽሐፍን ወደ ካርታ መቀየር እና ወደ ሮቦት ማስተማር ነው። መረጃዎ በዚህ መሣሪያ ላይ ብቻ ይቀመጣል። በመመርመር ደስ ይበልዎ።'
+    },
+    {
+      kind: 'tabs',
+      title: 'Tap ☰ to open the menu',
+      titleAmharic: 'ምናሌውን ለመክፈት ☰ ይንኩ',
+      body: 'On a phone, the menu hides behind the ☰ button up top. Here\u2019s what each one does:',
+      bodyAmharic: 'በስልክ ላይ ምናሌው ከላይ ባለው ☰ አዝራር ጀርባ ይደበቃል። እያንዳንዱ ምን እንደሚሰራ እነሆ፡'
+    }
+  ];
+
+  const steps = isMobile ? mobileSteps : desktopSteps;
 
   const current = steps[step];
   const isLast = step === steps.length - 1;
@@ -229,6 +267,51 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
           >
             {isAmharic ? current.bodyAmharic : current.body}
           </p>
+
+          {/* Mobile-only: plain-language menu legend (no sidebar to spotlight) */}
+          {current.kind === 'tabs' && (
+            <ul className="mt-4 space-y-2">
+              {[
+                { en: 'Books', am: 'መጻሕፍት', desc: 'All your books' },
+                { en: 'Map', am: 'ካርታ', desc: 'Ideas as a map' },
+                { en: 'Teach', am: 'አስተምር', desc: 'Explain to Rooty the robot' },
+                { en: 'Quiz', am: 'ፈተና', desc: 'Test what you learned' },
+                { en: 'Measure', am: 'ለካ', desc: 'Watch your memory grow' },
+                { en: 'Focus', am: 'ትኩረት', desc: 'Study with a timer' }
+              ].map((item) => (
+                <li
+                  key={item.en}
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl border"
+                  style={{
+                    backgroundColor: 'var(--app-surface-elevated, #f8fafc)',
+                    borderColor: 'var(--app-border, #cbd5e1)'
+                  }}
+                >
+                  <span
+                    className="w-16 shrink-0 text-xs font-bold"
+                    style={{ color: 'var(--app-accent, #6366f1)' }}
+                  >
+                    {isAmharic ? item.am : item.en}
+                  </span>
+                  <span
+                    className="text-xs"
+                    style={{ color: 'var(--app-text-muted, #475569)' }}
+                  >
+                    {isAmharic
+                      ? {
+                          Books: 'ሁሉም መጻሕፍትዎ',
+                          Map: 'ሀሳቦች እንደ ካርታ',
+                          Teach: 'ለሩቲ ሮቦት ያስረዱ',
+                          Quiz: 'የተማሩትን ይፈትኑ',
+                          Measure: 'የማስታወስ እድገትዎን ይመልከቱ',
+                          Focus: 'በጊዜ ቆጣሪ ያጥኑ'
+                        }[item.en]
+                      : item.desc}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
 
           {/* Progress dots */}
           <div className="mt-6 flex items-center gap-2">
