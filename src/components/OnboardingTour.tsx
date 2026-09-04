@@ -44,8 +44,8 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
     {
       title: 'Welcome',
       titleAmharic: 'እንኳን ደህና መጡ',
-      body: 'Awde helps you really understand school work, not just memorize it. This short tour shows you where everything is.',
-      bodyAmharic: 'አውደ የትምህርት ቤት ትምህርትን ለማስታወስ ብቻ ሳይሆን በእውነት እንድትረዱ ይረዳዎታል። ይህ አጭር መመሪያ ቦታዎቹን ያሳየዎታል።'
+      body: 'This is a DEMO, not a finished product to use every day. It shows an idea — turn a textbook into a mind-map and teach it back to a robot. Data is saved only on this device. Enjoy exploring.',
+      bodyAmharic: 'ይህ በየቀኑ የሚጠቀሙበት የተጠናቀቀ ምርት ሳይሆን ማሳያ (DEMO) ነው። የሚያሳየው ሀሳብ፡ የትምህርት መጽሐፍን ወደ ካርታ መቀየር እና ወደ ሮቦት ማስተማር ነው። መረጃዎ በዚህ መሣሪያ ላይ ብቻ ይቀመጣል። በመመርመር ደስ ይበልዎ።'
     },
     {
       selector: '[data-tour="books"]',
