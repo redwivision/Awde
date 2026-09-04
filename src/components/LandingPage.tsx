@@ -9,12 +9,14 @@ import {
   Infinity as InfinityIcon,
   ShieldCheck,
   Wifi,
-  ArrowDown
+  ArrowDown,
+  BookOpen
 } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { DesignAesthetic, LanguageMode } from '../types';
 import { AwdeLogo } from './AwdeLogo';
 import { AestheticsModal } from './AestheticsModal';
+import { PrivacyModal } from './PrivacyModal';
 
 interface LandingPageProps {
   language: LanguageMode;
@@ -70,6 +72,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 }) => {
   const isAmharic = language === 'am';
   const [isAestheticsModalOpen, setIsAestheticsModalOpen] = React.useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = React.useState(false);
 
   const heroRef = React.useRef<HTMLDivElement>(null);
   const heroScroll = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
@@ -491,6 +494,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <InfinityIcon className="w-3.5 h-3.5" />
               {isAmharic ? 'እንግሊዝኛ + አማርኛ' : 'English + Amharic'}
             </span>
+            <button
+              onClick={() => setIsPrivacyOpen(true)}
+              className="flex items-center gap-1.5 text-xs font-semibold underline underline-offset-2 transition-opacity hover:opacity-70"
+              style={{ color: 'var(--app-text-muted, #475569)' }}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              {isAmharic ? 'ግላዊነት እና ደንቦች' : 'Privacy & Terms'}
+            </button>
           </div>
         </div>
       </div>
@@ -501,6 +512,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         onSelectAesthetic={onSelectAesthetic}
         language={language}
       />
+      <PrivacyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} language={language} />
     </div>
   );
 };

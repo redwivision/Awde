@@ -308,12 +308,20 @@ simpler and keeps changes localized. Two indexes keep lookups fast.
    CASCADE`, so one delete is a full data-deletion path (see `docs/PRIVACY.md`).
    The Account modal surfaces this as "Delete my account and data".
 
-### Trust & safety (`server/safety.ts` + `src/components/ConsentGate.tsx`)
+### Trust & safety (`server/safety.ts` + `src/components/ConsentGate.tsx` + `src/components/PrivacyModal.tsx`)
 
 - **Age gate / consent**: before the workspace is usable, `ConsentGate` asks the
   user to confirm they are 13+ (or have a parent/guardian's permission) and
-  acknowledge Awde's privacy principles. The answer is stored locally only
+  acknowledge Awde's Privacy & Terms. The answer is stored locally only
   (`awde_consent_v1`) — it's never sent to the server.
+- **In-app Privacy & Terms**: the full policy lives in `PrivacyModal`, reachable
+  from the landing-page footer, the Account modal, and the consent gate itself —
+  no one has to find a repo folder to read it. Copy is EN + AM; the source of
+  truth is `docs/PRIVACY.md`.
+- **Learning data & personalization**: the policy discloses that, when signed
+  in, learning activity (quizzes, mastery, Feynman, study events) may be used to
+  adapt the app to each student's learning spot. No PII beyond the login email;
+  no learning data is collected at all without an account.
 - **No PII by default**: nothing is collected unless the user creates an
   account, and an account only needs an email.
 - **AI input filter**: every free-text field that reaches the AI (topics,
@@ -611,6 +619,7 @@ A mental checklist before you edit anything:
 | `src/lib/api.ts` | Weak-wifi-safe `postJson`/`postFormData` + `useOnlineStatus` |
 | `src/lib/sync.ts` | Session storage, magic-link confirm, workspace push/pull, study events, sync-meta ledger |
 | `src/components/ConsentGate.tsx` | One-time age-gate + privacy consent before the workspace |
+| `src/components/PrivacyModal.tsx` | In-app Privacy & Terms (EN+AM), reachable from footer, Account modal, and consent gate |
 | `src/data/persistence.ts` | localStorage load/save/migrate + the single-source-of-truth logic |
 | `src/data/themes.ts` | The 5 design palettes |
 | `src/data/curricula.ts` | Seeded legacy curriculum units |

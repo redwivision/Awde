@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, LogIn, LogOut, Mail, CheckCircle2, Loader2 } from 'lucide-react';
+import { X, LogIn, LogOut, Mail, CheckCircle2, Loader2, BookOpen } from 'lucide-react';
 import { LanguageMode } from '../types';
 import { getSession, requestLogin } from '../lib/sync';
+import { PrivacyModal } from './PrivacyModal';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
   const [devLink, setDevLink] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string>('');
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -280,8 +282,18 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
               </div>
             )}
           </div>
+
+          <button
+            onClick={() => setIsPrivacyOpen(true)}
+            className="mt-4 w-full flex items-center justify-center gap-1.5 text-[11px] font-semibold underline underline-offset-2 transition-opacity hover:opacity-70"
+            style={{ color: 'var(--app-text-muted, #475569)' }}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            {isAmharic ? 'ግላዊነት እና ደንቦች ያንብቡ' : 'Read Privacy & Terms'}
+          </button>
         </motion.div>
       </div>
+      <PrivacyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} language={language} />
     </AnimatePresence>
   );
 };
