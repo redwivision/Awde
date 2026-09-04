@@ -9,8 +9,9 @@ once, then keep it open while you poke around.
 ## 0. The One-Sentence Mental Model
 
 > **Awde is one server that both (a) serves a React app to the browser and
-> (b) answers the React app's `/api/*` questions with AI. All user progress lives
-> in the browser's `localStorage`, not a database.**
+> (b) answers the React app's `/api/*` questions with AI. All user progress
+> lives in the browser's `localStorage` — and, *optionally*, syncs to a
+> PostgreSQL database when a `DATABASE_URL` is configured.**
 
 Everything in this project is a variation on that sentence. Hold it and the rest
 clicks into place.
@@ -21,8 +22,11 @@ What's in it:
 |---|---|---|
 | Browser UI (React) | `src/` | What the student sees & clicks |
 | API layer | `src/lib/api.ts` | How the browser talks to the server |
+| Session + sync layer | `src/lib/sync.ts` | Magic-link session storage, workspace push/pull, study events |
 | HTTP server + AI routes | `server.ts` | Receives `/api` calls, calls Gemini |
 | AI wrappers + fallbacks | `server/ai.ts` | Gemini client + "no key" deterministic generators |
+| Accounts + sync routes | `server/auth.ts`, `server/sync.ts` | Passwordless login, `/api/me/*` sync (only active with a DB) |
+| Database layer | `server/db/` | Drizzle schema + client + migrations (only active with a DB) |
 | PDF pipeline | `server/textbook.ts` | Textbook → AI → workspace |
 | App state + persistence | `src/App.tsx`, `src/data/persistence.ts` | Holds data, saves to `localStorage` |
 | Domain types | `src/types.ts` | The *shape* of every piece of data |
@@ -44,6 +48,7 @@ Now open `server.ts` and look at the very end:
 
 ```ts
 export async function startServer(port) {
+  if (hasDb()) await runMigrations(); // only when DATABASE_URL is set
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa' });
     app.use(vite.middlewares);
@@ -62,6 +67,13 @@ mounts **Vite as middleware** (`app.use(vite.middlewares)`). That means:
 - Express handles `/api/...` requests itself.
 - Everything else (`.tsx`, assets) is handed to Vite, which transforms on the fly
   and pushes **HMR** (hot module replacement) updates to the browser.
+
+Before mounting Vite, `startServer` checks whether a `DATABASE_URL` is
+configured (`hasDb()`). If it is, it runs the **Drizzle migrations**
+(`server/db/migrate.ts`) which create the `users`, `sessions`, `workspaces`, and
+`study_events` tables on first boot, then registers the auth + sync routes
+(`registerSyncRoutes`). Auth routes are registered at **module load** (below
+`startServer`) so that tests importing `app` directly get the same routing.
 
 > **Why this design?** It means there's exactly **one process / one port / one
 > origin**. In production there's no Vite — the same `server.ts` just serves the
@@ -184,10 +196,19 @@ always re-renders (that's fine at this scale).
 
 ---
 
-## 4. Persistence: localStorage, not a database
+## 4. Persistence: localStorage first, database optional
 
-There's no database anywhere. All progress is saved to the browser via
-`localStorage`. Look at `App.tsx`:
+There are **two persistence worlds**, and the code deliberately supports both:
+
+1. **Local mode (default)** — no `DATABASE_URL`. All progress lives in
+   `localStorage`. This is the offline-first behavior the app was built around.
+2. **Cloud mode** — a `DATABASE_URL` (e.g. Neon/Postgres) is configured.
+   `localStorage` stays as the fast offline cache, but workspaces also sync to
+   the server so progress follows the student across devices.
+
+### Local mode: `localStorage`
+
+Look at `App.tsx`:
 
 ```tsx
 useEffect(() => {
@@ -212,14 +233,100 @@ there, returns a deep clone of the **seeded default books**
 don't render empty. Everything is wrapped in try/catch so *corrupt* data is
 swallowed instead of crashing the app.
 
-> **Why local, not a DB?** For a student learning tool, keeping their data on
-> their own device means: no accounts, no servers storing personal data, works
-> offline, free to host. The trade-off is their progress doesn't sync across
-> devices — an intentional choice for this product.
+### Cloud mode: the sync layer (`src/lib/sync.ts`)
+
+When the user signs in, the browser stores a **session** (token + email) in
+`localStorage` under `awde_session`. From then on:
+
+- **On save** (`App.tsx` effect above), after writing `localStorage` the app
+  also `PUT`s each workspace to `/api/me/workspaces` (debounced, fire-and-forget).
+- **On load**, an effect in `App.tsx` checks for a `?token=` magic-link in the
+  URL, confirms it into a session, then pulls the user's server workspaces via
+  `GET /api/me/workspaces` and **merges** them into local state.
+- **Conflict rule (v1): last-writer-wins.** The client keeps a small
+  per-workspace ledger in `localStorage` (`awde_sync_meta`) recording the latest
+  server `updatedAt` it has seen. A server row replaces the local copy only when
+  it's *newer* than what we've synced before — i.e. it changed on another device.
+- **Study events**: `recordStudyEvent` appends rows (quiz, mastery, feynman…)
+  to the server's `study_events` table — the beginnings of a progress timeline.
+
+Every sync call is **offline-safe**: no session or no network means it silently
+no-ops, and `localStorage` remains the source of truth until the server is
+reachable again.
+
+> **Why local-first?** For a student learning tool, keeping their data on their
+> own device means: works offline, no cloud dependency, fast. The optional DB
+> layer adds cross-device accounts *without* taking that away — the browser
+> cache is never a hard requirement.
 
 ---
 
-## 5. The AI: "Try Gemini, fall back to deterministic"
+## 5. Accounts, Magic Links, and the Database
+
+This is the newest piece, and it's built to be **entirely optional**. Read
+`server/db/client.ts` first:
+
+```ts
+export function getDb() {
+  if (!process.env.DATABASE_URL) return null; // local mode: no DB, no auth
+  ...
+}
+```
+
+The **local-mode invariant** (memorize this): *if there's no `DATABASE_URL`,
+none of the database or auth machinery runs, and the app behaves exactly as it
+did before — open access, localStorage only.* Everything below only exists when
+a Postgres URL is configured.
+
+### The schema (`server/db/schema.ts`, Drizzle + Postgres)
+
+| Table | What it stores |
+|---|---|
+| `users` | An account per email (`id`, `email`, `role`) |
+| `login_tokens` | One-time magic-link tokens — only their **SHA-256 hashes** are stored |
+| `sessions` | Bearer session tokens issued after a successful login |
+| `workspaces` | One row per `user_id` + `workspace_id`; the whole workspace shape lives in a `data` **JSONB** column (same single-source-of-truth model as localStorage) |
+| `study_events` | An append-only log of study activity (quiz, mastery, feynman…) for progress-over-time |
+
+Note the **JSONB workspace**: we deliberately don't normalize the concept graph
+into dozens of relational tables. The app already owns schema evolution via
+`SCHEMA_VERSION` in `persistence.ts`, so storing the whole workspace as JSON is
+simpler and keeps changes localized. Two indexes keep lookups fast.
+
+### The magic-link flow (`server/auth.ts`)
+
+1. `POST /api/auth/login { email }` → finds-or-creates the user, stores a
+   15-minute token (hashed), and returns a link `/api/auth/confirm?token=…`.
+   With no email provider wired yet it `console.log`s the link (dev); swap in
+   Resend/SMTP later without changing the flow.
+2. `GET /api/auth/confirm?token=…` → consumes the token and returns a fresh
+   **30-day bearer session** token for the browser to keep.
+3. The frontend stores the session in `localStorage` (`awde_session`) and sends
+   it as `Authorization: Bearer <token>` on `/api/me/*` calls.
+
+### The sync routes (`server/sync.ts`)
+
+- `GET /api/me` — who am I?
+- `GET /api/me/workspaces` — pull server workspaces.
+- `PUT /api/me/workspaces` — upsert one workspace (`onConflictDoUpdate` keys on
+  `user_id` + `workspace_id`), returning the server `updatedAt` so the client
+  can track "what the server knows".
+- `POST /api/me/study-events` — append to the progress log.
+
+All of these are wrapped in `requireAuth`, which in local mode is a **no-op**
+(no DB → no auth → open access). With a DB, an unauthenticated call gets a
+`401`.
+
+### Why the guard exists
+
+The existing integration tests import `app` directly with no `DATABASE_URL`.
+If auth were hard-enabled, every existing test would start failing with 401s.
+The `authEnabled()`/`hasDb()` gates keep that from happening: **no URL = old
+behavior, tests included.**
+
+---
+
+## 6. The AI: "Try Gemini, fall back to deterministic"
 
 Open `server/ai.ts` first. The headline function:
 
@@ -284,7 +391,7 @@ from the "listen" call.
 
 ---
 
-## 6. The Weak-Network API Client (from the browser side)
+## 7. The Weak-Network API Client (from the browser side)
 
 Open `src/lib/api.ts`. The browser doesn't use raw `fetch` for AI — it uses
 `postJson`, which wraps fetch with resilience:
@@ -311,7 +418,7 @@ browser's `online`/`offline` events — `App.tsx` uses it to show the red
 
 ---
 
-## 7. The PDF Pipeline ("Upload my textbook")
+## 8. The PDF Pipeline ("Upload my textbook")
 
 `server.ts` route `/api/textbook/process` uses **multer** for file upload:
 
@@ -333,7 +440,7 @@ of `postJson`) with a long timeout because upload + AI can be slow.
 
 ---
 
-## 8. Components: the Props-Down Pattern
+## 9. Components: the Props-Down Pattern
 
 Now you understand the data. The UI is a set of **feature components** that
 receive the data they need as props from `App.tsx` (the owner of all state). This
@@ -369,7 +476,7 @@ const FeynmanArena = React.lazy(() =>
 
 ---
 
-## 9. Themes, Bilingual, and the Tour (the "fancy" bits)
+## 10. Themes, Bilingual, and the Tour (the "fancy" bits)
 
 ### Themes
 `src/data/themes.ts` defines 5 `AestheticTheme`s. `App.tsx` persists the chosen
@@ -417,9 +524,9 @@ scroll" + "radial gradient, not solid dim."
 
 ---
 
-## 10. Tests: what they protect
+## 11. Tests: what they protect
 
-`tests/` uses **Vitest** + **supertest**. The suite (59 tests) clusters around the
+`tests/` uses **Vitest** + **supertest**. The suite (64 tests) clusters around the
 most failure-prone, most important logic:
 
 - `persistence.test.ts` — the migration / single-source-of-truth invariants.
@@ -428,6 +535,8 @@ most failure-prone, most important logic:
   structures (so offline mode never breaks).
 - `api.integration.test.ts` + `api-helper.test.ts` — hit the Express routes via
   supertest (no port) and check the `isFallback`/error behavior.
+- `auth-sync.test.ts` — the auth + sync endpoints in **local mode** (no
+  `DATABASE_URL`), proving accounts don't break the offline/local experience.
 
 `npm run lint` is just `tsc --noEmit` (type-checking). `npm test` runs Vitest.
 
@@ -438,7 +547,7 @@ most failure-prone, most important logic:
 
 ---
 
-## 11. How to Think About Making Changes
+## 12. How to Think About Making Changes
 
 A mental checklist before you edit anything:
 
@@ -458,7 +567,7 @@ A mental checklist before you edit anything:
 
 ---
 
-## 12. File-by-File Cheat Sheet
+## 13. File-by-File Cheat Sheet
 
 | File | Role in one line |
 |---|---|
@@ -466,10 +575,16 @@ A mental checklist before you edit anything:
 | `src/main.tsx` | Mounts `<App/>` into `#root` with StrictMode + ErrorBoundary |
 | `src/App.tsx` | **The brain**: owns all state, decides landing vs workspace, wires tabs & modals |
 | `src/types.ts` | The domain schema every other file types against |
-| `server.ts` | Express server, all `/api/*` routes, rate limiting, static serving |
+| `server.ts` | Express server: mounts Vite, runs migrations when a DB exists, registers sync routes, rate limiting, static serving |
 | `server/ai.ts` | Gemini client + all `generateFallback*` deterministic generators |
 | `server/textbook.ts` | PDF upload → text → AI workspace (+ fallback builder) |
+| `server/auth.ts` | Magic-link issue/consume, bearer sessions, `requireAuth` (no-op in local mode) |
+| `server/sync.ts` | `registerSyncRoutes`: login/confirm/me/workspaces/study-events |
+| `server/db/schema.ts` | Drizzle tables: users, sessions, workspaces (JSONB), study_events |
+| `server/db/client.ts` | Lazy postgres.js client; `hasDb()`/`authEnabled()` gates |
+| `server/db/migrate.ts` | Runs Drizzle migrations from `drizzle/` at startup |
 | `src/lib/api.ts` | Weak-wifi-safe `postJson`/`postFormData` + `useOnlineStatus` |
+| `src/lib/sync.ts` | Session storage, magic-link confirm, workspace push/pull, study events, sync-meta ledger |
 | `src/data/persistence.ts` | localStorage load/save/migrate + the single-source-of-truth logic |
 | `src/data/themes.ts` | The 5 design palettes |
 | `src/data/curricula.ts` | Seeded legacy curriculum units |
@@ -480,7 +595,7 @@ A mental checklist before you edit anything:
 
 ---
 
-## 13. Three Experiments to Lock It In
+## 14. Three Experiments to Lock It In
 
 The best way to learn is to break it a little. Try each, then `git` your way back:
 
@@ -496,7 +611,7 @@ The best way to learn is to break it a little. Try each, then `git` your way bac
 
 ---
 
-*This guide describes the code as it stands after the workspace-redesign commit
-(`2bafdaf`). When things change, the architecture (one server, local state,
-props-down data flow, AI-with-fallback) is the stable part — that's the part to
-internalize.*
+*This guide describes the code as it stands after the accounts + persistence
+milestone (`f5fb795`). When things change, the architecture (one server, local
+state, props-down data flow, AI-with-fallback, localStorage-first with optional
+account sync) is the stable part — that's the part to internalize.*

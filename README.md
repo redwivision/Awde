@@ -53,6 +53,7 @@ Students today rely on static textbooks that force rote-reading and memorization
 | 🎨 **Theming** | Multiple design aesthetics incl. Nordic Minimal, Scholar Parchment, Obsidian Cyber, and the warm "Addis Espresso" heritage theme |
 | 📴 **Single-Server Simplicity** | One Express process serves the React build and all /api endpoints — no separate backend required |
 | 🔑 **No API Key Required** | All AI endpoints run with deterministic offline-fallback generators when no key is set; a Gemini key makes output richer |
+| 👤 **Accounts & Cloud Sync** | Optional passwordless (magic-link) accounts via Neon/Postgres — progress syncs across devices while staying available offline (localStorage-first) |
 | 🔍 **Node Mastery Drawer** | Slide-in detail panel for every concept with 5 tabs: Localized Analogy, Concept Core (detailed explanation + key takeaways + related concepts), Common Traps, Rules & Formulas, and Ask Rooty |
 | 💡 **Ask Rooty (Q&A)** | Lightweight chat in the node drawer — ask any question about a concept and get a clear, jargon-free answer with Ethiopian cultural analogies |
 
@@ -80,6 +81,13 @@ cp .env.example .env.local
 ```
 
 Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
+
+> **Want accounts + cross-device sync?** Set `DATABASE_URL` to a **Neon/Postgres**
+> connection string. On startup the server creates its tables
+> (users, sessions, workspaces, study events), enables passwordless magic-link
+> login, and syncs your workspaces across devices. Without it, Awde runs in
+> **local mode** — everything stays on your device via `localStorage` and no
+> login is shown.
 
 > This project also runs on [Google AI Studio](https://ai.studio), which injects `GEMINI_API_KEY` and `APP_URL` from your account secrets automatically (see `metadata.json`).
 
@@ -115,6 +123,9 @@ Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
   runs in offline-fallback mode (deterministic generators) as a safety net.
 - _Optional:_ `GROQ_API_KEY`, `NVIDIA_API_KEY` (fallback AI providers),
   `APP_URL` (public URL of the service).
+- `DATABASE_URL` — Neon/Postgres connection string. **Required for accounts +
+  cloud sync.** Without it the app runs in local mode (localStorage only, no
+  login). Neon free tier: https://neon.tech
 
 ### Option A — Render (recommended, free)
 
@@ -150,10 +161,17 @@ curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true
 ## Architecture
 
 ```
-├── server.ts                 # Express + Gemini AI backend (5 endpoints, with fallbacks)
+├── server.ts                 # Express + Gemini AI backend (endpoints, with fallbacks)
 ├── server/
 │   ├── ai.ts                 # Gemini client + offline fallback generators
-│   └── textbook.ts           # PDF processing & textbook ingestion
+│   ├── auth.ts               # Passwordless magic-link auth + requireAuth middleware
+│   ├── sync.ts               # Auth + /api/me/* workspace sync routes
+│   ├── textbook.ts           # PDF processing & textbook ingestion
+│   └── db/
+│       ├── schema.ts         # Drizzle schema: users, sessions, workspaces, study_events
+│       ├── client.ts         # postgres.js client (lazy; only when DATABASE_URL is set)
+│       └── migrate.ts        # Runs Drizzle migrations on startup
+├── drizzle/                  # Generated SQL migrations
 ├── src/
 │   ├── App.tsx               # Root shell: landing page, sidebar, routing between the 6 study views
 │   ├── types.ts              # Full domain model (TopicUnit, ConceptNode, FeynmanEvaluation, …)
@@ -161,7 +179,10 @@ curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true
 │   │   ├── curricula.ts      # Seeded curriculum units (Thermodynamics, Cell Resp, Graph Alg)
 │   │   ├── textbookWorkspaces.ts # Higher-level "book → unit → topic" workspaces
 │   │   ├── themes.ts         # Design aesthetic definitions
-│   │   └── persistence.ts    # localStorage helpers
+│   │   └── persistence.ts    # localStorage helpers (offline cache)
+│   ├── lib/
+│   │   ├── api.ts            # Weak-wifi-safe fetch helper for AI endpoints
+│   │   └── sync.ts           # Session storage + workspace push/pull + study events
 │   └── components/           # 15+ feature components
 │       ├── LandingPage.tsx   # Cinematic first-run gate with problem statement
 │       ├── MindMapCanvas.tsx # Interactive concept graph (SVG edges, pan/zoom)
@@ -170,6 +191,7 @@ curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true
 │       ├── StudySuite.tsx    # Pomodoro / Blurting / Spaced repetition
 │       ├── StudyMethodLab.tsx# Efficacy-delta experiment tracking
 │       ├── RootyAvatar.tsx   # Emotion-driven animated SVG student
+│       ├── AccountModal.tsx  # Sign in / sign out (magic link)
 │       ├── WorkspaceSidebar.tsx, NodeMasteryDrawer.tsx,
 │       ├── CommandPalette.tsx, AestheticsModal.tsx, AwdeLogo.tsx
 │       └── … (HomePage / UploadPdfModal / WorkspaceDetail — workspace flow)
@@ -187,7 +209,23 @@ curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true
 | `POST /api/textbook/process` | Process uploaded PDF → generate full workspace |
 | `GET /api/health` | Health check with AI key status |
 
-State is persisted to `localStorage` (`awde_workspaces_v1` primary store, with `awde_lang`, `awde_aesthetic`, `awde_experiments_v1`, `awde_landing_dismissed`). Progress survives reloads without any backend database.
+**Accounts & sync (active only when `DATABASE_URL` is set):**
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/auth/login` | Request a passwordless magic-link for an email |
+| `GET /api/auth/confirm` | Exchange the magic-link for a session token |
+| `GET /api/me` | Current signed-in user |
+| `GET /api/me/workspaces` | Pull this user's server-side workspaces |
+| `PUT /api/me/workspaces` | Upsert a workspace (last-writer-wins) |
+| `POST /api/me/study-events` | Append a study event (progress log) |
+
+State is persisted to `localStorage` (`awde_workspaces_v1` primary store, with
+`awde_lang`, `awde_aesthetic`, `awde_experiments_v1`, `awde_landing_dismissed`)
+so progress survives reloads and works offline. When a `DATABASE_URL` is
+configured and the user signs in, the app **also** syncs workspaces to the
+server (push on save, pull+merge on load) so progress follows them across
+devices — `localStorage` stays as the offline cache.
 
 ---
 
@@ -201,9 +239,10 @@ State is persisted to `localStorage` (`awde_workspaces_v1` primary store, with `
 - ✅ **Interactive feature set** — all 6 study modes are functional with live client/server wiring
 - ✅ **Enriched concept nodes** — detailed explanations, key takeaways, and related concepts in the node drawer
 - ✅ **Ask Rooty Q&A** — lightweight in-drawer chat for asking questions about any concept
-- ✅ **Test suite** — 56 unit tests passing (Vitest)
+- ✅ **Test suite** — 64 tests passing (Vitest)
 - ✅ **Bilingual support** — complete English/Amharic toggle across all UI
 - ✅ **Theme system** — 5 design aesthetics with CSS variable theming
+- ✅ **Accounts & cloud sync** — optional passwordless accounts via Neon/Postgres; local-first (works offline) with cross-device sync when signed in
 
 ---
 
@@ -224,10 +263,11 @@ State is persisted to `localStorage` (`awde_workspaces_v1` primary store, with `
 | Metric | Value |
 |--------|-------|
 | Device Offline | App shell + saved workspaces/mind-maps readable; live AI generation requires connection |
-| Auth / API Keys | None required (deterministic fallback generators) |
+| Auth / API Keys | None required by default (deterministic fallback generators); optional magic-link accounts when `DATABASE_URL` is set |
 | Languages | 2 (English + Amharic) |
 | Recall Deltas | Measured per-user in the Method Laboratory (before vs after) |
-| Test Coverage | 59 tests passing |
+| Test Coverage | 64 tests passing |
+| Persistence | localStorage-first offline cache; optional cloud sync (workspaces + study events) via Neon/Postgres |
 
 ---
 
