@@ -98,14 +98,17 @@ export default function App() {
   const [hasSeenTour, setHasSeenTour] = useState(() => {
     return localStorage.getItem('awde_tour_v2') === 'done';
   });
+  // Once the user dismisses the tour (Skip / Esc / backdrop), stop auto-reopening
+  // it on this load. A manual reopen via the header Help button still works.
+  const [dismissedTour, setDismissedTour] = useState(false);
 
   // Open the tour the first time, but only AFTER the workspace content has
   // had a moment to render — otherwise it would point at a blank screen.
   useEffect(() => {
-    if (isLandingOpen || hasSeenTour || tourActive) return;
+    if (isLandingOpen || hasSeenTour || tourActive || dismissedTour) return;
     const t = window.setTimeout(() => setTourActive(true), 900);
     return () => window.clearTimeout(t);
-  }, [isLandingOpen, hasSeenTour, tourActive]);
+  }, [isLandingOpen, hasSeenTour, tourActive, dismissedTour]);
 
   // Fallback-mode banner — shown when the server has no Gemini key, so AI
   // features use deterministic offline generators. Distinct from device
@@ -635,9 +638,13 @@ export default function App() {
       <OnboardingTour
         isOpen={tourActive}
         language={language}
-        onClose={() => setTourActive(false)}
+        onClose={() => {
+          setTourActive(false);
+          setDismissedTour(true);
+        }}
         onComplete={() => {
           setHasSeenTour(true);
+          setDismissedTour(true);
           localStorage.setItem('awde_tour_v2', 'done');
         }}
       />

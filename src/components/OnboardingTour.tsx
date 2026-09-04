@@ -12,8 +12,12 @@ interface OnboardingTourProps {
 interface Spot {
   selector?: string;
   box?: boolean;
-  /** 'tabs' renders a plain-language list of what each menu item does (mobile). */
-  kind?: 'tabs';
+  /**
+   * 'demo' flags the DEMO notice shown up front so nobody expects a real
+   * product; 'tabs' renders a plain-language list of what each menu item does
+   * (mobile). Both render card-only (no spotlight).
+   */
+  kind?: 'demo' | 'tabs';
   title: string;
   titleAmharic: string;
   body: string;
@@ -62,10 +66,11 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 
   const desktopSteps: Spot[] = [
     {
+      kind: 'demo',
       title: 'Welcome',
       titleAmharic: 'እንኳን ደህና መጡ',
-      body: 'This is a DEMO, not a finished product to use every day. It shows an idea — turn a textbook into a mind-map and teach it back to a robot. Data is saved only on this device. Enjoy exploring.',
-      bodyAmharic: 'ይህ በየቀኑ የሚጠቀሙበት የተጠናቀቀ ምርት ሳይሆን ማሳያ (DEMO) ነው። የሚያሳየው ሀሳብ፡ የትምህርት መጽሐፍን ወደ ካርታ መቀየር እና ወደ ሮቦት ማስተማር ነው። መረጃዎ በዚህ መሣሪያ ላይ ብቻ ይቀመጣል። በመመርመር ደስ ይበልዎ።'
+      body: 'Awde turns a textbook into a mind-map and lets you teach it back to a friendly robot so you really understand it. This short tour shows you around.',
+      bodyAmharic: 'አውደ የትምህርት መጽሐፍን ወደ ካርታ ይቀይረዋል እና በእውነት እንዲረዱት ለሩቲ ሮቦት እንዲያስተምሩት ያግዝዎታል። ይህ አጭር መመሪያ ያስተዋውቅዎታል።'
     },
     {
       selector: '[data-tour="books"]',
@@ -95,10 +100,11 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 
   const mobileSteps: Spot[] = [
     {
+      kind: 'demo',
       title: 'Welcome',
       titleAmharic: 'እንኳን ደህና መጡ',
-      body: 'This is a DEMO, not a finished product to use every day. It shows an idea — turn a textbook into a mind-map and teach it back to a robot. Data is saved only on this device. Enjoy exploring.',
-      bodyAmharic: 'ይህ በየቀኑ የሚጠቀሙበት የተጠናቀቀ ምርት ሳይሆን ማሳያ (DEMO) ነው። የሚያሳየው ሀሳብ፡ የትምህርት መጽሐፍን ወደ ካርታ መቀየር እና ወደ ሮቦት ማስተማር ነው። መረጃዎ በዚህ መሣሪያ ላይ ብቻ ይቀመጣል። በመመርመር ደስ ይበልዎ።'
+      body: 'Awde turns a textbook into a mind-map and lets you teach it back to a friendly robot so you really understand it. This short tour shows you around.',
+      bodyAmharic: 'አውደ የትምህርት መጽሐፍን ወደ ካርታ ይቀይረዋል እና በእውነት እንዲረዱት ለሩቲ ሮቦት እንዲያስተምሩት ያግዝዎታል። ይህ አጭር መመሪያ ያስተዋውቅዎታል።'
     },
     {
       kind: 'tabs',
@@ -232,7 +238,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
       {/* Tooltip card */}
       <div
         ref={tooltipRef}
-        className="absolute z-[82] left-1/2 -translate-x-1/2 w-[min(90vw,26rem)] rounded-3xl overflow-hidden shadow-2xl"
+        className={`absolute z-[82] left-1/2 ${spot ? '' : '-translate-y-1/2'} -translate-x-1/2 w-[min(90vw,26rem)] rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]`}
         style={{
           backgroundColor: 'var(--app-surface, #ffffff)',
           borderColor: 'var(--app-border, #cbd5e1)',
@@ -245,10 +251,10 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
         }}
       >
         <div
-          className="h-1.5 w-full"
+          className="h-1.5 w-full shrink-0"
           style={{ backgroundColor: 'var(--app-accent, #6366f1)' }}
         />
-        <div className="p-6 sm:p-7">
+        <div className="p-6 sm:p-7 overflow-y-auto min-h-0">
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center"
             style={{
@@ -261,6 +267,35 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
           <h2 className="mt-4 text-xl font-extrabold tracking-tight leading-tight">
             {isAmharic ? current.titleAmharic : current.title}
           </h2>
+
+          {current.kind === 'demo' && (
+            <div
+              className="mt-4 rounded-xl border-2 px-4 py-3 flex items-start gap-3"
+              style={{
+                borderColor: 'var(--app-accent, #6366f1)',
+                backgroundColor: 'var(--app-accent-bg, rgba(99,102,241,0.1))'
+              }}
+            >
+              <span
+                className="mt-0.5 shrink-0 text-[11px] font-extrabold tracking-widest px-2 py-0.5 rounded"
+                style={{
+                  backgroundColor: 'var(--app-accent, #6366f1)',
+                  color: 'var(--app-accent-text, #ffffff)'
+                }}
+              >
+                DEMO
+              </span>
+              <span
+                className="text-sm leading-snug font-semibold"
+                style={{ color: 'var(--app-text, #020617)' }}
+              >
+                {isAmharic
+                  ? 'ይህ የተጠናቀቀ ምርት አይደለም — ማሳያ ነው። መረጃዎ በዚህ መሣሪያ ላይ ብቻ ይቀመጣል።'
+                  : 'This is a DEMO, not a finished product. Your data is saved only on this device.'}
+              </span>
+            </div>
+          )}
+
           <p
             className="mt-2.5 text-sm leading-relaxed"
             style={{ color: 'var(--app-text-muted, #475569)' }}
@@ -335,7 +370,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 
         <div
           style={{ borderTopColor: 'var(--app-border, #cbd5e1)' }}
-          className="border-t px-6 sm:px-7 py-4 flex items-center justify-between"
+          className="border-t px-6 sm:px-7 py-4 flex items-center justify-between shrink-0"
         >
           <button
             onClick={onClose}
