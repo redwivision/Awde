@@ -16,6 +16,7 @@ import { LandingPage } from './components/LandingPage';
 import { HomePage } from './components/HomePage';
 import { WorkspaceDetail } from './components/WorkspaceDetail';
 import { MindMapCanvas } from './components/MindMapCanvas';
+import { OnboardingTour } from './components/OnboardingTour';
 
 // Heavy / on-demand components are lazy-loaded so the initial bundle stays
 // small on weak wifi. Each loads only when it is actually opened.
@@ -88,6 +89,12 @@ export default function App() {
 
   // Landing page is the entry point on every fresh app load.
   const [isLandingOpen, setIsLandingOpen] = useState(true);
+
+  // First-run onboarding tour — shown the first time the user enters the
+  // workspace, then remembered so it never nags again.
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return localStorage.getItem('awde_tour_v1') !== 'done';
+  });
 
   // Fallback-mode banner — shown when the server has no Gemini key, so AI
   // features use deterministic offline generators. Distinct from device
@@ -600,6 +607,14 @@ export default function App() {
         language={language}
       />
       </React.Suspense>
+
+      {/* First-run Onboarding Tour */}
+      <OnboardingTour
+        isOpen={!isLandingOpen && showOnboarding}
+        language={language}
+        onClose={() => setShowOnboarding(false)}
+        onComplete={() => localStorage.setItem('awde_tour_v1', 'done')}
+      />
     </div>
   );
 }

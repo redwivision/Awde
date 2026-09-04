@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+/*
+  Awde editorial display face — a refined serif for headlines. Choosing a
+  classic text face instead of a generic geometric sans gives the interface a
+  calmer, more human, less obviously machine-generated voice.
+*/
+@theme {
+  --font-display: ui-serif, Georgia, "Times New Roman", "Nimbus Roman No9 L",
+    "Noto Serif", "Noto Serif Ethiopic", serif;
+}
+
+/* Plain class fallback so the utility resolves regardless of theme config. */
+.font-display {
+  font-family: var(--font-display, ui-serif, Georgia, "Times New Roman", serif);
+}
+
 /* 
   Awde Dynamic Aesthetic Theming Engine
   Every component, card, sidebar, canvas, header, and input 
