@@ -1,0 +1,56 @@
+# Awde CI: lint + test + build on every push/PR.
+#
+# Runs WITHOUT a DATABASE_URL on purpose: the suite (64 tests) covers the
+# local/offline mode invariant, and the app must keep working with no DB
+# configured. Secrets (GEMINI_API_KEY, DATABASE_URL) are never needed here;
+# they belong to the host's secrets manager at deploy time.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-test-build:
+    name: Lint, Test, Build (Node 22)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify production bundle boots & serves health (no DB)
+        run: |
+          set -e
+          NODE_ENV=production PORT=4173 node dist/server.cjs &
+          PID=$!
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:4173/api/health >/dev/null 2>&1; then
+              echo "health OK"
+              kill $PID
+              exit 0
+            fi
+            sleep 0.5
+          done
+          echo "server failed to boot" >&2
+          kill $PID || true
+          exit 1

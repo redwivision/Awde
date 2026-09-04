@@ -1,0 +1,36 @@
+# Awde local development stack.
+#
+# Runs a local PostgreSQL so you can exercise cloud-mode (accounts + sync +
+# migrations) without touching the Neon production database.
+#
+#   docker compose up -d          # start Postgres
+#   docker compose down           # stop it
+#   docker compose down -v        # stop AND delete all local data
+#
+# Then point your local app at it instead of Neon, e.g.:
+#
+#   DATABASE_URL="postgres://awde:awde@localhost:5432/awde?sslmode=disable" npm run dev
+#
+# On first boot with that URL, the server auto-creates its tables (runMigrations)
+# and enables magic-link accounts locally.
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: awde-db
+    environment:
+      POSTGRES_USER: awde
+      POSTGRES_PASSWORD: awde
+      POSTGRES_DB: awde
+    ports:
+      - "5432:5432"
+    volumes:
+      - awde_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U awde -d awde"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  awde_pgdata:

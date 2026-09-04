@@ -20,9 +20,11 @@ services:
         value: production
       - key: GEMINI_API_KEY
         sync: false # set this in the Render dashboard (kept out of source control)
+      - key: DATABASE_URL
+        sync: false # Neon/Postgres connection string; enables accounts + sync.
+      - key: APP_URL
+        value: https://awde.onrender.com
       # - key: GROQ_API_KEY
       #   sync: false
       # - key: NVIDIA_API_KEY
       #   sync: false
-      # - key: APP_URL
-      #   value: https://your-service.onrender.com
