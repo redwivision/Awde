@@ -15,6 +15,9 @@ import {
   AI_TIMEOUT_MS
 } from './server/ai';
 import { processTextbookPdf } from './server/textbook';
+import { registerSyncRoutes } from './server/sync';
+import { runMigrations } from './server/db/migrate';
+import { hasDb } from './server/db/client';
 
 dotenv.config();
 
@@ -611,6 +614,15 @@ Student's Blurting Recall text:
 
 // Vite middleware or static serving
 export async function startServer(port: number = PORT): Promise<any> {
+  // When a DB is configured, apply migrations and enable server-side auth+sync.
+  if (hasDb()) {
+    try {
+      await runMigrations();
+    } catch (err) {
+      console.error('DB migration failed (continuing in local-only mode):', err);
+    }
+  }
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -632,6 +644,11 @@ export async function startServer(port: number = PORT): Promise<any> {
     });
   });
 }
+
+// Register auth + sync routes at module load (before any server/static
+// middleware). Done here — not inside startServer — so tests that import the
+// app directly get the same routing the running server has.
+registerSyncRoutes(app);
 
 // Guard: only auto-start when executed directly, not when imported for tests.
 // Works in both the ESM dev path (tsx) and the CJS production bundle.

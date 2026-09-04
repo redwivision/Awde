@@ -10,6 +10,7 @@ import {
 import { DEFAULT_TEXTBOOK_WORKSPACES } from './data/textbookWorkspaces';
 import { AESTHETIC_THEMES } from './data/themes';
 import { loadWorkspaces as loadWorkspacesFromStorage } from './data/persistence';
+import { getSession, confirmLogin, extractMagicToken, pushWorkspace, pullWorkspaces, isServerSynced } from './lib/sync';
 import { useOnlineStatus } from './lib/api';
 import { WorkspaceSidebar } from './components/WorkspaceSidebar';
 import { LandingPage } from './components/LandingPage';
@@ -41,6 +42,9 @@ const StudyMethodLab = React.lazy(() =>
 const AestheticsModal = React.lazy(() =>
   import('./components/AestheticsModal').then((m) => ({ default: m.AestheticsModal }))
 );
+const AccountModal = React.lazy(() =>
+  import('./components/AccountModal').then((m) => ({ default: m.AccountModal }))
+);
 const CommandPalette = React.lazy(() =>
   import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette }))
 );
@@ -54,7 +58,8 @@ import {
   Sparkles,
   Command,
   WifiOff,
-  HelpCircle
+  HelpCircle,
+  UserRound
 } from 'lucide-react';
 
 const TabSpinner: React.FC = () => (
@@ -134,6 +139,7 @@ export default function App() {
   }, []);
 
   const [isAestheticsModalOpen, setIsAestheticsModalOpen] = useState(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -164,9 +170,17 @@ export default function App() {
       ? units
       : currentWorkspace?.units || units;
 
-  // Save to localStorage
+  // Save to localStorage (always), and push to the server when logged in
+  // (debounced, fire-and-forget — offline/local mode silently no-ops).
   useEffect(() => {
     localStorage.setItem('awde_workspaces_v1', JSON.stringify(workspaces));
+    if (!getSession()) return;
+    const t = window.setTimeout(() => {
+      for (const ws of workspaces) {
+        void pushWorkspace(ws);
+      }
+    }, 800);
+    return () => window.clearTimeout(t);
   }, [workspaces]);
 
   useEffect(() => {
@@ -177,6 +191,48 @@ export default function App() {
     localStorage.setItem('awde_aesthetic', aesthetic);
     document.documentElement.setAttribute('data-theme', aesthetic);
   }, [aesthetic]);
+
+  // Server-side sync on mount: if this is a magic-link return visit, consume the
+  // token and store the session; then pull the user's server workspaces and
+  // merge them in (server wins when its updatedAt is newer). Offline/local-mode
+  // safe — any failure just leaves the local copy untouched.
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        const magicToken = getSession() ? null : extractMagicToken(window.location.href);
+        if (magicToken) {
+          const res = await confirmLogin(magicToken);
+          if (!res.ok || cancelled) return;
+        }
+        const serverRows = await pullWorkspaces();
+        if (!serverRows || cancelled) return;
+        setWorkspaces((prev) => {
+          const map = new Map<string, TextbookWorkspace>();
+          for (const w of prev) map.set(w.id, w);
+          for (const row of serverRows) {
+            const id = row.data.id || row.workspaceId;
+            // Take the server copy when we've never seen it, or when we don't
+            // already know the server is at-or-newer than this row.
+            if (!map.has(id)) {
+              map.set(id, row.data);
+            } else if (!isServerSynced(id, row.updatedAt)) {
+              map.set(id, row.data);
+            }
+          }
+          return Array.from(map.values());
+        });
+      } catch {
+        /* offline/local-mode — keep local copy */
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Global shortcut for Cmd+K / Ctrl+K Command Palette
   useEffect(() => {
@@ -472,6 +528,17 @@ export default function App() {
               </span>
             </button>
 
+            {/* Account / Sign-in Pill */}
+            <button
+              onClick={() => setIsAccountModalOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-950/80 hover:bg-slate-800 text-slate-200 text-xs font-semibold border border-slate-800 transition-colors"
+              title={isAmharic ? 'መለያ' : 'Account'}
+              id="header-account-btn"
+            >
+              <UserRound className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="hidden sm:inline text-xs">{isAmharic ? 'መለያ' : 'Account'}</span>
+            </button>
+
             {/* Bilingual Quick Toggle */}
             <button
               onClick={() => setLanguage(language === 'am' ? 'en' : 'am')}
@@ -630,6 +697,13 @@ export default function App() {
         onSelectAesthetic={(newAesthetic) => {
           setAesthetic(newAesthetic);
         }}
+        language={language}
+      />
+
+      {/* Account / Sign-in Modal */}
+      <AccountModal
+        isOpen={isAccountModalOpen}
+        onClose={() => setIsAccountModalOpen(false)}
         language={language}
       />
       </React.Suspense>
