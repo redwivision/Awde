@@ -6,7 +6,7 @@
 import { Router } from 'express';
 import { eq } from 'drizzle-orm';
 import { getDb, authEnabled } from './db/client';
-import { workspaces, studyEvents } from './db/schema';
+import { workspaces, studyEvents, users } from './db/schema';
 import { issueMagicToken, consumeMagicToken, requireAuth, loginLinkUrl } from './auth';
 
 export function registerSyncRoutes(app: Router) {
@@ -60,6 +60,20 @@ export function registerSyncRoutes(app: Router) {
   // GET /api/me — who am I? (auth-gated)
   app.get('/api/me', requireAuth, async (req: any, res) => {
     res.json({ user: req.user });
+  });
+
+  // DELETE /api/me — erase the account and everything tied to it
+  // (workspaces, study events, sessions, login tokens). FKs cascade on delete.
+  app.delete('/api/me', requireAuth, async (req: any, res) => {
+    if (!authEnabled()) return res.json({ localMode: true, ok: true });
+    try {
+      const db = getDb()!;
+      await db.delete(users).where(eq(users.id, req.user.id));
+      res.json({ ok: true, message: 'Your account and all associated data were deleted.' });
+    } catch (err) {
+      console.error('Error deleting account:', err);
+      res.status(500).json({ error: 'Could not delete your account. Please try again.' });
+    }
   });
 
   // GET /api/me/workspaces — this user's books (server copy).

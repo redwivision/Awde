@@ -107,6 +107,26 @@ export function isServerSynced(workspaceId: string, serverUpdatedAt: string): bo
   return new Date(known).getTime() >= new Date(serverUpdatedAt).getTime();
 }
 
+/** Erase the server-side account and all its data, then sign out locally. */
+export async function deleteAccount(): Promise<{ ok: boolean; localMode?: boolean; error?: string }> {
+  const session = getSession();
+  if (!session) return { ok: true };
+  const res = await authedJson<{ ok?: boolean; localMode?: boolean; error?: string }>('/api/me', { method: 'DELETE' });
+  clearSession();
+  clearSyncMeta();
+  const data = res.data as any;
+  if (res.ok && (data?.ok || data?.localMode)) return { ok: true, localMode: data?.localMode };
+  return { ok: false, error: data?.error };
+}
+
+function clearSyncMeta(): void {
+  try {
+    localStorage.removeItem(SYNC_META_KEY);
+  } catch {
+    /* best-effort */
+  }
+}
+
 /** Start a passwordless login for an email. */
 export async function requestLogin(email: string) {
   const res = await postJson<{ success: boolean; localMode?: boolean; devLink?: string; error?: string }>(

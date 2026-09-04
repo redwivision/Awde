@@ -47,4 +47,12 @@ describe('sync endpoints (local mode)', () => {
       .send({ eventType: 'quiz', payload: { score: 80 } });
     expect([200, 401]).toContain(res.status);
   });
+
+  it('DELETE /api/me degrades to local mode without a DB', async () => {
+    const res = await request(app).delete('/api/me');
+    expect([200, 401]).toContain(res.status);
+    if (res.status === 200) {
+      expect(res.body.localMode).toBe(true);
+    }
+  });
 });

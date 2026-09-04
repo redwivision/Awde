@@ -54,6 +54,7 @@ Students today rely on static textbooks that force rote-reading and memorization
 | 📴 **Single-Server Simplicity** | One Express process serves the React build and all /api endpoints — no separate backend required |
 | 🔑 **No API Key Required** | All AI endpoints run with deterministic offline-fallback generators when no key is set; a Gemini key makes output richer |
 | 👤 **Accounts & Cloud Sync** | Optional passwordless (magic-link) accounts via Neon/Postgres — progress syncs across devices while staying available offline (localStorage-first) |
+| 🛡️ **Privacy-First & Age-Gated** | One-time consent gate before use, no PII by default (only a login email), AI content-safety filter + model guard, and one-tap account/data deletion (`docs/PRIVACY.md`) |
 | 🔍 **Node Mastery Drawer** | Slide-in detail panel for every concept with 5 tabs: Localized Analogy, Concept Core (detailed explanation + key takeaways + related concepts), Common Traps, Rules & Formulas, and Ask Rooty |
 | 💡 **Ask Rooty (Q&A)** | Lightweight chat in the node drawer — ask any question about a concept and get a clear, jargon-free answer with Ethiopian cultural analogies |
 
@@ -219,6 +220,7 @@ curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true
 | `GET /api/me/workspaces` | Pull this user's server-side workspaces |
 | `PUT /api/me/workspaces` | Upsert a workspace (last-writer-wins) |
 | `POST /api/me/study-events` | Append a study event (progress log) |
+| `DELETE /api/me` | Erase the account + all linked data (cascades) |
 
 State is persisted to `localStorage` (`awde_workspaces_v1` primary store, with
 `awde_lang`, `awde_aesthetic`, `awde_experiments_v1`, `awde_landing_dismissed`)
@@ -239,10 +241,11 @@ devices — `localStorage` stays as the offline cache.
 - ✅ **Interactive feature set** — all 6 study modes are functional with live client/server wiring
 - ✅ **Enriched concept nodes** — detailed explanations, key takeaways, and related concepts in the node drawer
 - ✅ **Ask Rooty Q&A** — lightweight in-drawer chat for asking questions about any concept
-- ✅ **Test suite** — 64 tests passing (Vitest)
+- ✅ **Test suite** — 77 tests passing (Vitest)
 - ✅ **Bilingual support** — complete English/Amharic toggle across all UI
 - ✅ **Theme system** — 5 design aesthetics with CSS variable theming
 - ✅ **Accounts & cloud sync** — optional passwordless accounts via Neon/Postgres; local-first (works offline) with cross-device sync when signed in
+- ✅ **Trust & safety** — one-time age-gate consent (`docs/PRIVACY.md`), no PII by default, AI content-safety filter + model safety instruction, one-tap account/data deletion
 
 ---
 
@@ -266,7 +269,7 @@ devices — `localStorage` stays as the offline cache.
 | Auth / API Keys | None required by default (deterministic fallback generators); optional magic-link accounts when `DATABASE_URL` is set |
 | Languages | 2 (English + Amharic) |
 | Recall Deltas | Measured per-user in the Method Laboratory (before vs after) |
-| Test Coverage | 64 tests passing |
+| Test Coverage | 77 tests passing (incl. content-safety + auth/sync local-mode) |
 | Persistence | localStorage-first offline cache; optional cloud sync (workspaces + study events) via Neon/Postgres |
 
 ---

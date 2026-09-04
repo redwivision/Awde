@@ -18,6 +18,7 @@ import { HomePage } from './components/HomePage';
 import { WorkspaceDetail } from './components/WorkspaceDetail';
 import { MindMapCanvas } from './components/MindMapCanvas';
 import { OnboardingTour } from './components/OnboardingTour';
+import { ConsentGate, getConsent, saveConsent, ConsentRecord } from './components/ConsentGate';
 
 // Heavy / on-demand components are lazy-loaded so the initial bundle stays
 // small on weak wifi. Each loads only when it is actually opened.
@@ -95,6 +96,9 @@ export default function App() {
 
   // Landing page is the entry point on every fresh app load.
   const [isLandingOpen, setIsLandingOpen] = useState(true);
+
+  // Informed-consent gate — shown once before the workspace is usable.
+  const [needsConsent, setNeedsConsent] = useState<boolean>(() => !getConsent());
 
   // First-run onboarding tour — shown the first time the user enters the
   // workspace, then remembered so it never nags again (can be re-opened via
@@ -365,7 +369,20 @@ export default function App() {
     }
   };
 
-  return isLandingOpen ? (
+  return (
+    <>
+      {/* Age-gate + informed consent, shown once before the workspace */}
+      {needsConsent && (
+        <ConsentGate
+          language={language}
+          onAgree={(record: ConsentRecord) => {
+            saveConsent(record);
+            setNeedsConsent(false);
+          }}
+        />
+      )}
+
+      {isLandingOpen ? (
     <LandingPage
       language={language}
       onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}
@@ -723,5 +740,7 @@ export default function App() {
         }}
       />
     </div>
+    )}
+    </>
   );
 }

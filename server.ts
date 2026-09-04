@@ -18,6 +18,7 @@ import { processTextbookPdf } from './server/textbook';
 import { registerSyncRoutes } from './server/sync';
 import { runMigrations } from './server/db/migrate';
 import { hasDb } from './server/db/client';
+import { checkInputs, BLOCKED_MESSAGE, withSafetyInstruction } from './server/safety';
 
 dotenv.config();
 
@@ -141,6 +142,8 @@ app.post('/api/mindmap/generate', makeRateLimiter(), async (req, res) => {
   const body = getSafeJsonBody(req, res);
   if (!body) return;
   const { topic, textbookText, subject, gradeLevel, language } = body;
+  const blocked = checkInputs(topic, textbookText);
+  if (blocked.blocked) return res.status(400).json({ blocked: true, error: BLOCKED_MESSAGE });
   try {
     const ai = getGeminiClient();
 
@@ -153,7 +156,7 @@ app.post('/api/mindmap/generate', makeRateLimiter(), async (req, res) => {
       });
     }
 
-    const systemPrompt = `You are Awde's Master Concept Architect and EdTech Pedagogy Engine.
+    const systemPrompt = withSafetyInstruction(`You are Awde's Master Concept Architect and EdTech Pedagogy Engine.
 Your task is to take a textbook unit, chapter, or topic, and deconstruct it into a clean, hierarchical Mind-Map graph with deep educational pedagogy.
 CRITICAL MANDATES:
 1. Break into 4 to 6 logical ConceptNodes.
@@ -164,7 +167,7 @@ CRITICAL MANDATES:
 6. Create logical connections (depends_on, causes, contains, transforms_into) between nodes with coordinates x (150 to 750) and y (100 to 450).
 7. Include 3-4 rigorous textbook quiz questions with Amharic options and 2-3 flashcards.
 
-Format response strictly as valid JSON matching the requested schema.`;
+Format response strictly as valid JSON matching the requested schema.`);
 
     const prompt = `Deconstruct the following textbook/topic into a full Awde Mind-Map Unit:
 Topic / Title: ${topic || 'Key Textbook Unit'}
@@ -321,6 +324,8 @@ app.post('/api/feynman/evaluate', makeRateLimiter(), async (req, res) => {
     strictnessLevel, // 'gentle' | 'balanced' | 'ironclad'
     chatHistory
   } = body;
+  const blocked = checkInputs(userExplanation, nodeLabel, nodeSummary, JSON.stringify(chatHistory || []));
+  if (blocked.blocked) return res.status(400).json({ blocked: true, error: BLOCKED_MESSAGE });
   try {
     const ai = getGeminiClient();
 
@@ -339,7 +344,7 @@ app.post('/api/feynman/evaluate', makeRateLimiter(), async (req, res) => {
         ? 'Be encouraging and pedagogical. Praise good attempts, point out 1 key missing intuition gently, and give a score >= 70 if the core direction is right.'
         : 'Balanced Feynman rigor. Reward intuitive analogies and plain speech. Flag buzzwords that mask shallow understanding, and probe the weak link with a sharp follow-up question.';
 
-    const systemPrompt = `You are "Rooty", the strict, brilliant, and expressive Socratic AI student and evaluator in the Awde learning system.
+    const systemPrompt = withSafetyInstruction(`You are "Rooty", the strict, brilliant, and expressive Socratic AI student and evaluator in the Awde learning system.
 Your mission is to enforce the Feynman Technique: The user's job is to teach YOU the concept so clearly and intuitively that even an 8-year-old or a curious beginner understands it without textbook jargon.
 
 ROOTY'S PERSONALITY & EMOTIONS:
@@ -360,7 +365,7 @@ The student has selected: ${language === 'am' ? 'Amharic (አማርኛ)' : 'Engl
 - If the student's interface language is English, still provide a complete, natural "rootyCritiqueAmharic" alongside the English "rootyCritique".
 - Avoid mixing scripts or leaving untranslated English words where a natural Amharic term exists; keep technical terms in parentheses only when helpful.
 
-Output must strictly be valid JSON.`;
+Output must strictly be valid JSON.`);
 
     const prompt = `Node / Concept being taught: ${nodeLabel}
 Concept Standard Definition / Truth: ${nodeSummary}
@@ -443,6 +448,9 @@ app.post('/api/node/ask', makeRateLimiter(), async (req, res) => {
     return res.status(400).json({ error: 'Question is required.' });
   }
 
+  const blocked = checkInputs(question, nodeLabel, nodeSummary, JSON.stringify(chatHistory || []));
+  if (blocked.blocked) return res.status(400).json({ blocked: true, error: BLOCKED_MESSAGE });
+
   try {
     const ai = getGeminiClient();
 
@@ -454,13 +462,13 @@ app.post('/api/node/ask', makeRateLimiter(), async (req, res) => {
       });
     }
 
-    const systemPrompt = `You are "Rooty", a sharp, witty, and encouraging AI tutor in the Awde learning system.
+    const systemPrompt = withSafetyInstruction(`You are "Rooty", a sharp, witty, and encouraging AI tutor in the Awde learning system.
 Your job is to answer student questions about a specific concept clearly and intuitively.
 - Use plain language, avoid jargon, and include Ethiopian cultural analogies when helpful.
 - Keep answers concise (3-5 sentences) but insightful.
 - If the student's question is vague, gently redirect them to be more specific.
 - LANGUAGE: The student's interface language is ${language === 'am' ? 'Amharic (አማርኛ)' : 'English'}. When it's Amharic, make "answerAmharic" natural, idiomatic, fluent Amharic as a native speaker would write (not a literal word-for-word translation) and keep "answer" as a faithful English version. When it's English, still provide a complete, natural "answerAmharic" alongside the "answer".
-- Be warm and encouraging, like a brilliant older sibling helping with homework.`;
+- Be warm and encouraging, like a brilliant older sibling helping with homework.`);
 
     const prompt = `Concept: ${nodeLabel}
 Standard Definition: ${nodeSummary || 'No summary available.'}
@@ -504,6 +512,8 @@ app.post('/api/quiz/generate', makeRateLimiter(), async (req, res) => {
   const { topic, textbookText, count = 5, difficulty = 'adaptive' } = body;
   const parsedCount = Number(count);
   const safeCount = Number.isFinite(parsedCount) ? Math.max(1, Math.min(20, parsedCount)) : 5;
+  const blocked = checkInputs(topic, textbookText);
+  if (blocked.blocked) return res.status(400).json({ blocked: true, error: BLOCKED_MESSAGE });
   try {
     const ai = getGeminiClient();
 
@@ -515,9 +525,9 @@ app.post('/api/quiz/generate', makeRateLimiter(), async (req, res) => {
       });
     }
 
-    const systemPrompt = `You are Awde's Quiz & Diagnostic Assessment Engine.
+    const systemPrompt = withSafetyInstruction(`You are Awde's Quiz & Diagnostic Assessment Engine.
 Generate high-yield, conceptual multiple-choice and scenario questions based strictly on the provided textbook context or topic.
-Include common misconception traps as plausible distractors. Provide complete bilingual English and Amharic question text, options, and explanations.`;
+Include common misconception traps as plausible distractors. Provide complete bilingual English and Amharic question text, options, and explanations.`);
 
     const prompt = `Generate ${safeCount} ${difficulty} conceptual quiz questions for:
 Topic: ${topic}
@@ -565,6 +575,8 @@ app.post('/api/blurting/evaluate', makeRateLimiter(), async (req, res) => {
   const body = getSafeJsonBody(req, res);
   if (!body) return;
   const { topicTitle, targetKeyPoints, userRecallText } = body;
+  const blocked = checkInputs(topicTitle, userRecallText, JSON.stringify(targetKeyPoints));
+  if (blocked.blocked) return res.status(400).json({ blocked: true, error: BLOCKED_MESSAGE });
   try {
     const ai = getGeminiClient();
 
@@ -576,7 +588,7 @@ app.post('/api/blurting/evaluate', makeRateLimiter(), async (req, res) => {
       });
     }
 
-    const systemPrompt = `You evaluate active recall (the Blurting Method). The student was given 3 minutes to type everything they remember about a topic. Compare their blurt against the target key concepts. Give an accuracy score, list what they correctly retrieved, what they missed, and provide constructive feedback in English and Amharic.`;
+    const systemPrompt = withSafetyInstruction(`You evaluate active recall (the Blurting Method). The student was given 3 minutes to type everything they remember about a topic. Compare their blurt against the target key concepts. Give an accuracy score, list what they correctly retrieved, what they missed, and provide constructive feedback in English and Amharic.`);
 
     const prompt = `Topic: ${topicTitle}
 Target Key Points to know: ${JSON.stringify(targetKeyPoints)}

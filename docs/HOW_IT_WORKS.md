@@ -303,15 +303,36 @@ simpler and keeps changes localized. Two indexes keep lookups fast.
    **30-day bearer session** token for the browser to keep.
 3. The frontend stores the session in `localStorage` (`awde_session`) and sends
    it as `Authorization: Bearer <token>` on `/api/me/*` calls.
+4. `DELETE /api/me` → erases the account and everything tied to it. Sessions,
+   workspaces, and study events all cascade to the user via FK `ON DELETE
+   CASCADE`, so one delete is a full data-deletion path (see `docs/PRIVACY.md`).
+   The Account modal surfaces this as "Delete my account and data".
+
+### Trust & safety (`server/safety.ts` + `src/components/ConsentGate.tsx`)
+
+- **Age gate / consent**: before the workspace is usable, `ConsentGate` asks the
+  user to confirm they are 13+ (or have a parent/guardian's permission) and
+  acknowledge Awde's privacy principles. The answer is stored locally only
+  (`awde_consent_v1`) — it's never sent to the server.
+- **No PII by default**: nothing is collected unless the user creates an
+  account, and an account only needs an email.
+- **AI input filter**: every free-text field that reaches the AI (topics,
+  questions, Feynman explanations, blurts) goes through `blockedReason()` in
+  `server/safety.ts` first. Blocked input gets a `400 { blocked: true }` and
+  never reaches the model or even the fallback generators.
+- **Model guard**: `withSafetyInstruction()` appends a hard refusal block to
+  every system prompt so content the filter misses is still refused by the
+  model itself.
 
 ### The sync routes (`server/sync.ts`)
 
-- `GET /api/me` — who am I?
+- `GET /api/me` — who am I? (auth-gated)
 - `GET /api/me/workspaces` — pull server workspaces.
 - `PUT /api/me/workspaces` — upsert one workspace (`onConflictDoUpdate` keys on
   `user_id` + `workspace_id`), returning the server `updatedAt` so the client
   can track "what the server knows".
 - `POST /api/me/study-events` — append to the progress log.
+- `DELETE /api/me` — erase the account and all its data (cascades).
 
 All of these are wrapped in `requireAuth`, which in local mode is a **no-op**
 (no DB → no auth → open access). With a DB, an unauthenticated call gets a
@@ -526,7 +547,7 @@ scroll" + "radial gradient, not solid dim."
 
 ## 11. Tests: what they protect
 
-`tests/` uses **Vitest** + **supertest**. The suite (64 tests) clusters around the
+`tests/` uses **Vitest** + **supertest**. The suite (77 tests) clusters around the
 most failure-prone, most important logic:
 
 - `persistence.test.ts` — the migration / single-source-of-truth invariants.
@@ -537,6 +558,9 @@ most failure-prone, most important logic:
   supertest (no port) and check the `isFallback`/error behavior.
 - `auth-sync.test.ts` — the auth + sync endpoints in **local mode** (no
   `DATABASE_URL`), proving accounts don't break the offline/local experience.
+- `safety.test.ts` — the content-safety filter blocks clearly harmful input and
+  lets academic input through, plus the prompt-guard layer and that blocked
+  requests get a 400 before any generator runs.
 
 `npm run lint` is just `tsc --noEmit` (type-checking). `npm test` runs Vitest.
 
@@ -579,12 +603,14 @@ A mental checklist before you edit anything:
 | `server/ai.ts` | Gemini client + all `generateFallback*` deterministic generators |
 | `server/textbook.ts` | PDF upload → text → AI workspace (+ fallback builder) |
 | `server/auth.ts` | Magic-link issue/consume, bearer sessions, `requireAuth` (no-op in local mode) |
-| `server/sync.ts` | `registerSyncRoutes`: login/confirm/me/workspaces/study-events |
+| `server/sync.ts` | `registerSyncRoutes`: login/confirm/me/workspaces/study-events + account deletion |
+| `server/safety.ts` | `blockedReason`/`checkInputs` filter + `withSafetyInstruction` AI prompt guard |
 | `server/db/schema.ts` | Drizzle tables: users, sessions, workspaces (JSONB), study_events |
 | `server/db/client.ts` | Lazy postgres.js client; `hasDb()`/`authEnabled()` gates |
 | `server/db/migrate.ts` | Runs Drizzle migrations from `drizzle/` at startup |
 | `src/lib/api.ts` | Weak-wifi-safe `postJson`/`postFormData` + `useOnlineStatus` |
 | `src/lib/sync.ts` | Session storage, magic-link confirm, workspace push/pull, study events, sync-meta ledger |
+| `src/components/ConsentGate.tsx` | One-time age-gate + privacy consent before the workspace |
 | `src/data/persistence.ts` | localStorage load/save/migrate + the single-source-of-truth logic |
 | `src/data/themes.ts` | The 5 design palettes |
 | `src/data/curricula.ts` | Seeded legacy curriculum units |
@@ -612,6 +638,7 @@ The best way to learn is to break it a little. Try each, then `git` your way bac
 ---
 
 *This guide describes the code as it stands after the accounts + persistence
-milestone (`f5fb795`). When things change, the architecture (one server, local
-state, props-down data flow, AI-with-fallback, localStorage-first with optional
-account sync) is the stable part — that's the part to internalize.*
+and trust & safety milestones. When things change, the architecture (one
+server, local state, props-down data flow, AI-with-fallback, localStorage-first
+with optional account sync, content-safety guard) is the stable part — that's
+the part to internalize.*

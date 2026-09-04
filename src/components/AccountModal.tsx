@@ -19,6 +19,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
   const [message, setMessage] = useState<string>('');
   const [devLink, setDevLink] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState<string>('');
 
   if (!isOpen) return null;
 
@@ -143,6 +145,62 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
                   <LogOut className="w-4 h-4" />
                   {isAmharic ? 'ውጣ' : 'Sign out'}
                 </button>
+
+                <div className="pt-1 border-t" style={{ borderColor: 'var(--app-border, #cbd5e1)' }}>
+                  {!confirmingDelete ? (
+                    <button
+                      onClick={() => setConfirmingDelete(true)}
+                      className="w-full text-xs font-medium py-1.5 transition-colors"
+                      style={{ color: 'var(--app-danger, #e11d48)' }}
+                    >
+                      {isAmharic ? 'መለያዬን እና መረጃዬን ደብዝዝ (delete my data)' : 'Delete my account and data'}
+                    </button>
+                  ) : (
+                    <div className="space-y-2 pt-2">
+                      <p className="text-xs leading-relaxed" style={{ color: 'var(--app-text-muted, #475569)' }}>
+                        {isAmharic
+                          ? 'ይህ ሁሉንም የሚሰረዝ ነው፡ መለያዎ፣ መፃህፍቶችዎ፣ እና የጥናት ታሪክዎ በሰርቨር ላይ። እርግጠኛ ነዎት?'
+                          : 'This permanently erases your account, books, and study history on the server. This cannot be undone.'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={async () => {
+                            setDeleteError('');
+                            const result = await import('../lib/sync').then((m) => m.deleteAccount());
+                            if (result.ok) {
+                              setConfirmingDelete(false);
+                              onSignedIn?.();
+                            } else {
+                              setDeleteError(
+                                result.error ||
+                                  (isAmharic ? 'መሰረዝ ተሳክቶ አይደለም።' : 'Could not delete your account.')
+                              );
+                            }
+                          }}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-opacity"
+                          style={{ backgroundColor: 'var(--app-danger, #e11d48)', color: '#ffffff' }}
+                        >
+                          {isAmharic ? 'አዎ፣ ደብዝዝ' : 'Yes, delete'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setConfirmingDelete(false);
+                            setDeleteError('');
+                          }}
+                          className="flex-1 px-3 py-2 rounded-lg text-xs font-bold border transition-colors"
+                          style={{ borderColor: 'var(--app-border, #cbd5e1)', color: 'var(--app-text, #020617)' }}
+                        >
+                          {isAmharic ? 'ተመለስ' : 'Cancel'}
+                        </button>
+                      </div>
+                      {deleteError && (
+                        <p className="text-xs" style={{ color: '#dc2626' }}>
+                          {deleteError}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="space-y-3">
