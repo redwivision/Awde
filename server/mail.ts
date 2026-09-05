@@ -93,11 +93,18 @@ async function sendViaResend(msg: MailMessage): Promise<{ ok: boolean; retriable
 
 async function sendViaSmtp(msg: MailMessage): Promise<{ ok: boolean; retriable: boolean }> {
   try {
-    const { createTransport } = await import('nodemailer');
+    const [{ createTransport }, dns] = await Promise.all([import('nodemailer'), import('node:dns/promises')]);
+    const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+    // Some clouds (e.g. Render) have an IPv6 interface but no IPv6 route, and
+    // Gmail advertises IPv6 first — nodemailer can pick a v6 address and die
+    // with ENETUNREACH. Resolve IPv4 explicitly and pin the TLS servername to
+    // the real hostname so the cert still validates.
+    const { address } = await dns.lookup(host, { family: 4 });
     const transporter = createTransport({
-      host: process.env.SMTP_HOST,
+      host: address,
       port: Number(process.env.SMTP_PORT || 465),
       secure: true,
+      servername: host,
       auth: {
         user: process.env.SMTP_USER!,
         pass: process.env.SMTP_PASS!
