@@ -90,6 +90,13 @@ Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
 > **local mode** — everything stays on your device via `localStorage` and no
 > login is shown.
 
+> **How do login emails work?** Set `RESEND_API_KEY` (free-tier email API,
+> https://resend.com) to actually email the one-time login links. Login is
+> rate-limited (5 per email / 15 min, 40 per IP / 15 min) and never reveals
+> whether an address has an account. If email isn't configured: dev runs the
+> link to the console + a "Dev link" in the UI; **production refuses to send**
+> rather than leak a usable link.
+
 > This project also runs on [Google AI Studio](https://ai.studio), which injects `GEMINI_API_KEY` and `APP_URL` from your account secrets automatically (see `metadata.json`).
 
 > **No key? No problem.** Awde ships with deterministic **offline fallback generators** for every AI endpoint, so the full app — mind-maps, Rooty Feynman evaluation, quizzes, blurting grading — works out of the box without a key. You'll see an amber banner indicating offline mode when no API key is configured. Live Gemini just makes the output richer and unlimited.
@@ -214,7 +221,7 @@ curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true
 
 | Endpoint | Purpose |
 |---|---|
-| `POST /api/auth/login` | Request a passwordless magic-link for an email |
+| `POST /api/auth/login` | Request a passwordless magic-link (email delivered via Resend when `RESEND_API_KEY` is set; rate-limited, no account enumeration) |
 | `GET /api/auth/confirm` | Exchange the magic-link for a session token |
 | `GET /api/me` | Current signed-in user |
 | `GET /api/me/workspaces` | Pull this user's server-side workspaces |
@@ -241,7 +248,7 @@ devices — `localStorage` stays as the offline cache.
 - ✅ **Interactive feature set** — all 6 study modes are functional with live client/server wiring
 - ✅ **Enriched concept nodes** — detailed explanations, key takeaways, and related concepts in the node drawer
 - ✅ **Ask Rooty Q&A** — lightweight in-drawer chat for asking questions about any concept
-- ✅ **Test suite** — 77 tests passing (Vitest)
+- ✅ **Test suite** — 90 tests passing (Vitest)
 - ✅ **Bilingual support** — complete English/Amharic toggle across all UI
 - ✅ **Theme system** — 5 design aesthetics with CSS variable theming
 - ✅ **Accounts & cloud sync** — optional passwordless accounts via Neon/Postgres; local-first (works offline) with cross-device sync when signed in
@@ -269,7 +276,7 @@ devices — `localStorage` stays as the offline cache.
 | Auth / API Keys | None required by default (deterministic fallback generators); optional magic-link accounts when `DATABASE_URL` is set |
 | Languages | 2 (English + Amharic) |
 | Recall Deltas | Measured per-user in the Method Laboratory (before vs after) |
-| Test Coverage | 77 tests passing (incl. content-safety + auth/sync local-mode) |
+| Test Coverage | 90 tests passing (incl. content-safety, auth/hardening, auth/sync local-mode) |
 | Persistence | localStorage-first offline cache; optional cloud sync (workspaces + study events) via Neon/Postgres |
 
 ---

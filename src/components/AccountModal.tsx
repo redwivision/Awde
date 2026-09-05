@@ -38,12 +38,17 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
     const res = await requestLogin(trimmed);
     if (res.ok && res.data?.success) {
       setStatus('sent');
+      const data = res.data as any;
       setMessage(
-        isAmharic
-          ? 'የመግቢያ አገናኝ ወደ ኢሜይልዎ ተልኳል። ይፈትሹ።'
-          : 'A login link is on its way to your email. Check your inbox.'
+        data.emailSent
+          ? isAmharic
+            ? 'የመግቢያ ማገናኛ ወደ ኢሜይልዎ ተልኳል። የብልግል (spam) ሳጥንዎንም ያጣሩ።'
+            : 'A login link was emailed to you. Check your inbox (and spam folder).'
+          : isAmharic
+          ? 'የመግቢያ ማገናኛ ተዘጋጅቷል። ከታች ያለውን Dev ማገናኛ ይክፈቱ።'
+          : 'Login link ready. Open the Dev link below to finish.'
       );
-      setDevLink((res.data as any)?.devLink || null);
+      setDevLink(data.devLink || null);
     } else if (res.data?.localMode) {
       setStatus('sent');
       setMessage(

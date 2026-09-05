@@ -40,10 +40,10 @@ export function loginLinkUrl(token: string): string {
 
 /**
  * Create the user if needed (idempotent by email) and emit a magic-link token.
- * Returns a "handled" result describing whether to send email vs console-log,
- * and the link for dev logging.
+ * Returns the raw token (only its SHA-256 hash is persisted). The same flow and
+ * response are used whether or not the user exists — no account enumeration.
  */
-export async function issueMagicToken(email: string): Promise<{ userExists: boolean; token: string }> {
+export async function issueMagicToken(email: string): Promise<string> {
   const db = getDb()!;
   const normalized = email.trim().toLowerCase();
 
@@ -61,7 +61,7 @@ export async function issueMagicToken(email: string): Promise<{ userExists: bool
     expiresAt: new Date(Date.now() + MAGIC_TOKEN_TTL_MS)
   });
 
-  return { userExists: true, token };
+  return token;
 }
 
 /**

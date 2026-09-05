@@ -293,20 +293,34 @@ into dozens of relational tables. The app already owns schema evolution via
 `SCHEMA_VERSION` in `persistence.ts`, so storing the whole workspace as JSON is
 simpler and keeps changes localized. Two indexes keep lookups fast.
 
-### The magic-link flow (`server/auth.ts`)
+### The magic-link flow (`server/auth.ts` + `server/email.ts`)
 
 1. `POST /api/auth/login { email }` → finds-or-creates the user, stores a
-   15-minute token (hashed), and returns a link `/api/auth/confirm?token=…`.
-   With no email provider wired yet it `console.log`s the link (dev); swap in
-   Resend/SMTP later without changing the flow.
-2. `GET /api/auth/confirm?token=…` → consumes the token and returns a fresh
-   **30-day bearer session** token for the browser to keep.
+   15-minute token (only its SHA-256 hash goes in the DB), and returns a link
+   `/api/auth/confirm?token=…`. Delivery is handled by `server/email.ts`:
+   with `RESEND_API_KEY` set, the link is **emailed** (Resend REST API, direct
+   fetch, 8s timeout, fire-and-forget). Without it: dev logs the link + shows a
+   "Dev link" in the UI; **production returns 502 instead of leaking a usable
+   link**.
+2. `GET /api/auth/confirm?token=…` → consumes the token (single-use) and
+   returns a fresh **30-day bearer session** token for the browser to keep.
 3. The frontend stores the session in `localStorage` (`awde_session`) and sends
    it as `Authorization: Bearer <token>` on `/api/me/*` calls.
 4. `DELETE /api/me` → erases the account and everything tied to it. Sessions,
    workspaces, and study events all cascade to the user via FK `ON DELETE
    CASCADE`, so one delete is a full data-deletion path (see `docs/PRIVACY.md`).
    The Account modal surfaces this as "Delete my account and data".
+
+### Auth hardening (`server/rateLimit.ts`)
+
+- **Login rate limits** (`server/sync.ts`): 5 login links per email+IP in 15
+  minutes, 40 per-IP in 15 minutes, 60 link-checks per IP on `/api/auth/confirm`
+  — a shared in-memory sliding-window limiter. Good for a single Node process
+  (Render free tier, dev); swap for Redis if it scales past one instance.
+- **No account enumeration**: the login response is byte-identical whether the
+  email exists or not (and `issueMagicToken` no longer returns a user-exists
+  flag).
+- **No dev-link in production**: the `devLink` fallback is dev/CI only.
 
 ### Trust & safety (`server/safety.ts` + `src/components/ConsentGate.tsx` + `src/components/PrivacyModal.tsx`)
 
@@ -555,7 +569,7 @@ scroll" + "radial gradient, not solid dim."
 
 ## 11. Tests: what they protect
 
-`tests/` uses **Vitest** + **supertest**. The suite (77 tests) clusters around the
+`tests/` uses **Vitest** + **supertest**. The suite (90 tests) clusters around the
 most failure-prone, most important logic:
 
 - `persistence.test.ts` — the migration / single-source-of-truth invariants.
@@ -566,6 +580,10 @@ most failure-prone, most important logic:
   supertest (no port) and check the `isFallback`/error behavior.
 - `auth-sync.test.ts` — the auth + sync endpoints in **local mode** (no
   `DATABASE_URL`), proving accounts don't break the offline/local experience.
+- `auth-hardening.test.ts` — the secured auth paths with an in-memory fake DB:
+  Resend email transport (mocked fetch), rate limits (5/email, 40/IP), no
+  account enumeration, single-use tokens, and **no dev-link leak in
+  production**.
 - `safety.test.ts` — the content-safety filter blocks clearly harmful input and
   lets academic input through, plus the prompt-guard layer and that blocked
   requests get a 400 before any generator runs.
@@ -611,7 +629,9 @@ A mental checklist before you edit anything:
 | `server/ai.ts` | Gemini client + all `generateFallback*` deterministic generators |
 | `server/textbook.ts` | PDF upload → text → AI workspace (+ fallback builder) |
 | `server/auth.ts` | Magic-link issue/consume, bearer sessions, `requireAuth` (no-op in local mode) |
-| `server/sync.ts` | `registerSyncRoutes`: login/confirm/me/workspaces/study-events + account deletion |
+| `server/email.ts` | Resend transport for login links (fire-and-forget, 8s timeout); dev/prod fallback |
+| `server/rateLimit.ts` | Shared in-memory sliding-window limiter (`makeRateLimiter`) |
+| `server/sync.ts` | `registerSyncRoutes`: login/confirm (rate-limited) + me/workspaces/study-events + account deletion |
 | `server/safety.ts` | `blockedReason`/`checkInputs` filter + `withSafetyInstruction` AI prompt guard |
 | `server/db/schema.ts` | Drizzle tables: users, sessions, workspaces (JSONB), study_events |
 | `server/db/client.ts` | Lazy postgres.js client; `hasDb()`/`authEnabled()` gates |
@@ -646,8 +666,9 @@ The best way to learn is to break it a little. Try each, then `git` your way bac
 
 ---
 
-*This guide describes the code as it stands after the accounts + persistence
-and trust & safety milestones. When things change, the architecture (one
-server, local state, props-down data flow, AI-with-fallback, localStorage-first
-with optional account sync, content-safety guard) is the stable part — that's
-the part to internalize.*
+*This guide describes the code as it stands after the accounts + persistence,
+trust & safety, and auth-hardening milestones. When things change, the
+architecture (one server, local state, props-down data flow, AI-with-fallback,
+localStorage-first with optional account sync, content-safety guard, and
+rate-limited passwordless email auth) is the stable part — that's the part to
+internalize.*

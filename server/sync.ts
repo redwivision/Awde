@@ -8,10 +8,39 @@ import { eq } from 'drizzle-orm';
 import { getDb, authEnabled } from './db/client';
 import { workspaces, studyEvents, users } from './db/schema';
 import { issueMagicToken, consumeMagicToken, requireAuth, loginLinkUrl } from './auth';
+import { sendLoginLinkEmail, emailConfigured } from './email';
+import { makeRateLimiter, getClientIp } from './rateLimit';
+
+// Auth-gate hardening (milestone 4-adjacent).
+// - Per-email+IP: 5 login links / 15 min stops someone spamming one address.
+// - Per-IP: fewer than a real school NAT's burst, but enough to stop scanners.
+const loginEmailLimiter = makeRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  key: (req) => `${String(req.body?.email || '').trim().toLowerCase()}|${getClientIp(req)}`,
+  message: 'Too many login attempts for this email. Please wait a few minutes and try again.'
+});
+
+const loginIpLimiter = makeRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 40,
+  key: (req) => getClientIp(req),
+  message: 'Too many login attempts from this network. Please try again later.'
+});
+
+const confirmIpLimiter = makeRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  key: (req) => getClientIp(req),
+  message: 'Too many login-link checks from this network. Please try again later.'
+});
+
+// Exported so integration tests can clear the buckets between cases.
+export { loginEmailLimiter, loginIpLimiter, confirmIpLimiter };
 
 export function registerSyncRoutes(app: Router) {
   // POST /api/auth/login — start a passwordless login for an email.
-  app.post('/api/auth/login', async (req, res) => {
+  app.post('/api/auth/login', loginIpLimiter, loginEmailLimiter, async (req, res) => {
     if (!authEnabled()) {
       return res.status(200).json({
         localMode: true,
@@ -22,13 +51,34 @@ export function registerSyncRoutes(app: Router) {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: 'Please enter a valid email address.' });
     }
+    // Identical response for existing + new users (no account enumeration).
     try {
-      const { token } = await issueMagicToken(email);
+      const token = await issueMagicToken(email);
       const link = loginLinkUrl(token);
-      // Dev without SMTP: log the link so you can click it. Swap for real email
-      // (e.g. Resend) by introducing an email transport here.
+      const sent = await sendLoginLinkEmail(email, link);
+
+      if (sent.ok) {
+        res.json({ success: true, emailSent: true, message: 'A login link was emailed to you. Check your inbox.' });
+        return;
+      }
+
+      // Email transport missing or failed: dev fallback only outside production.
+      // In production we must NOT leak a usable login link into the response.
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(502).json({
+          error: emailConfigured()
+            ? 'Could not send the login email right now. Please try again.'
+            : 'Login emails are not configured on this server yet.'
+        });
+      }
+
       console.log(`[awde:auth] login link for ${email}: ${link}`);
-      res.json({ success: true, devLink: link, message: 'Check your email for the login link.' });
+      res.json({
+        success: true,
+        emailSent: false,
+        devLink: link,
+        message: 'Login link ready (email not configured here). Open the Dev link to finish.'
+      });
     } catch (err) {
       console.error('Error issuing magic token:', err);
       res.status(500).json({ error: 'Could not start login. Please try again.' });
@@ -37,7 +87,7 @@ export function registerSyncRoutes(app: Router) {
 
   // GET /api/auth/confirm?token=... — exchange magic token for a session token.
   // Returns JSON so the frontend can capture token/email and persist it.
-  app.get('/api/auth/confirm', async (req, res) => {
+  app.get('/api/auth/confirm', confirmIpLimiter, async (req, res) => {
     if (!authEnabled()) {
       return res.status(400).json({ error: 'Accounts are not configured on this server.' });
     }

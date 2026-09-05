@@ -19,6 +19,7 @@ import { registerSyncRoutes } from './server/sync';
 import { runMigrations } from './server/db/migrate';
 import { hasDb } from './server/db/client';
 import { checkInputs, BLOCKED_MESSAGE, withSafetyInstruction } from './server/safety';
+import { makeRateLimiter, getClientIp } from './server/rateLimit';
 
 dotenv.config();
 
@@ -26,35 +27,16 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 120;
-const rateLimitBuckets = new Map<string, number[]>();
-
-function getClientIp(req: express.Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') return forwarded.split(',')[0].trim();
-  if (Array.isArray(forwarded) && forwarded.length > 0) return forwarded[0].trim();
-  return req.ip || 'unknown';
-}
 
 // Rate limiting is scoped to the AI-generation POST endpoints only, never to
 // static assets or the health check. This prevents a legitimate student using
 // chat-heavy features (Ask Rooty, Feynman, AI quizzes) — or a dev server
 // serving module bundles through the same origin — from tripping the limit.
-function makeRateLimiter(maxRequests = RATE_LIMIT_MAX_REQUESTS) {
-  return function enforceRateLimit(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const ip = getClientIp(req);
-    const now = Date.now();
-    const timestamps = rateLimitBuckets.get(ip) || [];
-    const recent = timestamps.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
-
-    if (recent.length >= maxRequests) {
-      return res.status(429).json({ error: 'Too many requests. Please slow down and try again shortly.' });
-    }
-
-    recent.push(now);
-    rateLimitBuckets.set(ip, recent);
-    next();
-  };
-}
+const aiRateLimiter = makeRateLimiter({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  max: RATE_LIMIT_MAX_REQUESTS,
+  key: (req) => getClientIp(req)
+});
 
 function getSafeJsonBody(req: express.Request, res: express.Response): Record<string, any> | null {
   const body = req.body;
@@ -138,7 +120,7 @@ app.post('/api/textbook/process', upload.single('file'), async (req, res) => {
 });
 
 // API: Generate Mind-Map & Concept Breakdown
-app.post('/api/mindmap/generate', makeRateLimiter(), async (req, res) => {
+app.post('/api/mindmap/generate', aiRateLimiter, async (req, res) => {
   const body = getSafeJsonBody(req, res);
   if (!body) return;
   const { topic, textbookText, subject, gradeLevel, language } = body;
@@ -313,7 +295,7 @@ Primary Language: ${language === 'am' ? 'Amharic (አማርኛ) prioritized alon
 });
 
 // API: Rooty Socratic Feynman Evaluation
-app.post('/api/feynman/evaluate', makeRateLimiter(), async (req, res) => {
+app.post('/api/feynman/evaluate', aiRateLimiter, async (req, res) => {
   const body = getSafeJsonBody(req, res);
   if (!body) return;
   const {
@@ -439,7 +421,7 @@ Evaluate this Feynman attempt now.`;
 });
 
 // API: Ask Rooty — lightweight Q&A about a concept node
-app.post('/api/node/ask', makeRateLimiter(), async (req, res) => {
+app.post('/api/node/ask', aiRateLimiter, async (req, res) => {
   const body = getSafeJsonBody(req, res);
   if (!body) return;
   const { nodeLabel, nodeSummary, question, language, chatHistory } = body;
@@ -506,7 +488,7 @@ Answer the student's question now. Be clear, concise, and encouraging.`;
 });
 
 // API: Generate Unlimited Diagnostic Quizzes
-app.post('/api/quiz/generate', makeRateLimiter(), async (req, res) => {
+app.post('/api/quiz/generate', aiRateLimiter, async (req, res) => {
   const body = getSafeJsonBody(req, res);
   if (!body) return;
   const { topic, textbookText, count = 5, difficulty = 'adaptive' } = body;
@@ -571,7 +553,7 @@ Textbook Context: ${(textbookText || topic).slice(0, 3000)}`;
 });
 
 // API: Blurting Active Recall Evaluation
-app.post('/api/blurting/evaluate', makeRateLimiter(), async (req, res) => {
+app.post('/api/blurting/evaluate', aiRateLimiter, async (req, res) => {
   const body = getSafeJsonBody(req, res);
   if (!body) return;
   const { topicTitle, targetKeyPoints, userRecallText } = body;
