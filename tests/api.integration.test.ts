@@ -18,6 +18,8 @@ describe('health endpoint', () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
     expect(res.body.hasGeminiKey).toBe(false);
+    // Transport depends on local .env (none / gmail-smtp / resend) — must just be one of them.
+    expect(['none', 'gmail-smtp', 'resend']).toContain(res.body.mailTransport);
   });
 });
 

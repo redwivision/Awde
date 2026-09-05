@@ -17,7 +17,7 @@ import {
 import { processTextbookPdf } from './server/textbook';
 import { registerSyncRoutes } from './server/sync';
 import { registerContactRoutes } from './server/contact';
-import { smtpConfigured, contactRecipient } from './server/mail';
+import { smtpConfigured, contactRecipient, emailConfigured } from './server/mail';
 import { runMigrations } from './server/db/migrate';
 import { hasDb } from './server/db/client';
 import { checkInputs, BLOCKED_MESSAGE, withSafetyInstruction } from './server/safety';
@@ -67,9 +67,14 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   next(err);
 });
 
-// Health check
+// Health check. Exposes the active mail transport so deploy verification is a
+// one-liner instead of digging through logs.
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', hasGeminiKey: Boolean(process.env.GEMINI_API_KEY) });
+  res.json({
+    status: 'ok',
+    hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+    mailTransport: emailConfigured() ? (process.env.RESEND_API_KEY ? 'resend' : 'gmail-smtp') : 'none'
+  });
 });
 
 // In-memory multer storage for textbook PDF uploads (no disk writes needed).

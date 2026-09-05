@@ -171,7 +171,7 @@ runs `node dist/server.cjs` on port `3000`.
 ```bash
 npm run build
 npm start              # serve on http://localhost:3000 (NODE_ENV=production)
-curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true}
+curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true,"mailTransport":"none"}
 ```
 
 ---
@@ -230,7 +230,7 @@ curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true
 | `POST /api/quiz/generate` | Generate unlimited diagnostic quiz questions |
 | `POST /api/blurting/evaluate` | Grade a Blurting-Method active-recall dump |
 | `POST /api/textbook/process` | Process uploaded PDF → generate full workspace |
-| `GET /api/health` | Health check with AI key status |
+| `GET /api/health` | Health check with AI key status + active mail transport (`resend`/`gmail-smtp`/`none`) |
 
 **Accounts & sync (active only when `DATABASE_URL` is set):**
 
