@@ -117,9 +117,23 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, lan
               </div>
             ))}
             <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted, #475569)' }}>
-              {isAmharic
-                ? 'ጥያቄዎች ወይም የመሰረዝ ጥያቄህ ካለ፣ በመተግበሪያው የሚታየውን የኢሜይል አድራሻ ያነጋግሩ።'
-                : 'Questions or deletion requests — contact us via the email shown on Awde’s landing page. We respond within 30 days.'}
+              {isAmharic ? (
+                <>
+                  ጥያቄዎች ወይም የመሰረዝ ጥያቄ ካለ፣ በኢሜይል ያነጋግሩ፡{' '}
+                  <a href="mailto:lewikb13@gmail.com" style={{ color: 'var(--app-accent, #6366f1)' }} className="font-semibold underline underline-offset-2">
+                    lewikb13@gmail.com
+                  </a>
+                  በ30 ቀናት ውስጥ እንመልሳለን።
+                </>
+              ) : (
+                <>
+                  Questions or deletion requests — email{' '}
+                  <a href="mailto:lewikb13@gmail.com" style={{ color: 'var(--app-accent, #6366f1)' }} className="font-semibold underline underline-offset-2">
+                    lewikb13@gmail.com
+                  </a>{' '}
+                  and we respond within 30 days.
+                </>
+              )}
             </p>
           </div>
         </motion.div>

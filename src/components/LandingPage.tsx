@@ -11,7 +11,8 @@ import {
   Wifi,
   ArrowDown,
   BookOpen,
-  CheckCircle2
+  CheckCircle2,
+  Mail
 } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { DesignAesthetic, LanguageMode } from '../types';
@@ -519,6 +520,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <BookOpen className="w-3.5 h-3.5" />
               {isAmharic ? 'ግላዊነት እና ደንቦች' : 'Privacy & Terms'}
             </button>
+            <a
+              href="mailto:lewikb13@gmail.com"
+              className="flex items-center gap-1.5 text-xs font-semibold underline underline-offset-2 transition-opacity hover:opacity-70"
+              style={{ color: 'var(--app-text-muted, #475569)' }}
+            >
+              <Mail className="w-3.5 h-3.5" />
+              {isAmharic ? 'ያግኙን' : 'Contact us'}
+            </a>
           </div>
         </div>
       </div>

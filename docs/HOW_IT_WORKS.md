@@ -346,6 +346,11 @@ simpler and keeps changes localized. Two indexes keep lookups fast.
   from the landing-page footer, the Account modal, and the consent gate itself —
   no one has to find a repo folder to read it. Copy is EN + AM; the source of
   truth is `docs/PRIVACY.md`.
+- **A real contact channel**: the policy promises to answer privacy questions
+  and deletion requests within 30 days, so the contact email
+  `lewikb13@gmail.com` (mailto) is shown in the landing-page footer ("Contact
+  us"), at the bottom of the Account modal, and inside the policy text itself —
+  the claim in §7 of `docs/PRIVACY.md` is something users can actually do.
 - **Learning data & personalization**: the policy discloses that, when signed
   in, learning activity (quizzes, mastery, Feynman, study events) may be used to
   adapt the app to each student's learning spot. No PII beyond the login email;
@@ -653,7 +658,7 @@ A mental checklist before you edit anything:
 | `src/lib/api.ts` | Weak-wifi-safe `postJson`/`postFormData` + `useOnlineStatus` |
 | `src/lib/sync.ts` | Session storage, magic-link confirm, workspace push/pull, study events, sync-meta ledger |
 | `src/components/ConsentGate.tsx` | One-time age-gate + privacy consent before the workspace |
-| `src/components/PrivacyModal.tsx` | In-app Privacy & Terms (EN+AM), reachable from footer, Account modal, and consent gate |
+| `src/components/PrivacyModal.tsx` | In-app Privacy & Terms (EN+AM), reachable from footer, Account modal, and consent gate; ends with the published contact email (lewikb13@gmail.com) |
 | `src/data/persistence.ts` | localStorage load/save/migrate + the single-source-of-truth logic |
 | `src/data/themes.ts` | The 5 design palettes |
 | `src/data/curricula.ts` | Seeded legacy curriculum units |
