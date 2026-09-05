@@ -95,9 +95,12 @@ Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
 > rate-limited (5 per email / 15 min, 40 per IP / 15 min; 60 link-checks/IP on
 > confirm) and never reveals whether an address has an account. If email isn't
 > configured: dev runs the link to the console + a "Dev link" in the UI;
-> **production refuses to send** (502) rather than leak a usable link. For a
-> production "from" address set `RESEND_FROM_ADDRESS` to a verified domain
-> (the default `onboarding@resend.dev` is test-only).
+> **production refuses to send** (502) rather than leak a usable link.
+> Deliverability: `onboarding@resend.dev` (the default from-address) is Resend's
+> **test-only** mailbox — it delivers only to the account owner's own inbox. For
+> real users, verify a domain in the Resend dashboard and set
+> `RESEND_FROM_ADDRESS="Awde <hello@yourdomain.com>"`; until then other
+> recipients receive nothing (Resend 403s, which production surfaces as a 502).
 
 > This project also runs on [Google AI Studio](https://ai.studio), which injects `GEMINI_API_KEY` and `APP_URL` from your account secrets automatically (see `metadata.json`).
 
@@ -260,7 +263,7 @@ devices — `localStorage` stays as the offline cache.
 - ✅ **Interactive feature set** — all 6 study modes are functional with live client/server wiring
 - ✅ **Enriched concept nodes** — detailed explanations, key takeaways, and related concepts in the node drawer
 - ✅ **Ask Rooty Q&A** — lightweight in-drawer chat for asking questions about any concept
-- ✅ **Test suite** — 90 tests passing (Vitest)
+- ✅ **Test suite** — 96 tests passing (Vitest)
 - ✅ **Bilingual support** — complete English/Amharic toggle across all UI
 - ✅ **Theme system** — 5 design aesthetics with CSS variable theming
 - ✅ **Accounts & cloud sync** — optional passwordless accounts via Neon/Postgres; local-first (works offline) with cross-device sync when signed in
@@ -289,7 +292,7 @@ devices — `localStorage` stays as the offline cache.
 | Auth / API Keys | None required by default (deterministic fallback generators); optional magic-link accounts when `DATABASE_URL` is set (emailed via `RESEND_API_KEY`) |
 | Languages | 2 (English + Amharic) |
 | Recall Deltas | Measured per-user in the Method Laboratory (before vs after) |
-| Test Coverage | 90 tests passing (incl. content-safety, auth/hardening, auth/sync local-mode) |
+| Test Coverage | 96 tests passing (incl. content-safety, auth/hardening, auth/sync local-mode) |
 | Persistence | localStorage-first offline cache; optional cloud sync (workspaces + study events) via Neon/Postgres |
 
 ---

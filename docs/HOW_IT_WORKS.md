@@ -300,10 +300,20 @@ simpler and keeps changes localized. Two indexes keep lookups fast.
    pointing at the app root with `?token=…` — **not** the raw `/api/auth/confirm`
    JSON endpoint, so clicking it always lands in the SPA. Delivery is handled by
    `server/email.ts`:
-   with `RESEND_API_KEY` set, the link is **emailed** (Resend REST API, direct
-   fetch, 8s timeout, fire-and-forget). Without it: dev logs the link + shows a
-   "Dev link" in the UI; **production returns 502 instead of leaking a usable
-   link**.
+   with `RESEND_API_KEY` set, the link is **emailed** (Resend REST API via
+   direct `fetch`, 8s timeout, one retry on transient 5xx/network failures;
+   only 4xx validation/sender errors fail immediately). Without it: dev logs
+   the link + shows a "Dev link" in the UI; **production returns 502 instead
+   of leaking a usable link**.
+   - **Deliverability gotcha:** the fallback from-address
+     `onboarding@resend.dev` is Resend's *test-only* mailbox and delivers **only
+     to the account owner's own inbox**; any other recipient makes Resend return
+     403 (→ dev Dev-link fallback, or 502 in production). For real users, verify
+     a domain in the Resend dashboard and set `RESEND_FROM_ADDRESS` to an address
+     on it. The email body is built by `buildLoginLinkEmail()` — an HTML + plain
+     text template that states the true 15-minute expiry, HTML-escapes the
+     recipient and link, and includes a tap-target CTA with a copy-paste
+     fallback link.
 2. The SPA loads with `?token=…`; `App.tsx` reads it, calls
    `GET /api/auth/confirm?token=…` (a plain JSON fetch) which consumes the token
    (single-use) and returns a fresh **30-day bearer session** token, then strips
@@ -573,7 +583,7 @@ scroll" + "radial gradient, not solid dim."
 
 ## 11. Tests: what they protect
 
-`tests/` uses **Vitest** + **supertest**. The suite (90 tests) clusters around the
+`tests/` uses **Vitest** + **supertest**. The suite (96 tests) clusters around the
 most failure-prone, most important logic:
 
 - `persistence.test.ts` — the migration / single-source-of-truth invariants.
@@ -633,7 +643,7 @@ A mental checklist before you edit anything:
 | `server/ai.ts` | Gemini client + all `generateFallback*` deterministic generators |
 | `server/textbook.ts` | PDF upload → text → AI workspace (+ fallback builder) |
 | `server/auth.ts` | Magic-link issue/consume, bearer sessions, `requireAuth` (no-op in local mode) |
-| `server/email.ts` | Resend transport for login links (fire-and-forget, 8s timeout); dev/prod fallback |
+| `server/email.ts` | Resend transport for login links (8s timeout, one transient retry, 4xx fail-fast); `buildLoginLinkEmail` HTML+text template; dev/prod fallback |
 | `server/rateLimit.ts` | Shared in-memory sliding-window limiter (`makeRateLimiter`) |
 | `server/sync.ts` | `registerSyncRoutes`: login/confirm (rate-limited) + me/workspaces/study-events + account deletion |
 | `server/safety.ts` | `blockedReason`/`checkInputs` filter + `withSafetyInstruction` AI prompt guard |

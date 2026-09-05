@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import request from 'supertest';
 import { app } from '../server';
 import { loginEmailLimiter, loginIpLimiter, confirmIpLimiter } from '../server/sync';
-import { sendLoginLinkEmail } from '../server/email';
+import { sendLoginLinkEmail, buildLoginLinkEmail } from '../server/email';
 
 // This file tests the SECURED auth paths (DB present, auth enabled) without a
 // real database. The db/client module is replaced with a tiny in-memory fake
@@ -123,7 +123,8 @@ describe('magic-link email transport', () => {
     const body = JSON.parse(init.body);
     expect(body.to).toBe('student@example.com');
     expect(body.from).toContain('Awde');
-    expect(body.subject).toContain('login');
+    expect(body.subject).toMatch(/sign in/i);
+    expect(body.html).toContain('http://x/token');
   });
 
   it('returns ok:false when Resend rejects the request', async () => {
@@ -136,6 +137,59 @@ describe('magic-link email transport', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('boom')));
     process.env.RESEND_API_KEY = 're_net';
     expect((await sendLoginLinkEmail('a@b.com', 'http://x/')).ok).toBe(false);
+  });
+
+  it('silently refuses invalid recipients or links (no fetch)', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    process.env.RESEND_API_KEY = 're_test';
+    expect((await sendLoginLinkEmail('not-an-email', 'http://x/')).ok).toBe(false);
+    expect((await sendLoginLinkEmail('a@b.com', 'javascript:alert(1)')).ok).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('retries once on a transient 5xx, then succeeds', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 502, text: async () => 'nope' })
+      .mockResolvedValueOnce({ ok: true, status: 200, text: async () => '' });
+    vi.stubGlobal('fetch', fetchMock);
+    process.env.RESEND_API_KEY = 're_retry';
+    expect((await sendLoginLinkEmail('retry@example.com', 'http://x/')).ok).toBe(true);
+    expect(fetchMock.mock.calls.length).toBe(2);
+  });
+
+  it('does not retry 4xx validation failures', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 403, text: async () => 'sender' });
+    vi.stubGlobal('fetch', fetchMock);
+    process.env.RESEND_API_KEY = 're_403';
+    expect((await sendLoginLinkEmail('nope@example.com', 'http://x/')).ok).toBe(false);
+    expect(fetchMock.mock.calls.length).toBe(1);
+  });
+});
+
+describe('login-link email content', () => {
+  it('says the link lives for the real token TTL (15 minutes)', () => {
+    const { text, html } = buildLoginLinkEmail('student@example.com', 'http://x/t');
+    expect(text).toContain('15 minutes');
+    expect(html).toContain('15 minutes');
+  });
+
+  it('escapes email + link HTML so nothing injects markup', () => {
+    const { html } = buildLoginLinkEmail('a&b@example.com', 'http://x/?token=<>\"\'' );
+    expect(html).not.toContain('a&b@example.com');
+    expect(html).toContain('a&amp;b@example.com');
+    expect(html).not.toContain('token=<>');
+    expect(html).toContain('&lt;');
+    expect(html).toContain('&quot;');
+    expect(html).toContain('&#39;');
+  });
+
+  it('contains a tap-target CTA and fallback plain link', () => {
+    const { text, html } = buildLoginLinkEmail('student@example.com', 'http://x/token');
+    expect(text).toContain('http://x/token');
+    expect(html).toContain('Sign in to Awde');
+    expect(html).toContain(`http://x/token`);
   });
 });
 
