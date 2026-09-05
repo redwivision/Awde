@@ -209,6 +209,8 @@ export default function App() {
         if (magicToken) {
           const res = await confirmLogin(magicToken);
           if (!res.ok || cancelled) return;
+          // Don't leave a one-time token sitting in the address bar.
+          window.history.replaceState({}, '', window.location.pathname);
         }
         const serverRows = await pullWorkspaces();
         if (!serverRows || cancelled) return;

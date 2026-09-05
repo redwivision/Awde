@@ -5,7 +5,8 @@
 // - A `/api/auth/login` call with an email either creates the user (first time)
 //   or references the existing one, then returns an email+link. In dev with no
 //   SMTP we console.log the link so you can click it.
-// - The link hits `/api/auth/confirm?token=...`, which exchanges the token for
+// - The link hits `/?token=...` (the app URL), so the SPA loads and calls
+//   `/api/auth/confirm?token=...` itself, which exchanges the token for a
 //   a longer-lived bearer session, returned to the browser to store.
 // - Auth is ONLY active when a DATABASE_URL is configured; otherwise the app
 //   stays open + localStorage-only (local mode), matching the existing behavior.
@@ -34,8 +35,14 @@ export function appUrlBase(): string {
   return base;
 }
 
+/**
+ * The URL a login link points to. It must load the SPA with `?token=...` —
+ * NOT `/api/auth/confirm` (that's a JSON endpoint the app calls itself, so a
+ * raw browser hit would dump JSON). The app reads the token from its own URL
+ * (`App.tsx`) and exchanges it for a session.
+ */
 export function loginLinkUrl(token: string): string {
-  return `${appUrlBase()}/api/auth/confirm?token=${encodeURIComponent(token)}`;
+  return `${appUrlBase()}/?token=${encodeURIComponent(token)}`;
 }
 
 /**

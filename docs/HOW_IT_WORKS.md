@@ -297,13 +297,17 @@ simpler and keeps changes localized. Two indexes keep lookups fast.
 
 1. `POST /api/auth/login { email }` → finds-or-creates the user, stores a
    15-minute token (only its SHA-256 hash goes in the DB), and returns a link
-   `/api/auth/confirm?token=…`. Delivery is handled by `server/email.ts`:
+   pointing at the app root with `?token=…` — **not** the raw `/api/auth/confirm`
+   JSON endpoint, so clicking it always lands in the SPA. Delivery is handled by
+   `server/email.ts`:
    with `RESEND_API_KEY` set, the link is **emailed** (Resend REST API, direct
    fetch, 8s timeout, fire-and-forget). Without it: dev logs the link + shows a
    "Dev link" in the UI; **production returns 502 instead of leaking a usable
    link**.
-2. `GET /api/auth/confirm?token=…` → consumes the token (single-use) and
-   returns a fresh **30-day bearer session** token for the browser to keep.
+2. The SPA loads with `?token=…`; `App.tsx` reads it, calls
+   `GET /api/auth/confirm?token=…` (a plain JSON fetch) which consumes the token
+   (single-use) and returns a fresh **30-day bearer session** token, then strips
+   the token from the address bar with `history.replaceState`.
 3. The frontend stores the session in `localStorage` (`awde_session`) and sends
    it as `Authorization: Bearer <token>` on `/api/me/*` calls.
 4. `DELETE /api/me` → erases the account and everything tied to it. Sessions,

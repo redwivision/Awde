@@ -156,7 +156,8 @@ describe('POST /api/auth/login (auth enabled)', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.emailSent).toBe(false);
-    expect(res.body.devLink).toContain('/api/auth/confirm?token=');
+    expect(res.body.devLink).toContain('/?token=');
+    expect(res.body.devLink).not.toContain('/api/auth/confirm');
   });
 
   it('refuses to leak a login link in production when email is not configured', async () => {
