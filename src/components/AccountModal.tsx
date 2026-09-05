@@ -279,6 +279,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
                   </div>
                 )}
 
+                {devLink && status === 'sent' && !message.includes('local mode') && (
+                  <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted, #475569)' }}>
+                    {isAmharic
+                      ? 'ይህ የገንቢ (dev) ሰርቨር ነው — ኢሜይል አይልክም። ማገናኛውን ከፍተው ወደዚህ ትር ይመለሱ።'
+                      : 'Dev mode: this server does not send email, so the link appears here instead of your inbox. Open it in a new tab, then come back here.'}
+                  </p>
+                )}
+
                 <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted, #475569)' }}>
                   {isAmharic
                     ? 'መለያ ለእርስዎ የወደፊት ትምህርት ምዝገባ እድገት ይቆጥባል። በኢሜይል ብቻ ነው የሚጠቀመው።'

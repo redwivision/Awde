@@ -18,7 +18,21 @@ export interface Session {
   user?: { id: string; email: string; role: string };
 }
 
-const SESSION_KEY = 'awde_session';
+export const SESSION_KEY = 'awde_session';
+
+// Fired on the *current* window whenever the session is saved or cleared, so
+// the UI can re-render reactively. Cross-tab changes are covered separately by
+// the browser's `storage` event (fires in every OTHER tab when localStorage
+// changes) — App.tsx listens to both.
+export const SESSION_EVENT = 'awde:session';
+
+function notifySessionChanged(): void {
+  try {
+    window.dispatchEvent(new Event(SESSION_EVENT));
+  } catch {
+    /* SSR/edge safety */
+  }
+}
 
 export function getSession(): Session | null {
   try {
@@ -34,6 +48,7 @@ export function getSession(): Session | null {
 export function saveSession(session: Session): void {
   try {
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    notifySessionChanged();
   } catch {
     /* best-effort */
   }
@@ -42,6 +57,7 @@ export function saveSession(session: Session): void {
 export function clearSession(): void {
   try {
     localStorage.removeItem(SESSION_KEY);
+    notifySessionChanged();
   } catch {
     /* best-effort */
   }

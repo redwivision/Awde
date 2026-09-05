@@ -10,7 +10,8 @@ import {
   ShieldCheck,
   Wifi,
   ArrowDown,
-  BookOpen
+  BookOpen,
+  CheckCircle2
 } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { DesignAesthetic, LanguageMode } from '../types';
@@ -25,6 +26,7 @@ interface LandingPageProps {
   workspacesCount: number;
   currentAesthetic: DesignAesthetic;
   onSelectAesthetic: (aesthetic: DesignAesthetic) => void;
+  sessionEmail?: string;
 }
 
 /* A quiet fade + lift as content scrolls into view. */
@@ -68,7 +70,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onEnterWorkspace,
   workspacesCount,
   currentAesthetic,
-  onSelectAesthetic
+  onSelectAesthetic,
+  sessionEmail
 }) => {
   const isAmharic = language === 'am';
   const [isAestheticsModalOpen, setIsAestheticsModalOpen] = React.useState(false);
@@ -201,6 +204,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="flex items-center justify-between py-6">
           <AwdeLogo size="lg" isAmharic={isAmharic} />
           <div className="flex items-center gap-2">
+            {sessionEmail && (
+              <span
+                style={{
+                  backgroundColor: 'var(--app-surface, #ffffff)',
+                  borderColor: 'var(--app-border, #cbd5e1)',
+                  color: 'var(--app-text, #020617)'
+                }}
+                className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-semibold max-w-56"
+                title={`Signed in as ${sessionEmail}`}
+              >
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+                <span className="truncate">{sessionEmail}</span>
+              </span>
+            )}
             <button
               onClick={() => setIsAestheticsModalOpen(true)}
               style={{

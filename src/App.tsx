@@ -10,7 +10,7 @@ import {
 import { DEFAULT_TEXTBOOK_WORKSPACES } from './data/textbookWorkspaces';
 import { AESTHETIC_THEMES } from './data/themes';
 import { loadWorkspaces as loadWorkspacesFromStorage } from './data/persistence';
-import { getSession, confirmLogin, extractMagicToken, pushWorkspace, pullWorkspaces, isServerSynced } from './lib/sync';
+import { getSession, confirmLogin, extractMagicToken, pushWorkspace, pullWorkspaces, isServerSynced, SESSION_KEY, SESSION_EVENT, Session } from './lib/sync';
 import { useOnlineStatus } from './lib/api';
 import { WorkspaceSidebar } from './components/WorkspaceSidebar';
 import { LandingPage } from './components/LandingPage';
@@ -60,7 +60,8 @@ import {
   Command,
   WifiOff,
   HelpCircle,
-  UserRound
+  UserRound,
+  CheckCircle2
 } from 'lucide-react';
 
 const TabSpinner: React.FC = () => (
@@ -71,6 +72,25 @@ const TabSpinner: React.FC = () => (
     />
   </div>
 );
+
+type Notice = { kind: 'success' | 'error'; text: string };
+const NoticeToast: React.FC<{ notice: Notice | null }> = ({ notice }) => {
+  if (!notice) return null;
+  const tone =
+    notice.kind === 'success'
+      ? 'text-emerald-300 bg-emerald-950/90 border-emerald-700/60'
+      : 'text-rose-300 bg-rose-950/90 border-rose-700/60';
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className={`fixed top-4 right-4 z-[90] flex items-center gap-2 max-w-sm px-4 py-2.5 rounded-xl border text-sm font-semibold shadow-2xl backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-200 ${tone}`}
+    >
+      {notice.kind === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <HelpCircle className="w-4 h-4 shrink-0" />}
+      <span className="truncate">{notice.text}</span>
+    </div>
+  );
+};
 
 export default function App() {
   // ---------- Persistence helpers ----------
@@ -148,6 +168,50 @@ export default function App() {
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Live view of the server session so the header/landing reflect it without
+  // a reload. Updated by SESSION_EVENT (same tab) or the `storage` event
+  // (another tab completing a magic-link login).
+  const [session, setSession] = useState<Session | null>(() => getSession());
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const noticeTimer = React.useRef<number | null>(null);
+
+  const showNotice = (kind: Notice['kind'], text: string) => {
+    setNotice({ kind, text });
+    if (noticeTimer.current) window.clearTimeout(noticeTimer.current);
+    noticeTimer.current = window.setTimeout(() => setNotice(null), 4000);
+  };
+
+  useEffect(() => {
+    const prevSessionRef = { current: getSession() };
+    const refresh = () => {
+      setSession(getSession());
+      return getSession();
+    };
+    const onSessionEvent = () => {
+      const before = prevSessionRef.current;
+      const after = refresh();
+      prevSessionRef.current = after;
+      // Only toast on real transitions, so a reload with an existing session
+      // stays quiet; a same-tab magic-link login or a cross-tab one still
+      // announces itself.
+      if (before?.email && !after?.email) {
+        showNotice('success', `Signed out`);
+      } else if (!before && after?.email) {
+        showNotice('success', `Signed in as ${after.email}`);
+      }
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === SESSION_KEY) onSessionEvent();
+    };
+    window.addEventListener(SESSION_EVENT, onSessionEvent);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener(SESSION_EVENT, onSessionEvent);
+      window.removeEventListener('storage', onStorage);
+      if (noticeTimer.current) window.clearTimeout(noticeTimer.current);
+    };
+  }, []);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('library');
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
@@ -392,6 +456,7 @@ export default function App() {
       workspacesCount={workspaces.length}
       currentAesthetic={aesthetic}
       onSelectAesthetic={setAesthetic}
+      sessionEmail={session?.email}
     />
   ) : (
     <div className="flex h-screen w-screen bg-slate-950 text-slate-100 font-sans overflow-hidden select-none">
@@ -551,11 +616,17 @@ export default function App() {
             <button
               onClick={() => setIsAccountModalOpen(true)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-950/80 hover:bg-slate-800 text-slate-200 text-xs font-semibold border border-slate-800 transition-colors"
-              title={isAmharic ? 'መለያ' : 'Account'}
+              title={session?.email ? `Signed in as ${session.email} — click to manage` : isAmharic ? 'መለያ' : 'Account'}
               id="header-account-btn"
             >
-              <UserRound className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="hidden sm:inline text-xs">{isAmharic ? 'መለያ' : 'Account'}</span>
+              {session ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              ) : (
+                <UserRound className="w-3.5 h-3.5 text-indigo-400" />
+              )}
+              <span className="hidden sm:inline text-xs max-w-36 truncate">
+                {session?.email || (isAmharic ? 'መለያ' : 'Account')}
+              </span>
             </button>
 
             {/* Bilingual Quick Toggle */}
@@ -726,6 +797,9 @@ export default function App() {
         language={language}
       />
       </React.Suspense>
+
+      {/* Sign-in / sign-out status toast */}
+      <NoticeToast notice={notice} />
 
       {/* First-run Onboarding Tour */}
       <OnboardingTour
