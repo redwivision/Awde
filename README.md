@@ -62,7 +62,7 @@ Students today rely on static textbooks that force rote-reading and memorization
 
 ## Getting Started
 
-**Prerequisites:** Node.js 18+
+**Prerequisites:** Node.js 20+
 
 ```bash
 npm install
@@ -92,10 +92,12 @@ Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
 
 > **How do login emails work?** Set `RESEND_API_KEY` (free-tier email API,
 > https://resend.com) to actually email the one-time login links. Login is
-> rate-limited (5 per email / 15 min, 40 per IP / 15 min) and never reveals
-> whether an address has an account. If email isn't configured: dev runs the
-> link to the console + a "Dev link" in the UI; **production refuses to send**
-> rather than leak a usable link.
+> rate-limited (5 per email / 15 min, 40 per IP / 15 min; 60 link-checks/IP on
+> confirm) and never reveals whether an address has an account. If email isn't
+> configured: dev runs the link to the console + a "Dev link" in the UI;
+> **production refuses to send** (502) rather than leak a usable link. For a
+> production "from" address set `RESEND_FROM_ADDRESS` to a verified domain
+> (the default `onboarding@resend.dev` is test-only).
 
 > This project also runs on [Google AI Studio](https://ai.studio), which injects `GEMINI_API_KEY` and `APP_URL` from your account secrets automatically (see `metadata.json`).
 
@@ -134,6 +136,10 @@ Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
 - `DATABASE_URL` — Neon/Postgres connection string. **Required for accounts +
   cloud sync.** Without it the app runs in local mode (localStorage only, no
   login). Neon free tier: https://neon.tech
+- `RESEND_API_KEY` — email service key. **Required to actually email magic-link
+  logins.** Without it, dev shows a "Dev link" instead; production refuses to
+  log in via email. Set `RESEND_FROM_ADDRESS` to a verified domain for the
+  sender. Free tier: https://resend.com
 
 ### Option A — Render (recommended, free)
 
@@ -141,7 +147,8 @@ Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
 2. In Render, choose **New → Web Service** and connect the repo.
 3. Render auto-detects [`render.yaml`](./render.yaml). Set the **Build
    Command** to `npm ci && npm run build` and **Start Command** to `npm start`.
-4. Add `GEMINI_API_KEY` (and optional fallback keys) in the service's
+4. Add `GEMINI_API_KEY`, `DATABASE_URL`, and `RESEND_API_KEY` (plus
+   `RESEND_FROM_ADDRESS` for a verified sender) in the service's
    **Environment** tab.
 5. The service starts on port `3000` (set with `PORT` if needed) and handles
    both the app and all `/api` routes.
@@ -173,7 +180,10 @@ curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true
 ├── server/
 │   ├── ai.ts                 # Gemini client + offline fallback generators
 │   ├── auth.ts               # Passwordless magic-link auth + requireAuth middleware
-│   ├── sync.ts               # Auth + /api/me/* workspace sync routes
+│   ├── email.ts              # Resend login-link transport (dev/prod fallback)
+│   ├── rateLimit.ts          # Shared in-memory sliding-window rate limiter
+│   ├── safety.ts             # Content-safety filter + AI prompt guard
+│   ├── sync.ts               # Auth + /api/me/* workspace sync routes (rate-limited)
 │   ├── textbook.ts           # PDF processing & textbook ingestion
 │   └── db/
 │       ├── schema.ts         # Drizzle schema: users, sessions, workspaces, study_events
@@ -193,13 +203,15 @@ curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true
 │   │   └── sync.ts           # Session storage + workspace push/pull + study events
 │   └── components/           # 15+ feature components
 │       ├── LandingPage.tsx   # Cinematic first-run gate with problem statement
+│       ├── ConsentGate.tsx   # One-time age gate + privacy consent before use
+│       ├── PrivacyModal.tsx  # In-app Privacy & Terms (footer / Account / gate)
 │       ├── MindMapCanvas.tsx # Interactive concept graph (SVG edges, pan/zoom)
 │       ├── FeynmanArena.tsx  # Socratic dialogue + Rooty evaluation
 │       ├── QuizEngine.tsx    # Active recall quizzes
 │       ├── StudySuite.tsx    # Pomodoro / Blurting / Spaced repetition
 │       ├── StudyMethodLab.tsx# Efficacy-delta experiment tracking
 │       ├── RootyAvatar.tsx   # Emotion-driven animated SVG student
-│       ├── AccountModal.tsx  # Sign in / sign out (magic link)
+│       ├── AccountModal.tsx  # Sign in / sign out (magic link) / delete account
 │       ├── WorkspaceSidebar.tsx, NodeMasteryDrawer.tsx,
 │       ├── CommandPalette.tsx, AestheticsModal.tsx, AwdeLogo.tsx
 │       └── … (HomePage / UploadPdfModal / WorkspaceDetail — workspace flow)
@@ -252,6 +264,7 @@ devices — `localStorage` stays as the offline cache.
 - ✅ **Bilingual support** — complete English/Amharic toggle across all UI
 - ✅ **Theme system** — 5 design aesthetics with CSS variable theming
 - ✅ **Accounts & cloud sync** — optional passwordless accounts via Neon/Postgres; local-first (works offline) with cross-device sync when signed in
+- ✅ **Hardened authentication** — rate-limited magic links (per-email + per-IP), real email delivery via Resend, no account enumeration, no dev-link leak in production
 - ✅ **Trust & safety** — one-time age-gate consent, in-app Privacy & Terms (footer / Account / gate), no PII by default, AI content-safety filter + model safety instruction, one-tap account/data deletion
 
 ---
@@ -273,7 +286,7 @@ devices — `localStorage` stays as the offline cache.
 | Metric | Value |
 |--------|-------|
 | Device Offline | App shell + saved workspaces/mind-maps readable; live AI generation requires connection |
-| Auth / API Keys | None required by default (deterministic fallback generators); optional magic-link accounts when `DATABASE_URL` is set |
+| Auth / API Keys | None required by default (deterministic fallback generators); optional magic-link accounts when `DATABASE_URL` is set (emailed via `RESEND_API_KEY`) |
 | Languages | 2 (English + Amharic) |
 | Recall Deltas | Measured per-user in the Method Laboratory (before vs after) |
 | Test Coverage | 90 tests passing (incl. content-safety, auth/hardening, auth/sync local-mode) |
