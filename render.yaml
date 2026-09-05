@@ -26,6 +26,21 @@ services:
         sync: false # enables emailing magic-link logins (set in the dashboard)
       - key: RESEND_FROM_ADDRESS
         sync: false # verified sender domain, e.g. Awde <no-reply@yourdomain.com>
+      # Free Gmail SMTP transport (alternative to verifying a Resend domain):
+      # works for any recipient, no domain needed. Set these + delete/unset the
+      # RESEND_* keys above and SMTP becomes the active transport.
+      # - key: SMTP_HOST
+      #   value: smtp.gmail.com
+      # - key: SMTP_PORT
+      #   value: "465"
+      # - key: SMTP_USER
+      #   sync: false # your Gmail address
+      # - key: SMTP_PASS
+      #   sync: false # Google App Password (2-Step Verification -> App passwords)
+      # - key: SMTP_FROM
+      #   value: "Awde <lewikb13@gmail.com>"
+      - key: CONTACT_RECIPIENT
+        value: lewikb13@gmail.com # inbox for /api/contact form messages
       - key: APP_URL
         value: https://awde.onrender.com
       # - key: GROQ_API_KEY

@@ -299,18 +299,24 @@ simpler and keeps changes localized. Two indexes keep lookups fast.
    15-minute token (only its SHA-256 hash goes in the DB), and returns a link
    pointing at the app root with `?token=…` — **not** the raw `/api/auth/confirm`
    JSON endpoint, so clicking it always lands in the SPA. Delivery is handled by
-   `server/email.ts`:
-   with `RESEND_API_KEY` set, the link is **emailed** (Resend REST API via
-   direct `fetch`, 8s timeout, one retry on transient 5xx/network failures;
-   only 4xx validation/sender errors fail immediately). Without it: dev logs
-   the link + shows a "Dev link" in the UI; **production returns 502 instead
-   of leaking a usable link**.
+   the **shared mail transport** (`server/mail.ts`), used by both login links and
+   the contact form:
+   - **Resend** wins when `RESEND_API_KEY` is set (REST API via direct `fetch`,
+     8s timeout, one retry on transient 5xx/network failures; only 4xx
+     validation/sender errors fail immediately).
+   - **Gmail SMTP** (`SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_FROM`
+     via `nodemailer`, dynamic import) is the no-cost alternative that works for
+     *any* recipient — no verified domain needed. It's used automatically when
+     `RESEND_API_KEY` is absent and `SMTP_USER`/`SMTP_PASS` are set.
+   - With **neither** configured: dev logs the link + shows a "Dev link" in the
+     UI; **production returns 502 instead of leaking a usable link**.
    - **Deliverability gotcha:** the fallback from-address
      `onboarding@resend.dev` is Resend's *test-only* mailbox and delivers **only
      to the account owner's own inbox**; any other recipient makes Resend return
-     403 (→ dev Dev-link fallback, or 502 in production). For real users, verify
-     a domain in the Resend dashboard and set `RESEND_FROM_ADDRESS` to an address
-     on it. The email body is built by `buildLoginLinkEmail()` — an HTML + plain
+     403 (→ dev Dev-link fallback, or 502 in production). For real users, either
+     verify a domain in the Resend dashboard (then set `RESEND_FROM_ADDRESS` to
+     an address on it) **or** use the free Gmail SMTP transport above. The email
+     body is built by `buildLoginLinkEmail()` — an HTML + plain
      text template that states the true 15-minute expiry, HTML-escapes the
      recipient and link, and includes a tap-target CTA with a copy-paste
      fallback link.
@@ -347,10 +353,15 @@ simpler and keeps changes localized. Two indexes keep lookups fast.
   no one has to find a repo folder to read it. Copy is EN + AM; the source of
   truth is `docs/PRIVACY.md`.
 - **A real contact channel**: the policy promises to answer privacy questions
-  and deletion requests within 30 days, so the contact email
-  `lewikb13@gmail.com` (mailto) is shown in the landing-page footer ("Contact
-  us"), at the bottom of the Account modal, and inside the policy text itself —
-  the claim in §7 of `docs/PRIVACY.md` is something users can actually do.
+  and deletion requests within 30 days, so the app ships an in-app **Contact
+  us** form (`src/components/ContactModal.tsx` → `POST /api/contact` in
+  `server/contact.ts`). It takes a name + email + message, HTML-escapes them,
+  rate-limits to 10/hour per IP (429), and emails the team through the shared
+  transport with an honest `delivered` flag when the server has no email
+  configured. The plain-text fallback address `lewikb13@gmail.com` is shown in
+  the form, the landing-page footer ("Contact us"), at the bottom of the Account
+  modal, and inside the policy text itself — the claim in §7 of
+  `docs/PRIVACY.md` is something users can actually do.
 - **Learning data & personalization**: the policy discloses that, when signed
   in, learning activity (quizzes, mastery, Feynman, study events) may be used to
   adapt the app to each student's learning spot. No PII beyond the login email;
@@ -588,7 +599,7 @@ scroll" + "radial gradient, not solid dim."
 
 ## 11. Tests: what they protect
 
-`tests/` uses **Vitest** + **supertest**. The suite (96 tests) clusters around the
+`tests/` uses **Vitest** + **supertest**. The suite (104 tests) clusters around the
 most failure-prone, most important logic:
 
 - `persistence.test.ts` — the migration / single-source-of-truth invariants.
@@ -600,9 +611,12 @@ most failure-prone, most important logic:
 - `auth-sync.test.ts` — the auth + sync endpoints in **local mode** (no
   `DATABASE_URL`), proving accounts don't break the offline/local experience.
 - `auth-hardening.test.ts` — the secured auth paths with an in-memory fake DB:
-  Resend email transport (mocked fetch), rate limits (5/email, 40/IP), no
+  email transport (mocked fetch), rate limits (5/email, 40/IP), no
   account enumeration, single-use tokens, and **no dev-link leak in
   production**.
+- `contact.test.ts` — `/api/contact` validation, HTML escaping, the honest
+  `delivered:false` no-transport path, 502 on transport failure, and the
+  10/hour per-IP rate limit.
 - `safety.test.ts` — the content-safety filter blocks clearly harmful input and
   lets academic input through, plus the prompt-guard layer and that blocked
   requests get a 400 before any generator runs.
@@ -648,7 +662,9 @@ A mental checklist before you edit anything:
 | `server/ai.ts` | Gemini client + all `generateFallback*` deterministic generators |
 | `server/textbook.ts` | PDF upload → text → AI workspace (+ fallback builder) |
 | `server/auth.ts` | Magic-link issue/consume, bearer sessions, `requireAuth` (no-op in local mode) |
-| `server/email.ts` | Resend transport for login links (8s timeout, one transient retry, 4xx fail-fast); `buildLoginLinkEmail` HTML+text template; dev/prod fallback |
+| `server/email.ts` | Login-link email message: `buildLoginLinkEmail` HTML+text template (true 15-min expiry, escaped recipient+link, CTA+fallback), `sendLoginLinkEmail` wrapper, dev/prod fallback |
+| `server/mail.ts` | **Shared transport** for login links + contact form: Resend REST API (8s timeout, one transient retry, 4xx fail-fast) or Gmail SMTP via `nodemailer` (when `RESEND_API_KEY` absent); `sendMail`, `emailConfigured`, `contactRecipient`, `htmlEscape` |
+| `server/contact.ts` | `POST /api/contact`: in-app contact form → validated + HTML-escaped + rate-limited (10/hr/IP) email to `contactRecipient()`; honest `delivered:false` when no transport |
 | `server/rateLimit.ts` | Shared in-memory sliding-window limiter (`makeRateLimiter`) |
 | `server/sync.ts` | `registerSyncRoutes`: login/confirm (rate-limited) + me/workspaces/study-events + account deletion |
 | `server/safety.ts` | `blockedReason`/`checkInputs` filter + `withSafetyInstruction` AI prompt guard |
@@ -658,7 +674,7 @@ A mental checklist before you edit anything:
 | `src/lib/api.ts` | Weak-wifi-safe `postJson`/`postFormData` + `useOnlineStatus` |
 | `src/lib/sync.ts` | Session storage, magic-link confirm, workspace push/pull, study events, sync-meta ledger |
 | `src/components/ConsentGate.tsx` | One-time age-gate + privacy consent before the workspace |
-| `src/components/PrivacyModal.tsx` | In-app Privacy & Terms (EN+AM), reachable from footer, Account modal, and consent gate; ends with the published contact email (lewikb13@gmail.com) |
+| `src/components/PrivacyModal.tsx` | In-app Privacy & Terms (EN+AM), reachable from footer, Account modal, and consent gate; ends with the published contact channel (in-app "Contact us" form + lewikb13@gmail.com) |
 | `src/data/persistence.ts` | localStorage load/save/migrate + the single-source-of-truth logic |
 | `src/data/themes.ts` | The 5 design palettes |
 | `src/data/curricula.ts` | Seeded legacy curriculum units |

@@ -1,6 +1,6 @@
 # Awde CI: lint + test + build on every push/PR.
 #
-# Runs WITHOUT a DATABASE_URL on purpose: the suite (64 tests) covers the
+# Runs WITHOUT a DATABASE_URL on purpose: the suite (104 tests) covers the
 # local/offline mode invariant, and the app must keep working with no DB
 # configured. Secrets (GEMINI_API_KEY, DATABASE_URL) are never needed here;
 # they belong to the host's secrets manager at deploy time.

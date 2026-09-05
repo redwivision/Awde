@@ -119,18 +119,18 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, lan
             <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted, #475569)' }}>
               {isAmharic ? (
                 <>
-                  ጥያቄዎች ወይም የመሰረዝ ጥያቄ ካለ፣ በኢሜይል ያነጋግሩ፡{' '}
-                  <a href="mailto:lewikb13@gmail.com" style={{ color: 'var(--app-accent, #6366f1)' }} className="font-semibold underline underline-offset-2">
+                  ጥያቄዎች ወይም የመሰረዝ ጥያቄ ካለ፣ በ ‹‹ያግኙን›› ቅጽ ወይም በኢሜይል ያነጋግሩ፡{' '}
+                  <span className="font-semibold text-foreground break-all" style={{ color: 'var(--app-accent, #6366f1)' }}>
                     lewikb13@gmail.com
-                  </a>
+                  </span>{' '}
                   በ30 ቀናት ውስጥ እንመልሳለን።
                 </>
               ) : (
                 <>
-                  Questions or deletion requests — email{' '}
-                  <a href="mailto:lewikb13@gmail.com" style={{ color: 'var(--app-accent, #6366f1)' }} className="font-semibold underline underline-offset-2">
+                  Questions or deletion requests — use the in-app “Contact us” form, or email{' '}
+                  <span className="font-semibold text-foreground break-all" style={{ color: 'var(--app-accent, #6366f1)' }}>
                     lewikb13@gmail.com
-                  </a>{' '}
+                  </span>{' '}
                   and we respond within 30 days.
                 </>
               )}

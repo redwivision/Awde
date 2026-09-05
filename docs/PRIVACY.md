@@ -67,12 +67,12 @@ perfect** — we recommend using the app together with a young student.
   data") removes everything from the device.
 - **Account data:** in the app, open **Account → Delete my account and data**.
   This permanently erases your profile, synced books, study history, sessions,
-  and login tokens from the server. You can also email
-  [lewikb13@gmail.com](mailto:lewikb13@gmail.com) at any time to request
-  deletion.
+  and login tokens from the server. You can also use the in-app **Contact us**
+  form (or email `lewikb13@gmail.com`) at any time to request deletion.
 
 ## 7. Contact
 
-Privacy questions or deletion requests: email [lewikb13@gmail.com](mailto:lewikb13@gmail.com)
-(the same address shown via "Contact" on the landing page and in the Account
-modal). We aim to respond within 30 days.
+Privacy questions, feedback, or deletion requests: use the in-app **Contact
+us** form (landing-page footer, or **Account → Contact us**), or email
+`lewikb13@gmail.com` — the same address shown in the app. We aim to respond
+within 30 days.

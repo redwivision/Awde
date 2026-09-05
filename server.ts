@@ -16,6 +16,8 @@ import {
 } from './server/ai';
 import { processTextbookPdf } from './server/textbook';
 import { registerSyncRoutes } from './server/sync';
+import { registerContactRoutes } from './server/contact';
+import { smtpConfigured, contactRecipient } from './server/mail';
 import { runMigrations } from './server/db/migrate';
 import { hasDb } from './server/db/client';
 import { checkInputs, BLOCKED_MESSAGE, withSafetyInstruction } from './server/safety';
@@ -634,6 +636,14 @@ export async function startServer(port: number = PORT): Promise<any> {
   return new Promise((resolve) => {
     const server = app.listen(port, '0.0.0.0', () => {
       console.log(`Awde server running on http://0.0.0.0:${port}`);
+      // One-line mail-transport status so devs see WHICH transport is live and
+      // where contact messages land (and can catch SMTP misconfiguration fast).
+      const transport = process.env.RESEND_API_KEY
+        ? 'Resend API'
+        : smtpConfigured()
+          ? 'Gmail SMTP'
+          : 'NONE (dev-link / local fallback only)';
+      console.log(`[awde:mail] transport: ${transport} · contact → ${contactRecipient()}`);
       resolve(server);
     });
   });
@@ -643,6 +653,7 @@ export async function startServer(port: number = PORT): Promise<any> {
 // middleware). Done here — not inside startServer — so tests that import the
 // app directly get the same routing the running server has.
 registerSyncRoutes(app);
+registerContactRoutes(app);
 
 // Guard: only auto-start when executed directly, not when imported for tests.
 // Works in both the ESM dev path (tsx) and the CJS production bundle.

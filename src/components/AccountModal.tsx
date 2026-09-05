@@ -4,6 +4,7 @@ import { X, LogIn, LogOut, Mail, CheckCircle2, Loader2, BookOpen, AtSign } from 
 import { LanguageMode } from '../types';
 import { getSession, requestLogin } from '../lib/sync';
 import { PrivacyModal } from './PrivacyModal';
+import { ContactModal } from './ContactModal';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string>('');
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -304,17 +306,18 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
             <BookOpen className="w-3.5 h-3.5" />
             {isAmharic ? 'ግላዊነት እና ደንቦች ያንብቡ' : 'Read Privacy & Terms'}
           </button>
-          <a
-            href="mailto:lewikb13@gmail.com"
+          <button
+            onClick={() => setIsContactOpen(true)}
             className="mt-1 w-full flex items-center justify-center gap-1.5 text-[11px] font-semibold underline underline-offset-2 transition-opacity hover:opacity-70"
             style={{ color: 'var(--app-text-muted, #475569)' }}
           >
             <AtSign className="w-3.5 h-3.5" />
-            {isAmharic ? 'አግኙን — lewikb13@gmail.com' : 'Contact — lewikb13@gmail.com'}
-          </a>
+            {isAmharic ? 'አግኙን' : 'Contact us'}
+          </button>
         </motion.div>
       </div>
       <PrivacyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} language={language} />
+      <ContactModal isOpen={isContactOpen} onClose={() => setIsContactOpen(false)} language={language} />
     </AnimatePresence>
   );
 };

@@ -54,7 +54,7 @@ Students today rely on static textbooks that force rote-reading and memorization
 | 📴 **Single-Server Simplicity** | One Express process serves the React build and all /api endpoints — no separate backend required |
 | 🔑 **No API Key Required** | All AI endpoints run with deterministic offline-fallback generators when no key is set; a Gemini key makes output richer |
 | 👤 **Accounts & Cloud Sync** | Optional passwordless (magic-link) accounts via Neon/Postgres — progress syncs across devices while staying available offline (localStorage-first) |
-| 🛡️ **Privacy-First & Age-Gated** | One-time consent gate before use, in-app Privacy & Terms (footer / Account / gate), no PII by default (only a login email), learning data used for personalization with an account, AI content-safety filter + model guard, one-tap account/data deletion, published contact email (lewikb13@gmail.com) in footer / Account / policy |
+| 🛡️ **Privacy-First & Age-Gated** | One-time consent gate before use, in-app Privacy & Terms (footer / Account / gate), no PII by default (only a login email), learning data used for personalization with an account, AI content-safety filter + model guard, one-tap account/data deletion, in-app contact form + published contact email (lewikb13@gmail.com) in footer / Account / policy |
 | 🔍 **Node Mastery Drawer** | Slide-in detail panel for every concept with 5 tabs: Localized Analogy, Concept Core (detailed explanation + key takeaways + related concepts), Common Traps, Rules & Formulas, and Ask Rooty |
 | 💡 **Ask Rooty (Q&A)** | Lightweight chat in the node drawer — ask any question about a concept and get a clear, jargon-free answer with Ethiopian cultural analogies |
 
@@ -305,10 +305,10 @@ Awde's long-term mission is to become the **default conceptual-mastery layer for
 
 ## Contact
 
-Privacy questions, deletion requests, or anything else: **lewikb13@gmail.com**.
-The same address appears in the app itself — a "Contact us" link in the
-landing-page footer and the workspace Account modal, and it is named in the
-in-app Privacy & Terms. We respond within 30 days.
+Privacy questions, deletion requests, or anything else: use the in-app
+**Contact us** form (landing-page footer, or **Account → Contact us**), or
+email **lewikb13@gmail.com**. The same address appears in the app itself and is
+named in the in-app Privacy & Terms. We respond within 30 days.
 
 ---
 

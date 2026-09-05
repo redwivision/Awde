@@ -86,6 +86,9 @@ const resetDb = () => (client as any).__resetDb();
 beforeAll(() => {
   delete process.env.GEMINI_API_KEY;
   delete process.env.RESEND_FROM_ADDRESS;
+  for (const k of ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM', 'CONTACT_RECIPIENT']) {
+    delete process.env[k];
+  }
 });
 
 beforeEach(() => {
@@ -95,6 +98,9 @@ beforeEach(() => {
   confirmIpLimiter.clear();
   delete process.env.RESEND_API_KEY;
   delete process.env.NODE_ENV;
+  for (const k of ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM']) {
+    delete process.env[k];
+  }
   vi.unstubAllGlobals();
 });
 
@@ -102,6 +108,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
   delete process.env.RESEND_API_KEY;
   delete process.env.NODE_ENV;
+  for (const k of ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM']) {
+    delete process.env[k];
+  }
 });
 
 describe('magic-link email transport', () => {
