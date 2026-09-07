@@ -252,8 +252,14 @@ When the user signs in, the browser stores a **session** (token + email) in
   per-workspace ledger in `localStorage` (`awde_sync_meta`) recording the latest
   server `updatedAt` it has seen. A server row replaces the local copy only when
   it's *newer* than what we've synced before — i.e. it changed on another device.
-- **Study events**: `recordStudyEvent` appends rows (quiz, mastery, feynman…)
-  to the server's `study_events` table — the beginnings of a progress timeline.
+- **Study events**: `recordStudyActivity` appends rows — quiz, mastery, Feynman
+  attempt, blurting recall, or a completed focus session. The log is written to
+  `localStorage` first (`awde_study_events_v1`, offline + local-mode safe) and
+  then pushed to `POST /api/me/study-events` whenever a session exists. The
+  **Progress** tab reads the on-device log, merges the server copy
+  (`GET /api/me/study-events`) so a signed-in user sees one timeline across
+  devices, and derives a day-streak and average scores from it. Events are keyed
+  so a local entry and its own server echo never double-count.
 
 Every sync call is **offline-safe**: no session or no network means it silently
 no-ops, and `localStorage` remains the source of truth until the server is
@@ -414,6 +420,10 @@ links. It stays **opt-in and DB-gated**:
 
 ### The sync routes (`server/sync.ts`)
 
+- `POST /api/me/study-events` — append to the progress log.
+- `GET /api/me/study-events` — pull this user's progress log (newest first),
+  flattened from the stored `payload` so the Progress tab gets the same shape it
+  wrote offline.
 - `GET /api/auth/providers` — which login methods exist (`{ google, email }`,
   no credentials leaked) so the client can enable/disable the Google button.
 - `GET /api/me` — who am I? (auth-gated)
@@ -421,7 +431,12 @@ links. It stays **opt-in and DB-gated**:
 - `PUT /api/me/workspaces` — upsert one workspace (`onConflictDoUpdate` keys on
   `user_id` + `workspace_id`), returning the server `updatedAt` so the client
   can track "what the server knows".
-- `POST /api/me/study-events` — append to the progress log.
+- `POST /api/share/create` — mint a signed read-only link for a workspace the
+  caller owns (auth-gated; verifies ownership, returns `{ userId, workspaceId, sig }`).
+- `GET /api/share/read` — public `?user=&id=&sig=`; verifies an HMAC signature
+  (see `server/share.ts`, secret = `SHARE_SECRET` → `BETTER_AUTH_SECRET` → dev
+  default) and returns that single workspace for a read-only preview. No account,
+  no writes, no AI calls.
 - `DELETE /api/me` — erase the account and all its data (cascades).
 
 All of these are wrapped in `requireAuth`, which in local mode is a **no-op**
@@ -824,14 +839,15 @@ A mental checklist before you edit anything:
 | `server/mail.ts` | **Shared transport** for login links + contact form: Resend REST API (8s timeout, one transient retry, 4xx fail-fast) or Gmail SMTP via `nodemailer` (when `RESEND_API_KEY` absent); `sendMail`, `emailConfigured`, `contactRecipient`, `htmlEscape` |
 | `server/contact.ts` | `POST /api/contact`: in-app contact form → validated + HTML-escaped + rate-limited (10/hr/IP) email to `contactRecipient()`; honest `delivered:false` when no transport |
 | `server/rateLimit.ts` | Shared in-memory sliding-window limiter (`makeRateLimiter`) |
-| `server/sync.ts` | `registerSyncRoutes`: login/confirm (rate-limited) + me/workspaces/study-events + account deletion |
+| `server/share.ts` | HMAC signing/verify for **read-only share links** (secret = `SHARE_SECRET` → `BETTER_AUTH_SECRET` → dev default) |
+| `server/sync.ts` | `registerSyncRoutes`: login/confirm (rate-limited) + me/workspaces/study-events (GET+POST) + share create/read + account deletion |
 | `server/safety.ts` | `blockedReason`/`checkInputs` filter + `withSafetyInstruction` AI prompt guard |
 | `server/db/schema.ts` | Drizzle tables: users, sessions, workspaces (JSONB), study_events, generated_units |
 | `server/db/baSchema.ts` | Better Auth core tables (user, session, account, verification) |
 | `server/db/client.ts` | Lazy postgres.js client; `hasDb()`/`authEnabled()` gates |
 | `server/db/migrate.ts` | Runs Drizzle migrations from `drizzle/` at startup |
 | `src/lib/api.ts` | Weak-wifi-safe `postJson`/`postFormData` + `useOnlineStatus` |
-| `src/lib/sync.ts` | Session storage, magic-link confirm, workspace push/pull, study events, sync-meta ledger, Google session bootstrap (`syncServerSession`), provider detection |
+| `src/lib/sync.ts` | Session storage, magic-link confirm, workspace push/pull, study-activity log (local-first + server push), sync-meta ledger, share-link client helpers, Google session bootstrap (`syncServerSession`), provider detection |
 | `src/lib/betterAuthClient.ts` | Better Auth client (`createAuthClient`, `googleSignIn`) over `/api/ba` |
 | `src/components/ConsentGate.tsx` | One-time age-gate + privacy consent before the workspace |
 | `src/components/PrivacyModal.tsx` | In-app Privacy & Terms (EN+AM), reachable from footer, Account modal, and consent gate; ends with the published contact channel (in-app "Contact us" form + lewikb13@gmail.com) |
@@ -840,7 +856,9 @@ A mental checklist before you edit anything:
 | `src/data/curricula.ts` | Seeded legacy curriculum units |
 | `src/data/textbookWorkspaces.ts` | Seeded default books (the "no data yet" start) |
 | `src/components/LandingPage.tsx` | The cinematic entry screen |
-| `src/components/WorkspaceSidebar.tsx` | Left nav (Books/Map/Teach/Quiz/Measure/Focus) + unit list |
+| `src/components/WorkspaceSidebar.tsx` | Left nav (Books/Map/Teach/Quiz/Measure/Focus/Progress) + unit list |
+| `src/components/ProgressTimeline.tsx` | The **Progress** tab: streak + today + totals + avg score, and the study history grouped by day (merges local log with the server copy; EN/AM) |
+| `src/components/SharedWorkspaceView.tsx` | Read-only preview host for `?share=` links: unit switcher + live `MindMapCanvas` + `NodeMasteryDrawer` in `readOnly` mode + "Study it in Awde" CTA |
 | Each feature component | A study mode that gets props from App and calls `/api` |
 
 ---
@@ -864,10 +882,12 @@ The best way to learn is to break it a little. Try each, then `git` your way bac
 
 *This guide describes the code as it stands after the accounts + persistence,
 trust & safety, auth-hardening, resilient-free-tier (provider chain, daily
-quotas, content cache), and UX-honesty milestones (deterministic mind-map layout
-with orthogonal edge routing; real pre-assessment efficacy measurement). When
-things change, the architecture (one server, local state, props-down data flow,
-AI via a multi-provider fallback chain with guaranteed resolution, daily spend
-quotas, content-addressed generation cache, localStorage-first with optional
-account sync, and rate-limited passwordless email auth) is the stable part —
-that's the part to internalize.*
+quotas, content cache), UX-honesty (deterministic mind-map layout with
+orthogonal edge routing; real pre-assessment efficacy measurement), and
+multi-user-readiness milestones (local-first study-history log with a Progress
+tab, and signed read-only share links). When things change, the architecture
+(one server, local state, props-down data flow, AI via a multi-provider
+fallback chain with guaranteed resolution, daily spend quotas,
+content-addressed generation cache, localStorage-first with optional account
+sync, and rate-limited passwordless email auth) is the stable part — that's the
+part to internalize.*

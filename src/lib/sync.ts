@@ -264,21 +264,126 @@ export async function pullWorkspaces(): Promise<{ workspaceId: string; data: Tex
   return res.data.workspaces;
 }
 
-/** Record an append-only study event (progress, quiz, feynman, flashcard...). */
-export async function recordStudyEvent(event: {
+// ---------- Study activity log (local-first, server-backed when signed in) ----------
+
+/**
+ * One entry in the student's study history — a quiz, a Feynman attempt, a node
+ * marked learned, a blurting sprint, or a completed focus session.
+ *
+ * The log is written to localStorage FIRST (works offline, no account needed)
+ * and then pushed to the server when a session exists, so signed-in users get a
+ * cross-device history while local-only users keep a private on-device one.
+ */
+export interface StudyActivity {
+  id?: string;
+  ts?: number;                    // epoch ms
+  eventType: 'quiz' | 'feynman' | 'mastery' | 'blurting' | 'focus' | 'flashcard';
   workspaceId?: string;
   unitId?: string;
+  unitTitle?: string;
   nodeId?: string;
-  eventType: string;
-  payload?: unknown;
-}): Promise<boolean> {
+  nodeLabel?: string;
+  score?: number;                 // 0-100 (quiz %, Feynman clarity)
+  accuracy?: number;              // 0-100 (blurting recall)
+  seconds?: number;               // focus session length
+  meta?: Record<string, unknown>;
+}
+
+export const STUDY_EVENTS_KEY = 'awde_study_events_v1';
+const STUDY_EVENTS_MAX = 500;
+
+/** Record an activity locally and, when signed in, push it to the server. */
+export function recordStudyActivity(activity: StudyActivity): void {
+  try {
+    const raw = localStorage.getItem(STUDY_EVENTS_KEY);
+    const list: StudyActivity[] = raw ? (JSON.parse(raw) as StudyActivity[]) : [];
+    const next = [
+      { ...activity, id: activity.id || 'act_' + Date.now(), ts: activity.ts || Date.now() },
+      ...list
+    ].slice(0, STUDY_EVENTS_MAX);
+    localStorage.setItem(STUDY_EVENTS_KEY, JSON.stringify(next));
+  } catch {
+    /* best-effort — never break the study flow over a log write */
+  }
+  void pushStudyEvent(activity);
+}
+
+/** The on-device log, newest first. Enough for the Progress tab + streak. */
+export function getStudyActivities(limit = 300): StudyActivity[] {
+  try {
+    const raw = localStorage.getItem(STUDY_EVENTS_KEY);
+    const list: StudyActivity[] = raw ? (JSON.parse(raw) as StudyActivity[]) : [];
+    return Array.isArray(list) ? list.slice(0, limit) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Push one activity to the server. Offline / local mode silently no-ops. */
+async function pushStudyEvent(activity: StudyActivity): Promise<boolean> {
   const session = getSession();
   if (!session) return false;
-  const res = await authedJson<{ ok?: boolean }>('/api/me/study-events', {
+  const res = await authedJson<{ ok?: boolean; error?: string }>('/api/me/study-events', {
     method: 'POST',
-    payload: event
+    payload: {
+      eventType: activity.eventType,
+      workspaceId: activity.workspaceId || undefined,
+      unitId: activity.unitId || undefined,
+      nodeId: activity.nodeId || undefined,
+      payload: activity
+    }
   });
   return Boolean(res.ok && (res.data as any)?.ok);
+}
+
+/**
+ * The server's copy of this user's study history (newest first). Returns null
+ * when there is no session, the device is offline, or the server has none —
+ * callers simply fall back to the localStorage log.
+ */
+export async function pullStudyActivities(limit = 300): Promise<StudyActivity[] | null> {
+  const session = getSession();
+  if (!session || !isOnline()) return null;
+  const res = await authedJson<{ activities?: StudyActivity[] }>(`/api/me/study-events?limit=${limit}`);
+  if (!res.ok || !Array.isArray(res.data?.activities)) return null;
+  return res.data.activities;
+}
+
+// ---------- Read-only workspace share links ----------
+
+/**
+ * Create a signed read-only share link for a server-side workspace. Requires a
+ * session: the owner's identity keys the signature and the server row is looked
+ * up by (userId, workspaceId), so only workspaces actually on the server can be
+ * shared (local-only workspaces stay private to the device).
+ */
+export async function createShareLink(workspaceId: string): Promise<{ ok: boolean; url?: string; error?: string }> {
+  const session = getSession();
+  if (!session) return { ok: false, error: 'auth' };
+  const res = await authedJson<{ ok?: boolean; share?: { userId: string; workspaceId: string; sig: string }; error?: string }>(
+    '/api/share/create',
+    { method: 'POST', payload: { workspaceId } }
+  );
+  const d = res.data as any;
+  if (!res.ok || !d?.share) return { ok: false, error: d?.error || 'share-failed' };
+  const base = `${window.location.origin}${window.location.pathname}`;
+  const url = `${base}?share=1&user=${encodeURIComponent(d.share.userId)}&id=${encodeURIComponent(d.share.workspaceId)}&sig=${encodeURIComponent(d.share.sig)}`;
+  return { ok: true, url };
+}
+
+/** Whether the current URL is a read-only share of a workspace. */
+export function readShareParams(url: string): { user: string; id: string; sig: string } | null {
+  try {
+    const params = new URLSearchParams(new URL(url).search);
+    if (params.get('share') !== '1') return null;
+    const user = params.get('user') || '';
+    const id = params.get('id') || '';
+    const sig = params.get('sig') || '';
+    if (!user || !id || !sig) return null;
+    return { user, id, sig };
+  } catch {
+    return null;
+  }
 }
 
 /** Read a magic-link token out of the URL (?token=...) and consume it. */

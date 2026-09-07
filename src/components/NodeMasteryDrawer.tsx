@@ -27,7 +27,8 @@ import {
   Send,
   Loader2,
   ChevronRight,
-  MessageCircle
+  MessageCircle,
+  Lock
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -39,6 +40,7 @@ interface NodeMasteryDrawerProps {
   onStartFeynman: (node: ConceptNode) => void;
   onStartQuizForNode: (node: ConceptNode) => void;
   onMarkMastered: (nodeId: string) => void;
+  readOnly?: boolean;
 }
 
 export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
@@ -48,7 +50,8 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
   onClose,
   onStartFeynman,
   onStartQuizForNode,
-  onMarkMastered
+  onMarkMastered,
+  readOnly = false
 }) => {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [activeTab, setActiveTab] = useState<'breakdown' | 'analogy' | 'misconceptions' | 'formulas' | 'ask_rooty'>('analogy');
@@ -294,6 +297,12 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                 <MessageCircle className="w-3.5 h-3.5" />
                 <span>{isAmharic ? 'ንግግር ከ ሩቲ' : 'Ask Rooty'}</span>
               </button>
+              {readOnly && (
+                <span className="ml-auto text-[11px] font-medium text-slate-600 flex items-center gap-1.5 shrink-0">
+                  <Lock className="w-3 h-3" />
+                  {isAmharic ? 'መመልከቻ ብቻ' : 'Read-only preview'}
+                </span>
+              )}
             </div>
           </div>
 
@@ -351,7 +360,8 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                   </div>
                 </div>
 
-                {/* Feynman Prompt Callout */}
+                {/* Feynman Prompt Callout (hidden in read-only previews) */}
+                {!readOnly && (
                 <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="space-y-0.5">
                     <h4 className="text-sm font-semibold text-white flex items-center gap-1.5">
@@ -375,6 +385,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
+                )}
               </div>
             )}
 
@@ -570,7 +581,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
             )}
 
             {/* TAB: Ask Rooty */}
-            {activeTab === 'ask_rooty' && (
+            {activeTab === 'ask_rooty' && !readOnly && (
               <div className="flex flex-col h-full">
                 {/* Intro prompt */}
                 {chatMessages.length === 0 && (
@@ -648,6 +659,22 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
 
           {/* Drawer Footer Actions */}
           <div className="p-4 border-t border-slate-800 bg-slate-900/95 flex flex-wrap items-center justify-between gap-3 sticky bottom-0 z-20">
+            {readOnly ? (
+              <div className="w-full flex items-center justify-between gap-3 text-xs text-slate-500">
+                <span className="flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5" />
+                  {isAmharic ? 'ይህ የመመልከቻ ቅድመ-እይታ ነው — ምንም ለውጥ አያደርግም' : 'Read-only preview — no changes are saved'}
+                </span>
+                <a
+                  href="/"
+                  className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>{isAmharic ? 'በ Awde ይማሩ' : 'Study it yourself in Awde'}</span>
+                </a>
+              </div>
+            ) : (
+            <>
             <button
               onClick={handleQuickMasteryStamp}
               className="px-3.5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"
@@ -679,6 +706,8 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                 <span>{isAmharic ? 'ለሩቲ አስተምር' : 'Teach Rooty'}</span>
               </button>
             </div>
+            </>
+            )}
           </div>
         </motion.div>
       </div>

@@ -22,6 +22,7 @@ import {
   Flame
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { recordStudyActivity } from '../lib/sync';
 
 interface StudySuiteProps {
   unit: TopicUnit;
@@ -67,6 +68,12 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
     } else if (timeLeft === 0 && isRunning) {
       setIsRunning(false);
       if (pomoMode === 'work') {
+        recordStudyActivity({
+          eventType: 'focus',
+          unitId: unit.id,
+          unitTitle: unit.title,
+          seconds: 25 * 60
+        });
         setCyclesCompleted((c) => c + 1);
         setPomoMode('shortBreak');
         setTimeLeft(5 * 60);
@@ -165,6 +172,12 @@ export const StudySuite: React.FC<StudySuiteProps> = ({ unit, language }) => {
           missedKeyPoints: data.missedKeyPoints || [],
           feedback: data.feedback,
           feedbackAmharic: data.feedbackAmharic
+        });
+        recordStudyActivity({
+          eventType: 'blurting',
+          unitId: unit.id,
+          unitTitle: unit.title,
+          accuracy: Math.round(Number(data.accuracyScore) || 0)
         });
       } else {
         const isOffline = data?.error === 'offline';

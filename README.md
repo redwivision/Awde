@@ -54,6 +54,8 @@ Students today rely on static textbooks that force rote-reading and memorization
 | 📴 **Single-Server Simplicity** | One Express process serves the React build and all /api endpoints — no separate backend required |
 | 🔑 **Resilient AI (no single point of failure)** | Every AI endpoint runs a provider chain — **OpenRouter → Groq → NVIDIA** → deterministic offline generator — with per-provider timeouts, an overall chain deadline, and a circuit breaker. One dead/expired key never breaks the app; with no keys at all it still works offline |
 | 👤 **Accounts & Cloud Sync** | Optional Google OAuth + passwordless (magic-link) accounts via Neon/Postgres — progress syncs across devices while staying available offline (localStorage-first) |
+| 📈 **Progress Timeline** | Every quiz, taught idea, marked-done concept, blurting sprint, and completed focus session lands in a study history (local-first, merged with your account's server log on every device). The Progress tab shows a day-streak, today's activity, totals, and average scores, grouped by day in EN/AM |
+| 🔗 **Read-Only Share Links** | Share any synced book as a signed, read-only preview link (`?share=1&user=&id=&sig=`): the recipient sees the exact same mind-map + concept drawer (no edits, no account, no AI calls) with a "Study it in Awde" call-to-action. Signatures use an HMAC keyed to `SHARE_SECRET` or the auth secret |
 | 🛡️ **Privacy-First & Age-Gated** | One-time consent gate before use, in-app Privacy & Terms (footer / Account / gate), no PII by default (only a login email), learning data used for personalization with an account, AI content-safety filter + model guard, one-tap account/data deletion, in-app contact form + published contact email (lewikb13@gmail.com) in footer / Account / policy |
 | 🔍 **Node Mastery Drawer** | Slide-in detail panel for every concept with 5 tabs: Localized Analogy, Concept Core (detailed explanation + key takeaways + related concepts), Common Traps, Rules & Formulas, and Ask Rooty |
 | 💡 **Ask Rooty (Q&A)** | Lightweight chat in the node drawer — ask any question about a concept and get a clear, jargon-free answer with Ethiopian cultural analogies |
@@ -302,7 +304,10 @@ with `fromCache: true` — instantly and at $0 AI cost.
 | `GET /api/me` | Current signed-in user |
 | `GET /api/me/workspaces` | Pull this user's server-side workspaces |
 | `PUT /api/me/workspaces` | Upsert a workspace (last-writer-wins) |
-| `POST /api/me/study-events` | Append a study event (progress log) |
+| `POST /api/me/study-events` | Append a study event (progress log; also written to localStorage first so local-mode users still get a timeline) |
+| `GET /api/me/study-events` | Pull this user's study history (the Progress tab merges it with the on-device log) |
+| `POST /api/share/create` | Mint a signed read-only share link for a workspace the caller owns |
+| `GET /api/share/read` | Verify the signed `?user=&id=&sig=` link and return the workspace for a read-only preview |
 | `DELETE /api/me` | Erase the account + all linked data (cascades) |
 
 Google OAuth lives under `/api/ba/*` (Better Auth handler), mounted only when a
@@ -334,6 +339,7 @@ devices — `localStorage` stays as the offline cache.
 - ✅ **Bilingual support** — complete English/Amharic toggle across all UI
 - ✅ **Theme system** — 5 design aesthetics with CSS variable theming
 - ✅ **Accounts & cloud sync** — optional passwordless accounts via Neon/Postgres; local-first (works offline) with cross-device sync when signed in
+- ✅ **Progress timeline + share links** — honest study history (streak, daily totals, averages) merged from device + server, and read-only signed preview links for any synced book (no account, no AI, no writes) with a "Study it in Awde" CTA
 - ✅ **Hardened authentication** — Google OAuth (Better Auth) + rate-limited magic links (per-email + per-IP), real email delivery via Resend, no account enumeration, no dev-link leak in production
 - ✅ **Trust & safety** — one-time age-gate consent, in-app Privacy & Terms (footer / Account / gate), no PII by default, AI content-safety filter + model safety instruction, one-tap account/data deletion
 

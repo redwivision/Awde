@@ -12,10 +12,13 @@ import {
   MessageSquare,
   FileText,
   Clock,
-  Info
+  Info,
+  Share2,
+  Check
 } from 'lucide-react';
 import { LanguageMode, TextbookWorkspace, ConceptNode } from '../types';
 import { generateTextbookMultiLevelGraph } from '../data/textbookWorkspaces';
+import { createShareLink, getSession } from '../lib/sync';
 
 interface WorkspaceDetailProps {
   workspace: TextbookWorkspace;
@@ -36,6 +39,39 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
 }) => {
   const isAmharic = language === 'am';
   const graph = useMemo(() => generateTextbookMultiLevelGraph(workspace), [workspace]);
+
+  // Share-link state: shows "Link copied!" / "Sign in to share" feedback inline.
+  const [shareMsg, setShareMsg] = useState<string | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
+  const shareMsgTimer = useRef<number | null>(null);
+
+  const handleShare = async () => {
+    if (shareBusy) return;
+    if (!getSession()) {
+      setShareMsg(isAmharic ? 'ለመጋራት ወደ መለያ ይግቡ' : 'Sign in to share a read-only link');
+      window.setTimeout(() => setShareMsg(null), 3500);
+      return;
+    }
+    setShareBusy(true);
+    const result = await createShareLink(workspace.id);
+    setShareBusy(false);
+    if (!result.ok || !result.url) {
+      setShareMsg(isAmharic ? 'አገልጋዩ ላይ ችግር ተፈጥሯል' : result.error === 'auth' ? 'Sign in to share a read-only link' : 'Could not create a share link');
+      window.setTimeout(() => setShareMsg(null), 3500);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(result.url);
+      setShareMsg(isAmharic ? 'አገናኝ ተገልብጧል!' : 'Link copied — anyone can open it');
+    } catch {
+      // Clipboard blocked; still show a set state and offer the live link.
+      window.prompt(isAmharic ? 'የመጋሪያ አገናኝ' : 'Share link', result.url);
+      setShareMsg(null);
+      return;
+    }
+    if (shareMsgTimer.current) window.clearTimeout(shareMsgTimer.current);
+    shareMsgTimer.current = window.setTimeout(() => setShareMsg(null), 3500);
+  };
 
   // zoom / pan state for the whole-book canvas
   const [zoom, setZoom] = useState(0.85);
@@ -98,6 +134,26 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
             <ArrowLeft className="w-3.5 h-3.5" />
             {isAmharic ? 'ወደ መጻሕፍት ማዕከል ተመለስ' : 'Back to Books'}
           </button>
+
+          {shareMsg ? (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-500 shrink-0">
+              <Check className="w-3.5 h-3.5" />
+              {shareMsg}
+            </span>
+          ) : (
+            <button
+              onClick={handleShare}
+              disabled={shareBusy}
+              style={{ color: 'var(--app-text-muted, #475569)', borderColor: 'var(--app-border, #cbd5e1)' }}
+              className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold border rounded-lg px-2.5 py-1 hover:opacity-80 transition-opacity shrink-0 disabled:opacity-50"
+              title={isAmharic ? 'የማንበብ አገናኝ ይፍጠሩ' : 'Create a read-only share link'}
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              {shareBusy
+                ? (isAmharic ? 'በመፍጠር ላይ...' : 'Creating...')
+                : (isAmharic ? 'አጋራ' : 'Share')}
+            </button>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">

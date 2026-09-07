@@ -4,7 +4,7 @@
 // disabled, the app stays localStorage-only). When a DB is present, magic-link
 // auth is enforced for the /api/me/* sync routes.
 import { Router } from 'express';
-import { eq } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { getDb, authEnabled } from './db/client';
 import { workspaces, studyEvents, users } from './db/schema';
 import { User as BaUser } from './db/baSchema';
@@ -12,6 +12,7 @@ import { issueMagicToken, consumeMagicToken, requireAuth, getUserFromToken, revo
 import { sendLoginLinkEmail, emailConfigured } from './email';
 import { makeRateLimiter, rateLimitKey } from './rateLimit';
 import { getAuth, headersFromExpress, isGoogleAuthConfigured } from './betterAuth';
+import { issueShareSig, verifyShareSig } from './share';
 
 // Auth-gate hardening (milestone 4-adjacent).
 // - Per-email+IP: 5 login links / 15 min stops someone spamming one address.
@@ -239,6 +240,85 @@ export function registerSyncRoutes(app: Router) {
     } catch (err) {
       console.error('Error recording study event:', err);
       res.status(500).json({ error: 'Could not record study activity.' });
+    }
+  });
+
+  // GET /api/me/study-events — this user's append-only progress history. The
+  // stored `payload` holds the full client activity (score, accuracy, titles);
+  // older rows without a payload are synthesized from the top-level columns.
+  app.get('/api/me/study-events', requireAuth, async (req: any, res) => {
+    if (!authEnabled()) return res.json({ localMode: true, activities: [] });
+    const requested = Number(req.query.limit);
+    const limit = Number.isFinite(requested) ? Math.max(1, Math.min(500, requested)) : 300;
+    try {
+      const db = getDb()!;
+      const rows = await db
+        .select()
+        .from(studyEvents)
+        .where(eq(studyEvents.userId, req.user.id))
+        .orderBy(desc(studyEvents.createdAt))
+        .limit(limit);
+      res.json({
+        activities: rows.map((r) => ({
+          eventType: r.eventType,
+          workspaceId: r.workspaceId || undefined,
+          unitId: r.unitId || undefined,
+          nodeId: r.nodeId || undefined,
+          ...(r.payload && typeof r.payload === 'object' ? (r.payload as object) : {}),
+          ts: new Date(r.createdAt).getTime()
+        }))
+      });
+    } catch (err) {
+      console.error('Error loading study events:', err);
+      res.status(500).json({ error: 'Could not load study history.' });
+    }
+  });
+
+  // POST /api/share/create — mint a signed read-only link for one of this
+  // user's server-side workspaces. Ownership is verified before a signature is
+  // issued, so a link can only represent a workspace the owner actually has.
+  app.post('/api/share/create', requireAuth, async (req: any, res) => {
+    if (!authEnabled()) return res.status(400).json({ error: 'Sharing requires a connected database.' });
+    const body = getObject(req.body);
+    const workspaceId = String(body.workspaceId || '');
+    if (!workspaceId) return res.status(400).json({ error: 'workspaceId is required.' });
+    try {
+      const db = getDb()!;
+      const row = await db
+        .select({ workspaceId: workspaces.workspaceId })
+        .from(workspaces)
+        .where(eq(workspaces.userId, req.user.id))
+        .limit(100);
+      const owned = row.some((r) => r.workspaceId === workspaceId);
+      if (!owned) return res.status(404).json({ error: 'Workspace not found for this account.' });
+      res.json({ ok: true, share: { userId: req.user.id, workspaceId, sig: issueShareSig(req.user.id, workspaceId) } });
+    } catch (err) {
+      console.error('Error creating share link:', err);
+      res.status(500).json({ error: 'Could not create a share link.' });
+    }
+  });
+
+  // GET /api/share/read — public, verifies the signature, returns the workspace
+  // (read-only preview for anyone holding the link). Never leaks account data.
+  app.get('/api/share/read', async (req, res) => {
+    const user = String(req.query.user || '');
+    const id = String(req.query.id || '');
+    const sig = String(req.query.sig || '');
+    if (!user || !id || !verifyShareSig(user, id, sig)) {
+      return res.status(400).json({ error: 'This share link is invalid.' });
+    }
+    if (!authEnabled()) return res.status(400).json({ error: 'Sharing requires a connected database.' });
+    try {
+      const row = await getDb()!
+        .select({ data: workspaces.data })
+        .from(workspaces)
+        .where(and(eq(workspaces.userId, user), eq(workspaces.workspaceId, id)))
+        .limit(1);
+      if (!row[0]?.data) return res.status(404).json({ error: 'This workspace is no longer available.' });
+      res.json({ workspace: row[0].data });
+    } catch (err) {
+      console.error('Error reading shared workspace:', err);
+      res.status(500).json({ error: 'Could not load the shared workspace.' });
     }
   });
 }

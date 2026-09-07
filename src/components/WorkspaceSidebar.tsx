@@ -28,6 +28,7 @@ import {
   Palette,
   Globe,
   FlaskConical,
+  TrendingUp,
   X
 } from 'lucide-react';
 
@@ -140,6 +141,14 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       icon: Clock,
       tour: 'focus',
       sub: isAmharic ? 'በፀጥታ ይማሩ' : 'Study with a timer'
+    },
+    {
+      id: 'progress' as ActiveTab,
+      label: 'Progress',
+      labelAmharic: 'እድገት',
+      icon: TrendingUp,
+      tour: undefined,
+      sub: isAmharic ? 'ታሪክ እና ቀጣይነት' : 'Streaks, history & insights'
     }
   ];
 

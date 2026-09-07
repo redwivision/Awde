@@ -10,7 +10,7 @@ import {
 import { DEFAULT_TEXTBOOK_WORKSPACES } from './data/textbookWorkspaces';
 import { AESTHETIC_THEMES } from './data/themes';
 import { loadWorkspaces as loadWorkspacesFromStorage } from './data/persistence';
-import { getSession, confirmLogin, extractMagicToken, pushWorkspace, pullWorkspaces, isServerSynced, syncServerSession, SESSION_KEY, SESSION_EVENT, Session } from './lib/sync';
+import { getSession, confirmLogin, extractMagicToken, pushWorkspace, pullWorkspaces, isServerSynced, syncServerSession, recordStudyActivity, readShareParams, SESSION_KEY, SESSION_EVENT, Session } from './lib/sync';
 import { useOnlineStatus } from './lib/api';
 import { WorkspaceSidebar } from './components/WorkspaceSidebar';
 import { LandingPage } from './components/LandingPage';
@@ -48,6 +48,12 @@ const AccountModal = React.lazy(() =>
 );
 const CommandPalette = React.lazy(() =>
   import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette }))
+);
+const ProgressTimeline = React.lazy(() =>
+  import('./components/ProgressTimeline').then((m) => ({ default: m.ProgressTimeline }))
+);
+const SharedWorkspaceView = React.lazy(() =>
+  import('./components/SharedWorkspaceView').then((m) => ({ default: m.SharedWorkspaceView }))
 );
 import {
   Menu,
@@ -149,6 +155,12 @@ export default function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+  // Read-only shared workspace preview (?share=1&user=&id=&sig=). When present,
+  // the app renders a lightweight SharedWorkspaceView instead of landing/workspace.
+  const [sharedWs, setSharedWs] = useState<TextbookWorkspace | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareError, setShareError] = useState(false);
+
   // Live view of the server session so the header/landing reflect it without
   // a reload. Updated by SESSION_EVENT (same tab) or the `storage` event
   // (another tab completing a magic-link login).
@@ -191,6 +203,25 @@ export default function App() {
       window.removeEventListener('storage', onStorage);
       if (noticeTimer.current) window.clearTimeout(noticeTimer.current);
     };
+  }, []);
+
+  // Read-only share link: when the URL carries a signed ?share=... the app
+  // fetches the (read-only) workspace and renders SharedWorkspaceView instead
+  // of the landing/workspace UI — no auth, no writes, no consent prompt.
+  useEffect(() => {
+    const share = readShareParams(window.location.href);
+    if (!share) return;
+    setShareLoading(true);
+    fetch(
+      `/api/share/read?user=${encodeURIComponent(share.user)}&id=${encodeURIComponent(share.id)}&sig=${encodeURIComponent(share.sig)}`
+    )
+      .then((r) => r.json())
+      .then((d: { workspace?: TextbookWorkspace }) => {
+        if (d?.workspace) setSharedWs(d.workspace);
+        else setShareError(true);
+      })
+      .catch(() => setShareError(true))
+      .finally(() => setShareLoading(false));
   }, []);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('library');
@@ -347,6 +378,15 @@ export default function App() {
 
   const handleMarkMastered = (nodeId: string) => {
     handleUpdateNodeMastery(nodeId, 100, 'mastered');
+    const node = currentUnit?.nodes.find((n) => n.id === nodeId);
+    recordStudyActivity({
+      eventType: 'mastery',
+      unitId: currentUnit?.id,
+      unitTitle: currentUnit?.title,
+      nodeId,
+      nodeLabel: node?.label,
+      score: 100
+    });
   };
 
   // Switch to Feynman Arena from Drawer
@@ -413,6 +453,8 @@ export default function App() {
         return isAmharic ? 'ትኩረት' : 'Focus';
       case 'library':
         return isAmharic ? 'መጻሕፍት' : 'Books';
+      case 'progress':
+        return isAmharic ? 'እድገት' : 'Progress';
       default:
         return 'Awde';
     }
@@ -420,8 +462,9 @@ export default function App() {
 
   return (
     <>
-      {/* Age-gate + informed consent, shown once before the workspace */}
-      {needsConsent && (
+      {/* Age-gate + informed consent, shown once before the workspace. The
+          read-only share preview skips it: it stores nothing and calls no AI. */}
+      {!shareLoading && !shareError && !sharedWs && needsConsent && (
         <ConsentGate
           language={language}
           onAgree={(record: ConsentRecord) => {
@@ -431,7 +474,35 @@ export default function App() {
         />
       )}
 
-      {isLandingOpen ? (
+      {/* Read-only shared workspace preview (signed share link) */}
+      {shareLoading ? (
+        <div className="flex h-screen w-screen items-center justify-center bg-slate-950">
+          <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+        </div>
+      ) : shareError ? (
+        <div className="flex h-screen w-screen items-center justify-center bg-slate-950 text-slate-200 p-6">
+          <div className="max-w-sm text-center space-y-4">
+            <h1 className="text-lg font-bold">
+              {isAmharic ? 'ይህ የመጋሪያ ሊንክ ልክ የሆነ አይደለም።' : 'This share link is invalid or has expired.'}
+            </h1>
+            <a
+              href="/"
+              className="inline-block px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
+            >
+              {isAmharic ? 'ወደ Awde ተመለስ' : 'Go to Awde'}
+            </a>
+          </div>
+        </div>
+      ) : sharedWs ? (
+        <React.Suspense fallback={<TabSpinner />}>
+          <SharedWorkspaceView
+            workspace={sharedWs}
+            language={language}
+            onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}
+          />
+        </React.Suspense>
+      ) : (
+      isLandingOpen ? (
     <LandingPage
       language={language}
       onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}
@@ -703,6 +774,10 @@ export default function App() {
                 {activeTab === 'studysuite' && (
                   <StudySuite unit={currentUnit} language={language} />
                 )}
+
+                {activeTab === 'progress' && (
+                  <ProgressTimeline language={language} />
+                )}
               </React.Suspense>
             )}
           </main>
@@ -781,7 +856,7 @@ export default function App() {
         }}
       />
     </div>
-    )}
+    ))}
     </>
   );
 }

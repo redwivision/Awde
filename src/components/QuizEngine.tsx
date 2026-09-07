@@ -16,6 +16,7 @@ import {
   Volume2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { recordStudyActivity } from '../lib/sync';
 
 interface QuizEngineProps {
   unit: TopicUnit;
@@ -61,6 +62,15 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
       setCurrentIndex((prev) => prev + 1);
       setShowExplanation(selectedAnswers[currentIndex + 1] !== undefined);
     } else {
+      const answered = activeQuestions.length;
+      const scorePct = answered > 0 ? Math.round((correctCount / answered) * 100) : 0;
+      recordStudyActivity({
+        eventType: 'quiz',
+        unitId: unit.id,
+        unitTitle: unit.title,
+        score: scorePct,
+        accuracy: answered > 0 ? Math.round((correctCount / answered) * 100) : 0
+      });
       setIsCompleted(true);
       confetti({
         particleCount: 70,

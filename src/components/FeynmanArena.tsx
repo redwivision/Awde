@@ -11,6 +11,7 @@ import {
   MethodExperimentLog
 } from '../types';
 import { RootyAvatar } from './RootyAvatar';
+import { recordStudyActivity } from '../lib/sync';
 import {
   Send,
   Sparkles,
@@ -179,6 +180,16 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
 
         setLastEvaluation(evalData);
         setCurrentEmotion(evalData.emotion);
+
+        // Log the attempt to the study-history timeline (local + server sync).
+        recordStudyActivity({
+          eventType: 'feynman',
+          unitId: unit.id,
+          unitTitle: unit.title,
+          nodeId: selectedNode.id,
+          nodeLabel: selectedNode.label,
+          score: evalData.score
+        });
 
         // Advance Socratic Phase
         if (evalData.score >= 50 && currentStep === 1) setCurrentStep(2);
