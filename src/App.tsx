@@ -56,7 +56,6 @@ import {
   Globe,
   ChevronRight,
   ShieldCheck,
-  Sparkles,
   Command,
   WifiOff,
   HelpCircle,
@@ -139,28 +138,9 @@ export default function App() {
     return () => window.clearTimeout(t);
   }, [isLandingOpen, hasSeenTour, tourActive, dismissedTour]);
 
-  // Fallback-mode banner — shown when the server has no Gemini key, so AI
-  // features use deterministic offline generators. Distinct from device
-  // offline (no network at all), which is handled by the online-status hook.
-  const [showFallbackBanner, setShowFallbackBanner] = useState(false);
-
   // Live device connectivity. When offline, AI requests short-circuit in
   // lib/api.ts and show a notice instead of hanging.
   const isDeviceOnline = useOnlineStatus();
-
-  useEffect(() => {
-    // Check if the server is running without a Gemini key (fallback mode)
-    const checkFallbackMode = async () => {
-      try {
-        const res = await fetch('/api/health');
-        const data = await res.json();
-        setShowFallbackBanner(!data.hasGeminiKey);
-      } catch {
-        setShowFallbackBanner(true);
-      }
-    };
-    checkFallbackMode();
-  }, []);
 
   const [isAestheticsModalOpen, setIsAestheticsModalOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
@@ -474,24 +454,6 @@ export default function App() {
             className="ml-2 px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 transition-colors font-semibold"
           >
             {isAmharic ? 'እንደገና ጫን' : 'Reload'}
-          </button>
-        </div>
-      )}
-
-      {/* Fallback Mode Banner — server running without a Gemini key */}
-      {showFallbackBanner && isDeviceOnline && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500/95 backdrop-blur-sm text-amber-950 px-4 py-2 flex items-center justify-center gap-2 text-xs font-medium shadow-lg">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>
-            {isAmharic
-              ? 'ኦፍላይን ሁነታ፡ ስርዓቱ በራስ-ሰር የተፈጠሩ መረጃዎችን እየተጠቀመ ነው። የGemini API ቁልፍ በማስገባት ሙሉ AI ባህሪያትን ማግኘት ይችላሉ።'
-              : 'Offline Mode: Using deterministic fallback generators. Configure GEMINI_API_KEY to unlock live AI features.'}
-          </span>
-          <button
-            onClick={() => setShowFallbackBanner(false)}
-            className="ml-2 px-2 py-0.5 rounded bg-amber-900/20 hover:bg-amber-900/30 transition-colors"
-          >
-            {isAmharic ? 'ዝጋ' : 'Dismiss'}
           </button>
         </div>
       )}
