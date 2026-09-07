@@ -19,9 +19,22 @@ possible — and no learning data without an account.**
 | Using the app with no account (default) | All of your books, mastery scores, quiz results, Feynman sessions, flashcards | Your own device (`localStorage`) — never sent to a server |
 | Creating an account (+ syncing) | Your **email** (only to log you in), plus your books and study events (so they follow you across devices) | Our database (e.g. Neon) |
 | Asking the AI for help | The question/explanation you type (sent to the AI model to answer it) | Transmitted to the AI provider; learned content may sync if logged in |
+| Generating a mind-map or quiz | Generated study content only — **not** your typed recall/chat text | Cached server-side (see §5a) so repeat requests cost nothing |
 
 We do **not** collect your name, address, phone number, photos, or device
 fingerprint. We do not sell or share personal data with advertisers.
+
+## 5a. The study-content cache
+
+When a database is configured, the mind-maps and quizzes Awde generates are
+**cached server-side keyed by a hash** of the topic + textbook text + options
+(`generated_units`). Benefits: two students studying the same topic get the
+same high-quality unit, and repeat requests are served instantly with zero AI
+cost. This cache stores **only generated study content** — never your typed
+recall/chat text (the most private data) and no personally-identifying
+information. Each stored unit records a coarse, non-identifying fingerprint of
+who first generated it (for curation only). You can request its removal with
+§7.
 
 ## 2. Learning data & personalization
 

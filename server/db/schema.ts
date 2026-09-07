@@ -1,7 +1,7 @@
 // Database schema for Awde's server-side persistence (Neon/Postgres via Drizzle).
 // Keep this in sync with the app's single-source-of-truth data model: the whole
 // workspace shape is stored as JSONB, and study progress is an append-only log.
-import { pgTable, text, timestamp, jsonb, bigserial, index, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, jsonb, bigserial, boolean, integer, index, primaryKey } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Accounts. Passwordless by design for v1: users log in via a one-time link.
@@ -70,6 +70,33 @@ export const studyEvents = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
   },
   (t) => [index('study_events_user_time_idx').on(t.userId, t.createdAt)]
+);
+
+// Shared AI-generation cache (content-addressed). One row per unique, verified
+// generation ("same textbook + topic → same unit, for free"). Keyed by the
+// SHA-256 of the normalized generation inputs so repeat requests never spend
+// AI tokens. Serving a cached unit is instant and costs nothing, which is the
+// real money-saver for the free tier AND the graceful offline story: a student
+// regenerating a topic gets the exact community-quality unit immediately.
+export const generatedUnits = pgTable(
+  'generated_units',
+  {
+    contentHash: text('content_hash').primaryKey(),
+    // 'mindmap' | 'quiz' — separates cache namespaces per generation kind.
+    kind: text('kind').notNull(),
+    // The normalized AI output. Shape-validated before insert (see unitCache.ts)
+    // so a poisoned/hallucinated payload can never be served back.
+    data: jsonb('data').notNull(),
+    // Fingerprint of whoever first generated this (course-grained, no PII).
+    sourceAuthorFingerprint: text('source_author_fingerprint').notNull().default(''),
+    // Community-verified flag; false by default until curated.
+    verified: boolean('verified').notNull().default(false),
+    // Usage counters let us retire untouched rows and observe hit rates.
+    hitCount: integer('hit_count').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (t) => [index('generated_units_kind_idx').on(t.kind)]
 );
 
 export const usersRelations = relations(users, ({ many }) => ({

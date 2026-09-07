@@ -7,15 +7,20 @@ import { createServer as createViteServer } from 'vite';
 import multer from 'multer';
 import { GoogleGenAI, Type } from '@google/genai';
 import {
-  getGeminiClient,
   generateFallbackUnit,
   generateFallbackFeynmanEvaluation,
   generateFallbackQuestions,
   generateFallbackBlurting,
-  generateFallbackNodeAnswer,
-  withTimeout,
-  AI_TIMEOUT_MS
+  generateFallbackNodeAnswer
 } from './server/ai';
+import { callAiWithFallback } from './server/providerRouter';
+import { getCachedUnit, storeCachedUnit, unitCacheKey } from './server/unitCache';
+import {
+  mindmapDailyQuota,
+  quizDailyQuota,
+  chatDailyQuota,
+  textbookDailyQuota
+} from './server/quota';
 import { processTextbookPdf } from './server/textbook';
 import { registerSyncRoutes } from './server/sync';
 import { registerContactRoutes } from './server/contact';
@@ -138,7 +143,7 @@ const upload = multer({
 });
 
 // API: Upload a real textbook PDF -> extract text -> build an AI mastery workspace
-app.post('/api/textbook/process', textbookLimiter, upload.single('file'), async (req, res) => {
+app.post('/api/textbook/process', textbookDailyQuota, textbookLimiter, upload.single('file'), async (req, res) => {
   try {
     const genericError = 'Could not process the textbook. Please try again or use a Quick-Start sample.';
     if (!req.file) {
@@ -182,22 +187,17 @@ app.post('/api/textbook/process', textbookLimiter, upload.single('file'), async 
 });
 
 // API: Generate Mind-Map & Concept Breakdown
-app.post('/api/mindmap/generate', aiRateLimiter, async (req, res) => {
+app.post('/api/mindmap/generate', mindmapDailyQuota, aiRateLimiter, async (req, res) => {
   const body = getSafeJsonBody(req, res);
   if (!body) return;
   const { topic, textbookText, subject, gradeLevel, language } = body;
   const blocked = checkInputs(topic, textbookText);
   if (blocked.blocked) return res.status(400).json({ blocked: true, error: BLOCKED_MESSAGE });
+  const cacheKey = unitCacheKey('mindmap', [topic, subject, gradeLevel, language === 'am' ? 'am' : 'en', textbookText]);
   try {
-    const ai = getGeminiClient();
-
-    if (!ai) {
-      // Fallback deterministic generator if API key is not yet set
-      return res.json({
-        success: true,
-        isFallback: true,
-        unit: generateFallbackUnit(topic || 'Concept Study', subject || 'Science', textbookText || '')
-      });
+    const cached = await getCachedUnit('mindmap', cacheKey);
+    if (cached) {
+      return res.json({ success: true, fromCache: true, unit: cached.data });
     }
 
     const systemPrompt = withSafetyInstruction(`You are Awde's Master Concept Architect and EdTech Pedagogy Engine.
@@ -221,13 +221,7 @@ ${wrapUserInput('textbook', (textbookText || topic || 'Key core concepts and for
 Primary Language: ${language === 'am' ? 'Amharic (አማርኛ) prioritized alongside English' : 'English with complete Amharic translations'}
 ${PROMPT_DATA_BOUNDARY()}`;
 
-    const response = await withTimeout(ai.models.generateContent({
-      model: 'gemini-3.7-flash',
-      contents: prompt,
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: 'application/json',
-        responseSchema: {
+    const geminiSchema = {
           type: Type.OBJECT,
           properties: {
             title: { type: Type.STRING },
@@ -335,20 +329,24 @@ ${PROMPT_DATA_BOUNDARY()}`;
             }
           },
           required: ['title', 'titleAmharic', 'subject', 'nodes', 'connections', 'quizQuestions', 'flashcards']
-        }
-      }
-    }), AI_TIMEOUT_MS);
+        };
 
-    const parsed = JSON.parse(response.text || '{}');
-    const unitId = 'unit_' + Date.now();
-    const finalUnit = {
-      id: unitId,
-      overallMastery: 0,
-      createdAt: new Date().toISOString().split('T')[0],
-      ...parsed
-    };
+    const { data: unitData, provider } = await callAiWithFallback({
+      label: 'mindmap',
+      systemPrompt,
+      prompt,
+      geminiSchema,
+      maxTokens: 5000,
+      fallback: () => generateFallbackUnit(topic || 'Concept Study', subject || 'Science', textbookText || '')
+    });
 
-    res.json({ success: true, unit: finalUnit });
+    const unit = provider
+      ? { id: 'unit_' + Date.now(), overallMastery: 0, createdAt: new Date().toISOString().split('T')[0], ...unitData }
+      : unitData;
+
+    if (provider) await storeCachedUnit('mindmap', cacheKey, unit, rateLimitKey(req));
+
+    res.json({ success: true, unit, ...(provider ? { provider } : { isFallback: true }) });
   } catch (error: any) {
     console.error('Error generating mindmap:', error);
     // AI failed (timeout/network/API) — never error the student; fall back deterministically.
@@ -357,7 +355,7 @@ ${PROMPT_DATA_BOUNDARY()}`;
 });
 
 // API: Rooty Socratic Feynman Evaluation
-app.post('/api/feynman/evaluate', aiRateLimiter, async (req, res) => {
+app.post('/api/feynman/evaluate', chatDailyQuota, aiRateLimiter, async (req, res) => {
   const body = getSafeJsonBody(req, res);
   if (!body) return;
   const {
@@ -371,15 +369,6 @@ app.post('/api/feynman/evaluate', aiRateLimiter, async (req, res) => {
   const blocked = checkInputs(userExplanation, nodeLabel, nodeSummary, JSON.stringify(chatHistory || []));
   if (blocked.blocked) return res.status(400).json({ blocked: true, error: BLOCKED_MESSAGE });
   try {
-    const ai = getGeminiClient();
-
-    if (!ai) {
-      return res.json({
-        success: true,
-        isFallback: true,
-        evaluation: generateFallbackFeynmanEvaluation(nodeLabel, userExplanation, strictnessLevel)
-      });
-    }
 
     const strictnessGuideline =
       strictnessLevel === 'ironclad'
@@ -422,13 +411,7 @@ ${wrapUserInput('chatHistory', chatHistory || [])}
 Evaluate this Feynman attempt now.
 ${PROMPT_DATA_BOUNDARY()}`;
 
-    const response = await withTimeout(ai.models.generateContent({
-      model: 'gemini-3.7-flash',
-      contents: prompt,
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: 'application/json',
-        responseSchema: {
+    const geminiSchema = {
           type: Type.OBJECT,
           properties: {
             score: { type: Type.INTEGER, description: '0 to 100 grade based on genuine Feynman clarity' },
@@ -470,12 +453,17 @@ ${PROMPT_DATA_BOUNDARY()}`;
             'followUpQuestion',
             'followUpQuestionAmharic'
           ]
-        }
-      }
-    }), AI_TIMEOUT_MS);
+        };
 
-    const parsed = JSON.parse(response.text || '{}');
-    res.json({ success: true, evaluation: parsed });
+    const { data, provider } = await callAiWithFallback({
+      label: 'feynman',
+      systemPrompt,
+      prompt,
+      geminiSchema,
+      fallback: () => generateFallbackFeynmanEvaluation(nodeLabel, userExplanation, strictnessLevel)
+    });
+
+    res.json({ success: true, evaluation: data, ...(provider ? { provider } : { isFallback: true }) });
   } catch (error: any) {
     console.error('Error evaluating Feynman attempt:', error);
     // AI failed — never error the student; fall back deterministically.
@@ -484,7 +472,7 @@ ${PROMPT_DATA_BOUNDARY()}`;
 });
 
 // API: Ask Rooty — lightweight Q&A about a concept node
-app.post('/api/node/ask', aiRateLimiter, async (req, res) => {
+app.post('/api/node/ask', chatDailyQuota, aiRateLimiter, async (req, res) => {
   const body = getSafeJsonBody(req, res);
   if (!body) return;
   const { nodeLabel, nodeSummary, question, language, chatHistory } = body;
@@ -497,15 +485,6 @@ app.post('/api/node/ask', aiRateLimiter, async (req, res) => {
   if (blocked.blocked) return res.status(400).json({ blocked: true, error: BLOCKED_MESSAGE });
 
   try {
-    const ai = getGeminiClient();
-
-    if (!ai) {
-      return res.json({
-        success: true,
-        isFallback: true,
-        ...generateFallbackNodeAnswer(nodeLabel, question)
-      });
-    }
 
     const systemPrompt = withSafetyInstruction(`You are "Rooty", a sharp, witty, and encouraging AI tutor in the Awde learning system.
 Your job is to answer student questions about a specific concept clearly and intuitively.
@@ -525,25 +504,24 @@ ${chatHistory && chatHistory.length > 0 ? `Previous conversation:\n${wrapUserInp
 Answer the student's question now. Be clear, concise, and encouraging.
 ${PROMPT_DATA_BOUNDARY()}`;
 
-    const response = await withTimeout(ai.models.generateContent({
-      model: 'gemini-3.7-flash',
-      contents: prompt,
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: 'application/json',
-        responseSchema: {
+    const geminiSchema = {
           type: Type.OBJECT,
           properties: {
             answer: { type: Type.STRING },
             answerAmharic: { type: Type.STRING }
           },
           required: ['answer', 'answerAmharic']
-        }
-      }
-    }), AI_TIMEOUT_MS);
+        };
 
-    const parsed = JSON.parse(response.text || '{}');
-    res.json({ success: true, answer: parsed.answer, answerAmharic: parsed.answerAmharic });
+    const { data, provider } = await callAiWithFallback({
+      label: 'node-ask',
+      systemPrompt,
+      prompt,
+      geminiSchema,
+      fallback: () => generateFallbackNodeAnswer(nodeLabel, question)
+    });
+
+    res.json({ success: true, answer: data.answer, answerAmharic: data.answerAmharic, ...(provider ? { provider } : { isFallback: true }) });
   } catch (error: any) {
     console.error('Error in node ask:', error);
     // AI failed — never error the student; Rooty answers deterministically instead.
@@ -552,7 +530,7 @@ ${PROMPT_DATA_BOUNDARY()}`;
 });
 
 // API: Generate Unlimited Diagnostic Quizzes
-app.post('/api/quiz/generate', aiRateLimiter, async (req, res) => {
+app.post('/api/quiz/generate', quizDailyQuota, aiRateLimiter, async (req, res) => {
   const body = getSafeJsonBody(req, res);
   if (!body) return;
   const { topic, textbookText, count = 5, difficulty = 'adaptive' } = body;
@@ -560,15 +538,11 @@ app.post('/api/quiz/generate', aiRateLimiter, async (req, res) => {
   const safeCount = Number.isFinite(parsedCount) ? Math.max(1, Math.min(20, parsedCount)) : 5;
   const blocked = checkInputs(topic, textbookText);
   if (blocked.blocked) return res.status(400).json({ blocked: true, error: BLOCKED_MESSAGE });
+  const cacheKey = unitCacheKey('quiz', [topic, safeCount, difficulty, textbookText]);
   try {
-    const ai = getGeminiClient();
-
-    if (!ai) {
-      return res.json({
-        success: true,
-        isFallback: true,
-        questions: generateFallbackQuestions(topic, safeCount)
-      });
+    const cached = await getCachedUnit('quiz', cacheKey);
+    if (cached) {
+      return res.json({ success: true, fromCache: true, questions: cached.data });
     }
 
     const systemPrompt = withSafetyInstruction(`You are Awde's Quiz & Diagnostic Assessment Engine.
@@ -580,13 +554,7 @@ ${wrapUserInput('topic', topic)}
 ${wrapUserInput('textbook', (textbookText || topic).slice(0, 3000))}
 ${PROMPT_DATA_BOUNDARY()}`;
 
-    const response = await withTimeout(ai.models.generateContent({
-      model: 'gemini-3.7-flash',
-      contents: prompt,
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: 'application/json',
-        responseSchema: {
+    const geminiSchema = {
           type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
@@ -604,12 +572,20 @@ ${PROMPT_DATA_BOUNDARY()}`;
             },
             required: ['id', 'question', 'options', 'correctIndex', 'explanation', 'difficulty']
           }
-        }
-      }
-    }), AI_TIMEOUT_MS);
+        };
 
-    const parsed = JSON.parse(response.text || '[]');
-    res.json({ success: true, questions: parsed });
+    const { data: questions, provider } = await callAiWithFallback({
+      label: 'quiz',
+      systemPrompt,
+      prompt,
+      geminiSchema,
+      maxTokens: 3000,
+      fallback: () => generateFallbackQuestions(topic, safeCount)
+    });
+
+    if (provider) await storeCachedUnit('quiz', cacheKey, questions, rateLimitKey(req));
+
+    res.json({ success: true, questions, ...(provider ? { provider } : { isFallback: true }) });
   } catch (error: any) {
     console.error('Error generating quiz:', error);
     // AI failed — never error the student; fall back deterministically.
@@ -618,22 +594,13 @@ ${PROMPT_DATA_BOUNDARY()}`;
 });
 
 // API: Blurting Active Recall Evaluation
-app.post('/api/blurting/evaluate', aiRateLimiter, async (req, res) => {
+app.post('/api/blurting/evaluate', chatDailyQuota, aiRateLimiter, async (req, res) => {
   const body = getSafeJsonBody(req, res);
   if (!body) return;
   const { topicTitle, targetKeyPoints, userRecallText } = body;
   const blocked = checkInputs(topicTitle, userRecallText, JSON.stringify(targetKeyPoints));
   if (blocked.blocked) return res.status(400).json({ blocked: true, error: BLOCKED_MESSAGE });
   try {
-    const ai = getGeminiClient();
-
-    if (!ai) {
-      return res.json({
-        success: true,
-        isFallback: true,
-        ...generateFallbackBlurting(targetKeyPoints)
-      });
-    }
 
     const systemPrompt = withSafetyInstruction(`You evaluate active recall (the Blurting Method). The student was given 3 minutes to type everything they remember about a topic. Compare their blurt against the target key concepts. Give an accuracy score, list what they correctly retrieved, what they missed, and provide constructive feedback in English and Amharic.`);
 
@@ -643,13 +610,7 @@ Student's Blurting Recall text:
 ${wrapUserInput('userRecallText', userRecallText)}
 ${PROMPT_DATA_BOUNDARY()}`;
 
-    const response = await withTimeout(ai.models.generateContent({
-      model: 'gemini-3.7-flash',
-      contents: prompt,
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: 'application/json',
-        responseSchema: {
+    const geminiSchema = {
           type: Type.OBJECT,
           properties: {
             accuracyScore: { type: Type.INTEGER },
@@ -659,11 +620,17 @@ ${PROMPT_DATA_BOUNDARY()}`;
             feedbackAmharic: { type: Type.STRING }
           },
           required: ['accuracyScore', 'recalledKeyPoints', 'missedKeyPoints', 'feedback', 'feedbackAmharic']
-        }
-      }
-    }), AI_TIMEOUT_MS);
+        };
 
-    res.json({ success: true, ...JSON.parse(response.text || '{}') });
+    const { data, provider } = await callAiWithFallback({
+      label: 'blurting',
+      systemPrompt,
+      prompt,
+      geminiSchema,
+      fallback: () => generateFallbackBlurting(targetKeyPoints)
+    });
+
+    res.json({ success: true, ...data, ...(provider ? { provider } : { isFallback: true }) });
   } catch (error: any) {
     console.error('Error evaluating blurting:', error);
     // AI failed — never error the student; fall back deterministically.

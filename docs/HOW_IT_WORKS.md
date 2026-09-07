@@ -23,8 +23,11 @@ What's in it:
 | Browser UI (React) | `src/` | What the student sees & clicks |
 | API layer | `src/lib/api.ts` | How the browser talks to the server |
 | Session + sync layer | `src/lib/sync.ts` | Magic-link session storage, workspace push/pull, study events |
-| HTTP server + AI routes | `server.ts` | Receives `/api` calls, calls Gemini |
+| HTTP server + AI routes | `server.ts` | Receives `/api` calls, routes them through the AI provider chain |
 | AI wrappers + fallbacks | `server/ai.ts` | Gemini client + "no key" deterministic generators |
+| AI provider router | `server/providerRouter.ts` | Gemini → Groq → NVIDIA → offline fallback, with per-provider timeouts + circuit breaker |
+| Content cache | `server/unitCache.ts` | Content-addressed cache of generated units/quizzes (Postgres, shape-validated) |
+| Free-tier quotas | `server/quota.ts` | Per-fingerprint daily caps on AI generation spend |
 | Accounts + sync routes | `server/auth.ts`, `server/sync.ts` | Passwordless login, `/api/me/*` sync (only active with a DB) |
 | Database layer | `server/db/` | Drizzle schema + client + migrations (only active with a DB) |
 | PDF pipeline | `server/textbook.ts` | Textbook → AI → workspace |
@@ -70,10 +73,11 @@ mounts **Vite as middleware** (`app.use(vite.middlewares)`). That means:
 
 Before mounting Vite, `startServer` checks whether a `DATABASE_URL` is
 configured (`hasDb()`). If it is, it runs the **Drizzle migrations**
-(`server/db/migrate.ts`) which create the `users`, `sessions`, `workspaces`, and
-`study_events` tables on first boot, then registers the auth + sync routes
-(`registerSyncRoutes`). Auth routes are registered at **module load** (below
-`startServer`) so that tests importing `app` directly get the same routing.
+(`server/db/migrate.ts`) which create the `users`, `sessions`, `workspaces`,
+`study_events`, and `generated_units` tables on first boot, then registers the
+auth + sync routes (`registerSyncRoutes`). Auth routes are registered at
+**module load** (below `startServer`) so that tests importing `app` directly get
+the same routing.
 
 > **Why this design?** It means there's exactly **one process / one port / one
 > origin**. In production there's no Vite — the same `server.ts` just serves the
@@ -287,6 +291,7 @@ a Postgres URL is configured.
 | `sessions` | Bearer session tokens issued after a successful login |
 | `workspaces` | One row per `user_id` + `workspace_id`; the whole workspace shape lives in a `data` **JSONB** column (same single-source-of-truth model as localStorage) |
 | `study_events` | An append-only log of study activity (quiz, mastery, feynman…) for progress-over-time |
+| `generated_units` | Content-addressed cache of AI-generated mind-maps/quizzes (keyed by input hash) so repeat generations cost $0 |
 
 Note the **JSONB workspace**: we deliberately don't normalize the concept graph
 into dozens of relational tables. The app already owns schema evolution via
@@ -399,57 +404,111 @@ behavior, tests included.**
 
 ---
 
-## 6. The AI: "Try Gemini, fall back to deterministic"
+## 6. The AI: a resilient provider chain, not "just Gemini"
 
-Open `server/ai.ts` first. The headline function:
+Open `server/providerRouter.ts`. The headline function is `callAiWithFallback`,
+and **every AI route in `server.ts` calls it** — mind-maps, quizzes, Feynman
+evaluations, node Q&A, blurting grading, and the PDF pipeline. There is no
+Gemini-only path anymore.
 
 ```ts
-export function getGeminiClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-  return new GoogleGenAI({ apiKey, httpOptions: { headers: { 'User-Agent': 'aistudio-build' } } });
+// server/providerRouter.ts (simplified)
+const PROVIDER_ORDER = ['gemini', 'groq', 'nvidia'] as const;
+
+export async function callAiWithFallback(req: AiRouterRequest): Promise<AiRouterResult> {
+  const perProviderMs = req.timeoutMs ?? AI_TIMEOUT_MS;        // e.g. 9s each
+  const deadline = Date.now() + (req.overallTimeoutMs ?? 12_000); // hard cap on the WHOLE chain
+  for (const name of PROVIDER_ORDER) {
+    if (!providerConfigured(name)) continue;      // skip unconfigured keys
+    if (!shouldTryProvider(name)) continue;       // skip tripped circuit breaker
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;                    // chain budget spent: stop
+    const timeoutMs = Math.max(1, Math.min(perProviderMs, remaining));
+    try {
+      return { data: await callProvider(name, req, timeoutMs), provider: name };
+    } catch (err) {
+      recordFailure(name);                        // may trip the breaker
+    }
+  }
+  return { data: await req.fallback(), provider: null }; // guaranteed to resolve
 }
 ```
 
-If there's **no API key, it returns `null`.** That `null` is the trigger for the
-whole fallback system.
+The four guarantees it gives the product:
 
-Now look at *every* route in `server.ts`. They all follow the same 4-step shape.
-Take `/api/feynman/evaluate` as the template:
+1. **Provider order, tried on every request** — Gemini → Groq → NVIDIA. Each
+   is tried only if its key is configured (`ai.ts` exports the key getters), so
+   you can enable just Gemini, or all three.
+2. **Per-provider timeout** — each call is bounded (default `AI_TIMEOUT_MS` =
+   9s). Groq/NVIDIA use `AbortController` on a plain OpenAI-compatible `fetch`;
+   Gemini uses the SDK's async result raced against the same timer.
+3. **Circuit breaker** — 3 consecutive failures for one provider skip it for 60s
+   (`recordFailure`/`shouldTryProvider`/`healthState`), then it's retried
+   automatically. `resetProviderHealth()` re-arms it (used by tests and any
+   future "retry now" UI).
+4. **Overall chain deadline** — without this, three hung providers would each
+   burn their 9s before the offline generator runs (27s worst case). The
+   deadline (default 12s) caps the *whole* chain; each provider's budget shrinks
+   to whatever's left (`Math.min(perProvider, remaining)`).
 
-```ts
-const ai = getGeminiClient();
-if (!ai) {
-  // FALLBACK: no key → return a deterministic, hand-crafted evaluation
-  return res.json({ success: true, isFallback: true, evaluation: generateFallbackFeynmanEvaluation(...) });
-}
-// otherwise: build prompts, call gemini, parse JSON, return
-const response = await withTimeout(ai.models.generateContent({ ... }), AI_TIMEOUT_MS);
-```
+Each provider runner parses the model output with `extractJson()` — it strips
+markdown fences, scans past leading prose, and handles both top-level objects
+(Gemini) and arrays (quizzes) so a model that wraps output in ```json fences
+still counts as a success instead of an error.
 
-And the whole thing is wrapped in try/catch:
+`shouldTryProvider` remembers failures via a module-level `healthState` map —
+it's **per process**, which is fine for the single-instance free tier (same
+tradeoff as the rate limiter; both become Redis if it ever scales past one
+process).
 
-```ts
-} catch (error) {
-  // AI failed (timeout/network/API) — never error the student; fall back.
-  res.json({ success: true, isFallback: true, evaluation: generateFallbackFeynmanEvaluation(...) });
-}
-```
+> **Why this design?** The target user is *on weak WiFi*, and the *cheapest*
+> year of the free tier is the one where a dead key or an overloaded provider
+> never takes the app down. `isFallback: true` in the response (resp.
+> `provider: "gemini" | "groq" | "nvidia"` on success) lets the UI label output.
+> **The app NEVER hangs or hard-fails on AI** — the guarantee is only as good as
+> the fallback, and the fallback never fails.
 
-So there are **four layers of protection**:
+### 6.1 The content cache: same topic → same unit, for free (`server/unitCache.ts`)
 
-1. **No API key** → deterministic generator.
-2. **Local model** (optionally via Groq / NVIDIA fallbacks in `textbook.ts`) →
-   try Gemini first, then a fast OpenAI-compatible API.
-3. **Timeout** → `withTimeout(promise, 9000)` races the AI call against a 9-second
-   timer; if the timer wins, it rejects and you hit the fallback.
-4. **Any error** → catch → deterministic generator.
+The key insight: two students studying the *same* textbook topic deserve the
+*same* high-quality unit. `unitCacheKey(kind, parts)` hashes a canonical form of
+everything that shapes the output — kind + topic + options + textbook text —
+after `normalizeCacheInput` collapses case/whitespace. Before spending any AI
+tokens the route does `getCachedUnit(kind, key)`; on a miss it generates
+normally and `storeCachedUnit(...)` saves the result to the `generated_units`
+table. A repeat request is then served instantly with `fromCache: true` — the
+real "crowdsourcing at $0 marginal cost" of the plan.
 
-> **Why this design?** The target user is *on weak WiFi*. A stubborn AI call that
-> hangs would leave the student staring at a spinner or screaming at a 5xx error.
-> The guarantee is: **the app NEVER hangs or hard-fails on AI — it always returns
-> a usable, if less "AI-ish," answer.** `isFallback: true` in the response lets
-> the UI label the output appropriately.
+Guardrails (correctness, not cheap-to-bypass):
+- **Shape-validated before insert** — `isValidMindMap` / `isValidQuiz` reject
+  empty/malformed/hallucinated payloads, and a `MAX_CACHE_BYTES` cap stops
+  oversized writes. A poisoned cache can't be served back.
+- **Only real generations are cached** — the route checks `provider`; offline
+  fallback output is never stored.
+- **Keys are namespaced by kind** — the key hash includes `kind`, and reads
+  filter on `kind` too, so namespaces can never collide.
+- **Privacy** — only generated study content is cached (never user-authored
+  recall/chat; no PII), and `hitCount`/`lastUsedAt` let you measure reuse and
+  retire cold rows.
+- **Strict no-op without a DB** — `hasDb()` guards read and write, so local
+  mode is byte-for-byte unchanged.
+
+### 6.2 The free-tier quotas: bounded daily spend (`server/quota.ts`)
+
+Per-minute rate limits bound *bursts*; the daily quotas ceiling *total AI
+spend* so one script (or one curious class) can't burn the free tier. Every AI
+route is wrapped in its own middleware — `mindmapDailyQuota`,
+`quizDailyQuota`, `chatDailyQuota` (covers Feynman, node Q&A, blurting),
+`textbookDailyQuota` — keyed on the same per-fingerprint identity as the rate
+limiter (IP + user-agent + language). When a bucket is empty the route answers
+`429 { error: "Daily limit reached..." }` *before* any AI call. Limits are read
+from env (`FREE_TIER_*_PER_DAY`) and can be raised/lowered live via
+`refreshQuotaLimits()`; bundled defaults: 30 mind-maps, 120 quizzes, 240 chat
+responses, 10 PDF uploads / fingerprint / day.
+
+> **Why separate the two?** A rate limiter says "not so fast"; a quota says "not
+> so much, ever, today." A student hammering a button hits the limiter; an
+> attacker seeding the cache hits the quota. You want both, keyed the same way.
 
 The `isMain` guard at the bottom of `server.ts` deserves note:
 
@@ -599,13 +658,22 @@ scroll" + "radial gradient, not solid dim."
 
 ## 11. Tests: what they protect
 
-`tests/` uses **Vitest** + **supertest**. The suite (104 tests) clusters around the
-most failure-prone, most important logic:
+`tests/` uses **Vitest** + **supertest**. The suite (138 tests) clusters around
+the most failure-prone, most important logic:
 
 - `persistence.test.ts` — the migration / single-source-of-truth invariants.
 - `data-integrity.test.ts` — units trace back to one workspace, no duplicates.
 - `ai-generators.test.ts` — the deterministic fallback generators return valid
   structures (so offline mode never breaks).
+- `provider-router.test.ts` — the AI provider chain: JSON extraction (fences,
+  prefix prose, arrays), no-key falls straight back, Groq success, non-OK
+  responses become provider failures, the circuit breaker trips then recovers,
+  and the overall chain deadline stops trying further providers.
+- `unit-cache.test.ts` — cache key canonicalization (case/whitespace collapse,
+  kind-namespace separation) and the poison guards (malformed payloads
+  rejected); runs DB-less, where the cache must be a strict no-op.
+- `quota.test.ts` — the mind-map/quiz daily quotas: serve the allowance, then
+  `429`, then recover after a quota refresh; generous defaults without env.
 - `api.integration.test.ts` + `api-helper.test.ts` — hit the Express routes via
   supertest (no port) and check the `isFallback`/error behavior.
 - `auth-sync.test.ts` — the auth + sync endpoints in **local mode** (no
@@ -620,8 +688,20 @@ most failure-prone, most important logic:
 - `safety.test.ts` — the content-safety filter blocks clearly harmful input and
   lets academic input through, plus the prompt-guard layer and that blocked
   requests get a 400 before any generator runs.
+- `cache-db.test.ts` — the **Postgres-backed** cache path: real migrations,
+  store→read round-trip, cross-kind isolation, hit-count bumping, poisoned and
+  oversized payloads refused. Skipped automatically without a `DATABASE_URL`;
+  CI runs it in a dedicated job backed by a throwaway Postgres container.
 
 `npm run lint` is just `tsc --noEmit` (type-checking). `npm test` runs Vitest.
+CI (`.github/workflows/ci.yml`) runs lint + the full suite + a production-bundle
+boot smoke on **every push to main and every PR**, and a second job runs the
+DB-gated cache tests against a real Postgres.
+
+`npm run smoke` is the **live, pre-deploy** check CI deliberately can't do (it
+has no secrets): it boots the real app with your `.env` keys/DB and asserts a
+real provider answers (not `isFallback`) and that a repeat mind-map returns
+`fromCache: true`. Run it locally right before you push to a deploy.
 
 > **Why test these, and not the React UI?** The UI is subjective and changes fast;
 > the *data invariants and API fallbacks* are where a silent bug would corrupt
@@ -640,9 +720,13 @@ A mental checklist before you edit anything:
    workspaces, stop — derive it.
 3. **Immutable updates.** When updating state, return new objects (`...spread`),
    don't mutate in place, or React won't re-render.
-4. **New AI feature?** Add a `/api/...` route in `server.ts` with a
-   `generateFallback...` in `server/ai.ts`, a `postJson` call on the client, and a
-   test hitting the route. Follow the existing 4-layer fallback shape.
+4. **New AI feature?** Add a `/api/...` route in `server.ts` that calls
+   `callAiWithFallback` (with a `fallback:` that uses a `generateFallback...`
+   in `server/ai.ts`), wrap it in the matching daily-quota middleware + rate
+   limiter, add a `postJson` call on the client, and a test hitting the route.
+   If the output is a mind-map or quiz, key + store it via `server/unitCache.ts`.
+   Verify with `npm run lint`, `npm test`, `npm run build` — and `npm run smoke`
+   before shipping to prod.
 5. **New UI string?** Provide EN + AM. Keep it simple (the product targets
    10-year-olds, so shorter is better).
 6. **Run the checks** before committing: `npm run lint` (typecheck), `npm test`,
@@ -658,8 +742,11 @@ A mental checklist before you edit anything:
 | `src/main.tsx` | Mounts `<App/>` into `#root` with StrictMode + ErrorBoundary |
 | `src/App.tsx` | **The brain**: owns all state, decides landing vs workspace, wires tabs & modals |
 | `src/types.ts` | The domain schema every other file types against |
-| `server.ts` | Express server: mounts Vite, runs migrations when a DB exists, registers sync routes, rate limiting, static serving |
-| `server/ai.ts` | Gemini client + all `generateFallback*` deterministic generators |
+| `server.ts` | Express server: mounts Vite, runs migrations when a DB exists, registers sync routes, rate limiting + daily quotas, static serving |
+| `server/ai.ts` | Provider clients (Gemini SDK, Groq/NVIDIA key access) + all `generateFallback*` deterministic generators |
+| `server/providerRouter.ts` | `callAiWithFallback`: Gemini → Groq → NVIDIA → offline generator, per-provider timeouts + circuit breaker |
+| `server/unitCache.ts` | Content-addressed cache of AI generations (canonical key, shape validation, no-op without DB) |
+| `server/quota.ts` | Per-fingerprint daily spending caps for the free tier |
 | `server/textbook.ts` | PDF upload → text → AI workspace (+ fallback builder) |
 | `server/auth.ts` | Magic-link issue/consume, bearer sessions, `requireAuth` (no-op in local mode) |
 | `server/email.ts` | Login-link email message: `buildLoginLinkEmail` HTML+text template (true 15-min expiry, escaped recipient+link, CTA+fallback), `sendLoginLinkEmail` wrapper, dev/prod fallback |
@@ -668,7 +755,7 @@ A mental checklist before you edit anything:
 | `server/rateLimit.ts` | Shared in-memory sliding-window limiter (`makeRateLimiter`) |
 | `server/sync.ts` | `registerSyncRoutes`: login/confirm (rate-limited) + me/workspaces/study-events + account deletion |
 | `server/safety.ts` | `blockedReason`/`checkInputs` filter + `withSafetyInstruction` AI prompt guard |
-| `server/db/schema.ts` | Drizzle tables: users, sessions, workspaces (JSONB), study_events |
+| `server/db/schema.ts` | Drizzle tables: users, sessions, workspaces (JSONB), study_events, generated_units |
 | `server/db/client.ts` | Lazy postgres.js client; `hasDb()`/`authEnabled()` gates |
 | `server/db/migrate.ts` | Runs Drizzle migrations from `drizzle/` at startup |
 | `src/lib/api.ts` | Weak-wifi-safe `postJson`/`postFormData` + `useOnlineStatus` |
@@ -702,8 +789,10 @@ The best way to learn is to break it a little. Try each, then `git` your way bac
 ---
 
 *This guide describes the code as it stands after the accounts + persistence,
-trust & safety, and auth-hardening milestones. When things change, the
-architecture (one server, local state, props-down data flow, AI-with-fallback,
-localStorage-first with optional account sync, content-safety guard, and
+trust & safety, auth-hardening, and resilient-free-tier (provider chain, daily
+quotas, content cache) milestones. When things change, the architecture (one
+server, local state, props-down data flow, AI via a multi-provider
+fallback chain with guaranteed resolution, daily spend quotas, content-addressed
+generation cache, localStorage-first with optional account sync, and
 rate-limited passwordless email auth) is the stable part — that's the part to
 internalize.*

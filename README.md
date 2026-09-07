@@ -52,7 +52,7 @@ Students today rely on static textbooks that force rote-reading and memorization
 | 🌍 **Bilingual** | Full English ⇄ Amharic (አማርኛ) toggle across all content, analogies, quizzes, and Rooty's critique |
 | 🎨 **Theming** | Multiple design aesthetics incl. Nordic Minimal, Scholar Parchment, Obsidian Cyber, and the warm "Addis Espresso" heritage theme |
 | 📴 **Single-Server Simplicity** | One Express process serves the React build and all /api endpoints — no separate backend required |
-| 🔑 **No API Key Required** | All AI endpoints run with deterministic offline-fallback generators when no key is set; a Gemini key makes output richer |
+| 🔑 **Resilient AI (no single point of failure)** | Every AI endpoint runs a provider chain — Gemini → Groq → NVIDIA → deterministic offline generator — with per-provider timeouts and a circuit breaker. One dead/expired key never breaks the app; with no keys at all it still works offline |
 | 👤 **Accounts & Cloud Sync** | Optional passwordless (magic-link) accounts via Neon/Postgres — progress syncs across devices while staying available offline (localStorage-first) |
 | 🛡️ **Privacy-First & Age-Gated** | One-time consent gate before use, in-app Privacy & Terms (footer / Account / gate), no PII by default (only a login email), learning data used for personalization with an account, AI content-safety filter + model guard, one-tap account/data deletion, in-app contact form + published contact email (lewikb13@gmail.com) in footer / Account / policy |
 | 🔍 **Node Mastery Drawer** | Slide-in detail panel for every concept with 5 tabs: Localized Analogy, Concept Core (detailed explanation + key takeaways + related concepts), Common Traps, Rules & Formulas, and Ask Rooty |
@@ -81,7 +81,18 @@ Copy the template and add a Gemini key to enable **live AI generation**:
 cp .env.example .env.local
 ```
 
-Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
+Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey), and — for
+extra resilience against rate limits/outages — optionally add `GROQ_API_KEY`
+(https://console.groq.com) and/or `NVIDIA_API_KEY` (https://build.nvidia.com).
+Providers are tried in order on **every** request: Gemini → Groq → NVIDIA → a
+deterministic offline generator. A key that fails 3× in a row is skipped for a
+minute (circuit breaker) and retried automatically, so a dead/expired key can
+never leave students stranded.
+
+> **Free-tier spend caps (built-in):** daily AI generation is bounded per client
+> fingerprint — 30 mind-maps, 120 quizzes, 240 AI-chat responses, and 10 PDF
+> uploads per day (overridable via the `FREE_TIER_*_PER_DAY` env vars). See
+> `.env.example`.
 
 > **Want accounts + cross-device sync?** Set `DATABASE_URL` to a **Neon/Postgres**
 > connection string. On startup the server creates its tables
@@ -104,7 +115,11 @@ Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
 
 > This project also runs on [Google AI Studio](https://ai.studio), which injects `GEMINI_API_KEY` and `APP_URL` from your account secrets automatically (see `metadata.json`).
 
-> **No key? No problem.** Awde ships with deterministic **offline fallback generators** for every AI endpoint, so the full app — mind-maps, Rooty Feynman evaluation, quizzes, blurting grading — works out of the box without a key. You'll see an amber banner indicating offline mode when no API key is configured. Live Gemini just makes the output richer and unlimited.
+> **No keys? No problem.** Awde ships with a resilient **provider chain** for
+> every AI endpoint — Gemini → Groq → NVIDIA → deterministic offline generators —
+> so the full app (mind-maps, Rooty Feynman evaluation, quizzes, blurting
+> grading, PDF ingestion) works out of the box with zero keys, and keeps working
+> if any provider key dies. Live providers just make the output richer.
 
 ---
 
@@ -117,6 +132,7 @@ Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
 | `npm start` | Run the production build |
 | `npm run lint` | TypeScript typecheck (`tsc --noEmit`) |
 | `npm test` | Run test suite (Vitest) |
+| `npm run smoke` | Live pre-deploy check: boots the app with your real `.env` keys/DB and asserts a real provider answers (not the offline fallback) and repeat mind-maps hit the Postgres cache |
 | `npm run clean` | Remove build output |
 
 ---
@@ -137,12 +153,17 @@ Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey).
 - _Optional:_ `GROQ_API_KEY`, `NVIDIA_API_KEY` (fallback AI providers),
   `APP_URL` (public URL of the service).
 - `DATABASE_URL` — Neon/Postgres connection string. **Required for accounts +
-  cloud sync.** Without it the app runs in local mode (localStorage only, no
-  login). Neon free tier: https://neon.tech
+  cloud sync**, and it also enables the content-addressed generation cache
+  (repeat mind-maps/quizzes are served instantly from `generated_units` for free
+  instead of re-spending AI tokens). Without it the app runs in local mode
+  (localStorage only, no login). Neon free tier: https://neon.tech
 - `RESEND_API_KEY` — email service key. **Required to actually email magic-link
   logins.** Without it, dev shows a "Dev link" instead; production refuses to
   log in via email. Set `RESEND_FROM_ADDRESS` to a verified domain for the
   sender. Free tier: https://resend.com
+- _Optional guards_ (daily AI-spend caps per client): `FREE_TIER_MINDMAPS_PER_DAY`,
+  `FREE_TIER_QUIZZES_PER_DAY`, `FREE_TIER_CHAT_RESPONSES_PER_DAY`,
+  `FREE_TIER_TEXTBOOK_PROCESSES_PER_DAY`. Sensible defaults are built in.
 
 ### Option A — Render (recommended, free)
 
@@ -171,7 +192,7 @@ runs `node dist/server.cjs` on port `3000`.
 ```bash
 npm run build
 npm start              # serve on http://localhost:3000 (NODE_ENV=production)
-curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true,"mailTransport":"none"}
+curl http://localhost:3000/api/health   # → {"status":"ok"}
 ```
 
 ---
@@ -179,17 +200,22 @@ curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true
 ## Architecture
 
 ```
-├── server.ts                 # Express + Gemini AI backend (endpoints, with fallbacks)
+├── server.ts                 # Express AI backend (routes, quotas, cache wiring)
 ├── server/
-│   ├── ai.ts                 # Gemini client + offline fallback generators
+│   ├── ai.ts                 # Provider clients (Gemini/Groq/NVIDIA keys) + offline fallback generators
+│   ├── providerRouter.ts     # callAiWithFallback: Gemini → Groq → NVIDIA → fallback, circuit breaker
+│   ├── unitCache.ts          # Content-addressed cache of generated units (Postgres, shape-validated)
+│   ├── quota.ts              # Per-fingerprint daily AI-spend caps (free tier)
 │   ├── auth.ts               # Passwordless magic-link auth + requireAuth middleware
 │   ├── email.ts              # Resend login-link transport (dev/prod fallback)
+│   ├── mail.ts               # Shared transport for login links + contact form (Resend / Gmail SMTP)
+│   ├── contact.ts            # In-app contact form → validated + rate-limited email
 │   ├── rateLimit.ts          # Shared in-memory sliding-window rate limiter
 │   ├── safety.ts             # Content-safety filter + AI prompt guard
 │   ├── sync.ts               # Auth + /api/me/* workspace sync routes (rate-limited)
 │   ├── textbook.ts           # PDF processing & textbook ingestion
 │   └── db/
-│       ├── schema.ts         # Drizzle schema: users, sessions, workspaces, study_events
+│       ├── schema.ts         # Drizzle schema: users, sessions, workspaces, study_events, generated_units
 │       ├── client.ts         # postgres.js client (lazy; only when DATABASE_URL is set)
 │       └── migrate.ts        # Runs Drizzle migrations on startup
 ├── drizzle/                  # Generated SQL migrations
@@ -220,7 +246,7 @@ curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true
 │       └── … (HomePage / UploadPdfModal / WorkspaceDetail — workspace flow)
 ```
 
-### Backend API (Gemini)
+### Backend API (AI)
 
 | Endpoint | Purpose |
 |---|---|
@@ -230,7 +256,16 @@ curl http://localhost:3000/api/health   # → {"status":"ok","hasGeminiKey":true
 | `POST /api/quiz/generate` | Generate unlimited diagnostic quiz questions |
 | `POST /api/blurting/evaluate` | Grade a Blurting-Method active-recall dump |
 | `POST /api/textbook/process` | Process uploaded PDF → generate full workspace |
-| `GET /api/health` | Health check with AI key status + active mail transport (`resend`/`gmail-smtp`/`none`) |
+| `GET /api/health` | Minimal uptime probe — returns only `{"status":"ok"}` (deliberately reveals nothing about internals) |
+
+Every AI endpoint routes through `callAiWithFallback` (Gemini → Groq → NVIDIA →
+deterministic generator) and sits behind a per-fingerprint **daily quota** plus a
+per-minute rate limit. Successful responses tag `provider` (`"gemini"`/`"groq"`/
+`"nvidia"`) so the UI can label output; `isFallback: true` means every provider
+was unavailable. Mind-maps and quizzes are additionally **content-addressed**:
+with a `DATABASE_URL`, two students studying the same topic+text get the *same*
+unit, and repeat requests are served with `fromCache: true` — instantly and at
+$0 AI cost.
 
 **Accounts & sync (active only when `DATABASE_URL` is set):**
 
@@ -256,14 +291,15 @@ devices — `localStorage` stays as the offline cache.
 ## Project Status
 
 - ✅ **Production-ready** — installs, typechecks, builds, boots, and handles all AI endpoints (live or offline fallback)
+- ✅ **Resilient AI free tier** — every AI endpoint runs a Gemini → Groq → NVIDIA → offline-generator chain (per-provider timeouts, circuit breaker), behind per-fingerprint daily spending quotas
+- ✅ **Content-addressed generation cache** — repeat mind-maps/quizzes are served from Postgres (`generated_units`) for free; shape-validated, poisoned/oversized payloads rejected
 - ✅ **Landing page** — cinematic first-run experience with clear problem statement and solution overview
 - ✅ **Offline mode** — fully functional without any API keys (deterministic fallback generators)
-- ✅ **Offline banner** — informs users when running in offline mode
 - ✅ **Workspace navigation** — book → unit → topic hierarchy fully wired
 - ✅ **Interactive feature set** — all 6 study modes are functional with live client/server wiring
 - ✅ **Enriched concept nodes** — detailed explanations, key takeaways, and related concepts in the node drawer
 - ✅ **Ask Rooty Q&A** — lightweight in-drawer chat for asking questions about any concept
-- ✅ **Test suite** — 96 tests passing (Vitest)
+- ✅ **Test suite** — 138 tests (132 offline/unit/integration + 6 Postgres-backed cache tests run in CI)
 - ✅ **Bilingual support** — complete English/Amharic toggle across all UI
 - ✅ **Theme system** — 5 design aesthetics with CSS variable theming
 - ✅ **Accounts & cloud sync** — optional passwordless accounts via Neon/Postgres; local-first (works offline) with cross-device sync when signed in
@@ -292,7 +328,7 @@ devices — `localStorage` stays as the offline cache.
 | Auth / API Keys | None required by default (deterministic fallback generators); optional magic-link accounts when `DATABASE_URL` is set (emailed via `RESEND_API_KEY`) |
 | Languages | 2 (English + Amharic) |
 | Recall Deltas | Measured per-user in the Method Laboratory (before vs after) |
-| Test Coverage | 96 tests passing (incl. content-safety, auth/hardening, auth/sync local-mode) |
+| Test Coverage | 138 tests (132 offline/unit/integration based + 6 Postgres-backed cache tests in a dedicated CI job; incl. content-safety, auth/hardening, provider chain, quotas, cache) |
 | Persistence | localStorage-first offline cache; optional cloud sync (workspaces + study events) via Neon/Postgres |
 
 ---

@@ -4,12 +4,14 @@ import { app } from '../server';
 import { generateFallbackFeynmanEvaluation } from '../server/ai';
 
 // IMPORTANT: these integration tests run against the Express app directly
-// (no port listening) with GEMINI_API_KEY unset, so every AI endpoint must
-// resolve through the deterministic offline fallback. This simulates a
-// weak-wifi / offline student with no network and no paid key.
+// (no port listening) with AI keys unset, so every AI endpoint must resolve
+// through the deterministic offline fallback. This simulates a weak-wifi /
+// offline student with no network and no paid key.
 
 beforeAll(() => {
   delete process.env.GEMINI_API_KEY;
+  delete process.env.GROQ_API_KEY;
+  delete process.env.NVIDIA_API_KEY;
 });
 
 describe('health endpoint', () => {
