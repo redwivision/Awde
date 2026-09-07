@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, LogIn, LogOut, Mail, CheckCircle2, Loader2, BookOpen, AtSign } from 'lucide-react';
 import { LanguageMode } from '../types';
@@ -13,6 +13,53 @@ interface AccountModalProps {
   language: LanguageMode;
   onSignedIn?: () => void;
 }
+
+const CONNECT_PHASES = ['Connecting to Google', 'Verifying account', 'Opening sign-in'];
+const CONNECT_PHASES_AM = ['ከ Google ጋር ይገናኛል', 'መለያ ይፈትሻል', 'መግቢያ ይከፈታል'];
+
+const GoogleConnectingLoading: React.FC<{ isAmharic: boolean }> = ({ isAmharic }) => {
+  const [phase, setPhase] = useState(0);
+  const phaseRef = useRef(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      phaseRef.current = (phaseRef.current + 1) % CONNECT_PHASES.length;
+      setPhase(phaseRef.current);
+    }, 1600);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <span className="w-full flex items-center gap-3">
+      <span className="relative w-6 h-6 shrink-0" aria-hidden>
+        <motion.span
+          className="absolute inset-0 rounded-full"
+          style={{ border: '2px solid transparent', borderTopColor: '#4285F4', borderRightColor: '#EA4335', borderBottomColor: '#FBBC05', borderLeftColor: '#34A853' }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }}
+        />
+        <span className="absolute inset-[5px]">
+          <GoogleG />
+        </span>
+      </span>
+      <motion.span
+        key={phase}
+        className="text-sm font-bold"
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+      >
+        {isAmharic ? CONNECT_PHASES_AM[phase] : CONNECT_PHASES[phase]}
+        <motion.span
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          …
+        </motion.span>
+      </motion.span>
+    </span>
+  );
+};
 
 const GoogleG: React.FC = () => (
   <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -47,20 +94,53 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
   const [deleteError, setDeleteError] = useState<string>('');
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
-  const [googleReady, setGoogleReady] = useState(false);
+  const [googleReady, setGoogleReady] = useState<'checking' | 'ready' | 'unavailable'>('checking');
   const [googleLoading, setGoogleLoading] = useState(false);
+  const googleCheckRef = useRef<Promise<boolean> | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
-    setGoogleReady(false);
-    googleAuthAvailable().then((ok) => {
-      if (!cancelled) setGoogleReady(ok);
+    setGoogleReady('checking');
+    const check = googleAuthAvailable();
+    googleCheckRef.current = check;
+    check.then((ok) => {
+      if (!cancelled) setGoogleReady(ok ? 'ready' : 'unavailable');
     });
     return () => {
       cancelled = true;
     };
   }, [isOpen]);
+
+  const handleGoogleSignIn = async () => {
+    setMessage('');
+    setStatus('idle');
+    setGoogleLoading(true);
+    try {
+      // If the availability probe is still in flight (or never finished on a
+      // slow network), let the click await it — the button stays visible and
+      // shows the connecting state instead of hiding behind a spinner.
+      if (googleReady === 'checking' && googleCheckRef.current) {
+        const ok = await googleCheckRef.current;
+        setGoogleReady(ok ? 'ready' : 'unavailable');
+        if (!ok) throw new Error('unavailable');
+      }
+      if (googleReady === 'unavailable') throw new Error('unavailable');
+      await googleSignIn(window.location.pathname + window.location.search);
+    } catch (err) {
+      setGoogleLoading(false);
+      setStatus('error');
+      setMessage(
+        err instanceof Error && err.message === 'unavailable'
+          ? isAmharic
+            ? 'በ Google መግባት ለተወሰነ ጊዜ ያልተገኘ አገልግሎት ነው። እባክዎ ኢሜይል ይጠቀሙ።'
+            : 'Google sign-in isn\u2019t available right now. Please use email instead.'
+          : isAmharic
+          ? 'በ Google መግባት አልተሳካም። እባክዎ በኋላ ይሞክሩ።'
+          : 'Google sign-in failed. Please try again.'
+      );
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -249,43 +329,32 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
               </div>
             ) : (
               <div className="space-y-3">
-                {googleReady && (
-                  <>
-                    <button
-                      onClick={async () => {
-                        setGoogleLoading(true);
-                        try {
-                          await googleSignIn(window.location.pathname + window.location.search);
-                        } catch {
-                          setGoogleLoading(false);
-                          setStatus('error');
-                          setMessage(
-                            isAmharic
-                              ? 'በ Google መግባት አልተሳካም። እባክዎ በኋላ ይሞክሩ።'
-                              : 'Google sign-in failed. Please try again.'
-                          );
-                        }
-                      }}
-                      disabled={googleLoading}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-opacity disabled:opacity-60"
-                      style={{
-                        borderColor: 'var(--app-border, #cbd5e1)',
-                        color: 'var(--app-text, #020617)',
-                        backgroundColor: 'var(--app-surface-elevated, #f8fafc)'
-                      }}
-                    >
-                      {googleLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GoogleG />}
+                <button
+                  onClick={handleGoogleSignIn}
+                  disabled={googleLoading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-colors overflow-hidden relative disabled:cursor-wait"
+                  style={{
+                    borderColor: googleLoading ? 'var(--app-accent, #6366f1)' : 'var(--app-border, #cbd5e1)',
+                    color: 'var(--app-text, #020617)',
+                    backgroundColor: 'var(--app-surface-elevated, #f8fafc)'
+                  }}
+                >
+                  {googleLoading ? (
+                    <GoogleConnectingLoading isAmharic={isAmharic} />
+                  ) : (
+                    <>
+                      <GoogleG />
                       {isAmharic ? 'በ Google ይግቡ' : 'Continue with Google'}
-                    </button>
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 h-px" style={{ backgroundColor: 'var(--app-border, #cbd5e1)' }} />
-                      <span className="text-[11px] font-medium" style={{ color: 'var(--app-text-muted, #475569)' }}>
-                        {isAmharic ? 'ወይም' : 'or'}
-                      </span>
-                      <div className="flex-1 h-px" style={{ backgroundColor: 'var(--app-border, #cbd5e1)' }} />
-                    </div>
-                  </>
-                )}
+                    </>
+                  )}
+                </button>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px" style={{ backgroundColor: 'var(--app-border, #cbd5e1)' }} />
+                  <span className="text-[11px] font-medium" style={{ color: 'var(--app-text-muted, #475569)' }}>
+                    {isAmharic ? 'ወይም' : 'or'}
+                  </span>
+                  <div className="flex-1 h-px" style={{ backgroundColor: 'var(--app-border, #cbd5e1)' }} />
+                </div>
                 <label className="block text-xs font-semibold" style={{ color: 'var(--app-text-muted, #475569)' }}>
                   {isAmharic ? 'ኢሜይል' : 'Email'}
                 </label>
