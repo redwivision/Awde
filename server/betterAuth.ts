@@ -14,6 +14,7 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
 import type { Request } from 'express';
+import type { DynamicBaseURLConfig } from 'better-auth';
 import { createHash } from 'node:crypto';
 import { authEnabled, getDb } from './db/client';
 import { Account, Session, User, Verification } from './db/baSchema';
@@ -28,6 +29,20 @@ function appUrlBase(): string {
   return (process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/+$/, '');
 }
 
+// Dynamic base URL: resolve the OAuth redirect URI from the request's actual
+// Host header so sign-in works from localhost AND the production domain with
+// the same config. `fallback` is used only when the Host isn't in allowedHosts.
+function dynamicBaseUrl(): DynamicBaseURLConfig {
+  const fallback = appUrlBase();
+  const allowedHosts = new Set<string>();
+  if (process.env.APP_URL) allowedHosts.add(new URL(process.env.APP_URL).host);
+  if (process.env.HOST) allowedHosts.add(process.env.HOST);
+  allowedHosts.add('localhost:*');
+  allowedHosts.add('127.0.0.1:*');
+  allowedHosts.add('*.onrender.com');
+  return { allowedHosts: [...allowedHosts], fallback };
+}
+
 let cached: AuthInstance | null = null;
 
 // Lazily built on first access so the schemas exist (migrations ran) before
@@ -40,7 +55,7 @@ export function getAuth(): AuthInstance | null {
   try {
     cached = betterAuth({
       basePath: '/api/ba',
-      baseURL: appUrlBase(),
+      baseURL: dynamicBaseUrl(),
       secret: getSecret('BETTER_AUTH_SECRET') || createHash('sha256').update(`awde-better-auth:${appUrlBase()}`).digest('base64'),
       database: drizzleAdapter(db, {
         provider: 'pg',
@@ -55,7 +70,7 @@ export function getAuth(): AuthInstance | null {
           ? { google: { clientId: GOOGLE_CLIENT_ID, clientSecret: GOOGLE_CLIENT_SECRET } }
           : {})
       },
-      trustedOrigins: [appUrlBase()],
+      trustedOrigins: [appUrlBase(), 'http://localhost:*', 'https://*.onrender.com'],
       advanced: {
         cookiePrefix: 'awde',
         database: { validateSchema: false },
