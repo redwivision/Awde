@@ -30,6 +30,14 @@ services:
       #   sync: false # optional fallback provider 2
       - key: DATABASE_URL
         sync: false # Neon/Postgres connection string; enables accounts + sync.
+      # Google OAuth (Better Auth) — enables the "Continue with Google" button.
+      # Authorized redirect URI in Google Cloud: https://awde.onrender.com/api/ba/callback/google
+      # - key: GOOGLE_CLIENT_ID
+      #   sync: false
+      # - key: GOOGLE_CLIENT_SECRET
+      #   sync: false
+      # - key: BETTER_AUTH_SECRET
+      #   sync: false # `openssl rand -base64 32`; signs OAuth cookies
       - key: RESEND_API_KEY
         sync: false # enables emailing magic-link logins (set in the dashboard)
       - key: RESEND_FROM_ADDRESS

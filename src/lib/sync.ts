@@ -14,6 +14,7 @@
 //   rows onto local state when the app starts.
 
 import { postJson, isOnline } from './api';
+import { authClient } from './betterAuthClient';
 import type { TextbookWorkspace } from '../types';
 
 export interface Session {
@@ -178,12 +179,54 @@ export async function confirmLogin(token: string): Promise<{ ok: boolean; sessio
 /** Revoke the session server-side and sign out locally. */
 export async function logout(): Promise<void> {
   try {
+    await authClient.signOut({});
+  } catch {
+    /* best-effort — the legacy call below also signs out */
+  }
+  try {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
   } catch {
     /* best-effort — still clear locally */
   }
   clearSession();
   clearSyncMeta();
+}
+
+/**
+ * Whether the server offers Google OAuth login (published by
+ * GET /api/auth/providers — booleans only, never secrets). Lets the UI hide
+ * the Google button when OAuth isn't configured on the server.
+ */
+export async function googleAuthAvailable(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/auth/providers', { credentials: 'include' });
+    const data = await res.json();
+    return Boolean(data?.google);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Adopt an existing Google (Better Auth) session into the local (non-secret)
+ * session hint. Called on app mount so a returning OAuth user is shown as
+ * signed in and their workspaces load. Never clears a local session when no
+ * Better Auth session exists — magic-link users don't have one.
+ */
+export async function syncServerSession(): Promise<void> {
+  try {
+    const { data } = await authClient.getSession({ query: { disableCookieCache: false, disableRefresh: false } });
+    const user = data?.user;
+    if (!user?.email) return;
+    const current = getSession();
+    if (current?.email === user.email) return;
+    saveSession({
+      email: user.email,
+      user: { id: user.id, email: user.email, role: 'student' }
+    });
+  } catch {
+    /* offline — leave any existing local hint untouched */
+  }
 }
 
 /**

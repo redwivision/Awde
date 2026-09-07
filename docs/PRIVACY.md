@@ -57,14 +57,22 @@ advertisers. No account → no learning data leaves the device at all.
   guardian's permission. The app asks the student to confirm this before first
   use (the age gate), and records only that local confirmation.
 - Without an account, **nothing leaves the device**.
-- With an account, the only personally-identifying data we store is the email
-  used to log in; everything else is learning content used for personalization.
+- With an account, the only personally-identifying data we store is your email
+  (plus, if you log in with Google, the name your Google account provides);
+  everything else is learning content used for personalization.
 
-## 4. Accounts & magic links
+## 4. Accounts & login
 
-Logging in is passwordless: you request a one-time link to your email and tap
-it. We never ask for or store your password. Login links expire after 15
-minutes; sessions last 30 days.
+Two optional ways to log in (both only when server accounts are enabled):
+
+- **Email magic link** — passwordless: you request a one-time link to your email
+  and tap it. We never ask for or store your password. Login links expire after
+  15 minutes; sessions last 30 days.
+- **Google "Continue with Google"** — standard Google OAuth. You share only the
+  Google name and email your Google account provides; we do not receive, store,
+  or access anything else from Google (no contacts, no Drive, no mail). Logging
+  in with the same email you used for a magic-link account merges the two, so
+  your progress follows the same account.
 
 ## 5. The AI
 

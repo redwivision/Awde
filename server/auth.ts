@@ -16,7 +16,8 @@ import { randomBytes, createHash } from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
 import { eq, lt } from 'drizzle-orm';
 import { getDb, authEnabled } from './db/client';
-import { users, loginTokens, sessions } from './db/schema';
+import { users, loginTokens, sessions, workspaces, studyEvents } from './db/schema';
+import { getAuth, headersFromExpress } from './betterAuth';
 
 export const MAGIC_TOKEN_TTL_MS = 15 * 60 * 1000; // login link valid 15 min
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // session valid 30 days
@@ -171,6 +172,37 @@ export async function cleanupExpiredAuthRows(): Promise<void> {
 }
 
 /**
+ * Bridge a Better Auth (Google OAuth) user into the legacy `users` table so
+ * all the FK'd data (workspaces, study events) keeps working unchanged.
+ *
+ * - Brand-new OAuth email → insert a matching `users` row with the OAuth id.
+ * - Same id → return the existing row.
+ * - Same email, different id → a magic-link account exists for that email. We
+ *   re-key its workspaces/events onto the OAuth id (progress follows the same
+ *   person), revoke its legacy sessions/tokens, and adopt the OAuth id.
+ */
+export async function bridgeBetterAuthUser(baUserId: string, email: string) {
+  const db = getDb()!;
+  const normalized = email.trim().toLowerCase();
+
+  const existing = (await db.select().from(users).where(eq(users.email, normalized)).limit(1))[0];
+  if (!existing) {
+    await db.insert(users).values({ id: baUserId, email: normalized });
+    return { id: baUserId, email: normalized, role: 'student' };
+  }
+  if (existing.id === baUserId) {
+    return { id: existing.id, email: existing.email, role: existing.role };
+  }
+
+  await db.update(workspaces).set({ userId: baUserId }).where(eq(workspaces.userId, existing.id));
+  await db.update(studyEvents).set({ userId: baUserId }).where(eq(studyEvents.userId, existing.id));
+  await db.delete(loginTokens).where(eq(loginTokens.userId, existing.id));
+  await db.delete(sessions).where(eq(sessions.userId, existing.id));
+  await db.update(users).set({ id: baUserId }).where(eq(users.id, existing.id));
+  return { id: baUserId, email: existing.email, role: existing.role };
+}
+
+/**
  * Express middleware that resolves the authenticated user from the Bearer
  * session token. When auth is NOT enabled (no DB), it acts as a no-op that just
  * calls next() so the app stays open/local — existing behavior unchanged.
@@ -178,8 +210,27 @@ export async function cleanupExpiredAuthRows(): Promise<void> {
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!authEnabled()) return next();
 
-  // Session token comes from the HttpOnly cookie (primary) or a Bearer header
-  // (kept for API tooling / older clients at the same origin).
+  // Better Auth (Google OAuth) sessions are checked first — the browser cookie
+  // is `awde.session_token` (Better Auth's cookiePrefix). When valid we bridge
+  // the user into the legacy tables so the rest of the app stays unchanged.
+  const ba = getAuth();
+  if (ba) {
+    try {
+      const result = await ba.api.getSession({ headers: headersFromExpress(req) });
+      if (result?.user) {
+        const user = await bridgeBetterAuthUser(result.user.id, result.user.email);
+        if (user) {
+          (req as any).user = user;
+          (req as any).via = 'better-auth';
+          return next();
+        }
+      }
+    } catch (err) {
+      console.error('Better Auth session check error:', err);
+    }
+  }
+
+  // Fall back to the legacy magic-link bearer token.
   const header = req.headers.authorization || '';
   const fromHeader = header.startsWith('Bearer ') ? header.slice(7) : null;
   const fromCookie = (req.cookies?.[SESSION_COOKIE] as string | undefined) || null;
@@ -196,6 +247,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       return res.status(401).json({ error: 'Your session has expired. Please log in again.' });
     }
     (req as any).user = user;
+    (req as any).via = 'legacy';
     next();
   } catch (err) {
     console.error('Auth middleware error:', err);

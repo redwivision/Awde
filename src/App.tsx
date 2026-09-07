@@ -10,7 +10,7 @@ import {
 import { DEFAULT_TEXTBOOK_WORKSPACES } from './data/textbookWorkspaces';
 import { AESTHETIC_THEMES } from './data/themes';
 import { loadWorkspaces as loadWorkspacesFromStorage } from './data/persistence';
-import { getSession, confirmLogin, extractMagicToken, pushWorkspace, pullWorkspaces, isServerSynced, SESSION_KEY, SESSION_EVENT, Session } from './lib/sync';
+import { getSession, confirmLogin, extractMagicToken, pushWorkspace, pullWorkspaces, isServerSynced, syncServerSession, SESSION_KEY, SESSION_EVENT, Session } from './lib/sync';
 import { useOnlineStatus } from './lib/api';
 import { WorkspaceSidebar } from './components/WorkspaceSidebar';
 import { LandingPage } from './components/LandingPage';
@@ -249,6 +249,9 @@ export default function App() {
 
     const run = async () => {
       try {
+        // Adopt an existing Google (Better Auth) session first so the session
+        // hint matches the cookie before we pull workspaces below.
+        await syncServerSession();
         const magicToken = getSession() ? null : extractMagicToken(window.location.href);
         if (magicToken) {
           const res = await confirmLogin(magicToken);

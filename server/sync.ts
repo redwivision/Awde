@@ -7,9 +7,11 @@ import { Router } from 'express';
 import { eq } from 'drizzle-orm';
 import { getDb, authEnabled } from './db/client';
 import { workspaces, studyEvents, users } from './db/schema';
+import { User as BaUser } from './db/baSchema';
 import { issueMagicToken, consumeMagicToken, requireAuth, getUserFromToken, revokeSession, loginLinkUrl, sessionCookieOptions, SESSION_COOKIE } from './auth';
 import { sendLoginLinkEmail, emailConfigured } from './email';
 import { makeRateLimiter, rateLimitKey } from './rateLimit';
+import { getAuth, headersFromExpress, isGoogleAuthConfigured } from './betterAuth';
 
 // Auth-gate hardening (milestone 4-adjacent).
 // - Per-email+IP: 5 login links / 15 min stops someone spamming one address.
@@ -122,10 +124,21 @@ export function registerSyncRoutes(app: Router) {
     }
   });
 
-  // POST /api/auth/logout — revoke the current session and clear the cookie.
+  // POST /api/auth/logout — revoke the current session and clear the cookie,
+  // handling both the Better Auth (Google OAuth) cookie and the legacy
+  // magic-link bearer token.
   app.post('/api/auth/logout', async (req, res) => {
     if (!authEnabled()) return res.json({ localMode: true, ok: true });
     try {
+      const ba = getAuth();
+      if (ba) {
+        try {
+          await ba.api.signOut({ headers: headersFromExpress(req) });
+        } catch {
+          // No valid Better Auth session — that's fine, the magic-link path
+          // below still revokes the bearer token if present.
+        }
+      }
       const header = req.headers.authorization || '';
       const token = header.startsWith('Bearer ') ? header.slice(7) : (req.cookies?.[SESSION_COOKIE] as string | undefined);
       await revokeSession(token || '');
@@ -135,6 +148,13 @@ export function registerSyncRoutes(app: Router) {
       console.error('Error logging out:', err);
       res.status(500).json({ error: 'Could not log out. Please try again.' });
     }
+  });
+
+  // GET /api/auth/providers — which login methods are available? Public, and
+  // returns booleans only (never secrets). Lets the client hide the Google
+  // button when OAuth isn't configured.
+  app.get('/api/auth/providers', async (_req, res) => {
+    res.json({ google: isGoogleAuthConfigured(), email: true });
   });
 
   // GET /api/me — who am I? (auth-gated)
@@ -148,6 +168,11 @@ export function registerSyncRoutes(app: Router) {
     if (!authEnabled()) return res.json({ localMode: true, ok: true });
     try {
       const db = getDb()!;
+      // Better Auth user → remove its OAuth row too (cascades the BA
+      // session/account rows). The legacy row below handles workspaces/events.
+      if (req.via === 'better-auth') {
+        await db.delete(BaUser).where(eq(BaUser.id, req.user.id));
+      }
       await db.delete(users).where(eq(users.id, req.user.id));
       res.clearCookie(SESSION_COOKIE, { path: '/' });
       res.json({ ok: true, message: 'Your account and all associated data were deleted.' });

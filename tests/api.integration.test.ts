@@ -12,6 +12,17 @@ beforeAll(() => {
   delete process.env.OPENROUTER_API_KEY;
   delete process.env.GROQ_API_KEY;
   delete process.env.NVIDIA_API_KEY;
+  delete process.env.GOOGLE_CLIENT_ID;
+  delete process.env.GOOGLE_CLIENT_SECRET;
+  delete process.env.BETTER_AUTH_SECRET;
+});
+
+describe('GET /api/auth/providers (no DB)', () => {
+  it('reports email login plus a disabled Google button when OAuth is unconfigured', async () => {
+    const res = await request(app).get('/api/auth/providers');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ google: false, email: true });
+  });
 });
 
 describe('health endpoint', () => {

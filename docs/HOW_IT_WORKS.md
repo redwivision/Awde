@@ -22,14 +22,14 @@ What's in it:
 |---|---|---|
 | Browser UI (React) | `src/` | What the student sees & clicks |
 | API layer | `src/lib/api.ts` | How the browser talks to the server |
-| Session + sync layer | `src/lib/sync.ts` | Magic-link session storage, workspace push/pull, study events |
+| Session + sync layer | `src/lib/sync.ts` | Magic-link + Google (Better Auth) session handling, workspace push/pull, study events |
 | HTTP server + AI routes | `server.ts` | Receives `/api` calls, routes them through the AI provider chain |
 | AI wrappers + fallbacks | `server/ai.ts` | Provider key/model access (OpenRouter/Groq/NVIDIA) + "no key" deterministic generators |
 | AI provider router | `server/providerRouter.ts` | OpenRouter → Groq → NVIDIA → offline fallback, with per-provider timeouts, overall chain deadline + circuit breaker |
 | AI secret handling | `server/secrets.ts` | Env-only key access; logs provider names only (never keys) |
 | Content cache | `server/unitCache.ts` | Content-addressed cache of generated units/quizzes (Postgres, shape-validated) |
 | Free-tier quotas | `server/quota.ts` | Per-fingerprint daily caps on AI generation spend |
-| Accounts + sync routes | `server/auth.ts`, `server/sync.ts` | Passwordless login, `/api/me/*` sync (only active with a DB) |
+| Accounts + sync routes | `server/auth.ts`, `server/betterAuth.ts`, `server/sync.ts` | Google OAuth (Better Auth) + passwordless login, `/api/me/*` sync (only active with a DB) |
 | Database layer | `server/db/` | Drizzle schema + client + migrations (only active with a DB) |
 | PDF pipeline | `server/textbook.ts` | Textbook → AI → workspace |
 | App state + persistence | `src/App.tsx`, `src/data/persistence.ts` | Holds data, saves to `localStorage` |
@@ -287,12 +287,13 @@ a Postgres URL is configured.
 
 | Table | What it stores |
 |---|---|
-| `users` | An account per email (`id`, `email`, `role`) |
+| `users` | An account per email (`id`, `email`, `role`) — the shared identity row for BOTH login methods |
 | `login_tokens` | One-time magic-link tokens — only their **SHA-256 hashes** are stored |
 | `sessions` | Bearer session tokens issued after a successful login |
 | `workspaces` | One row per `user_id` + `workspace_id`; the whole workspace shape lives in a `data` **JSONB** column (same single-source-of-truth model as localStorage) |
 | `study_events` | An append-only log of study activity (quiz, mastery, feynman…) for progress-over-time |
 | `generated_units` | Content-addressed cache of AI-generated mind-maps/quizzes (keyed by input hash) so repeat generations cost $0 |
+| `user`, `session`, `account`, `verification` | **Better Auth core tables** (`server/db/baSchema.ts`) backing Google OAuth — separate from the legacy magic-link tables so the two auth systems coexist |
 
 Note the **JSONB workspace**: we deliberately don't normalize the concept graph
 into dozens of relational tables. The app already owns schema evolution via
@@ -336,6 +337,35 @@ simpler and keeps changes localized. Two indexes keep lookups fast.
    workspaces, and study events all cascade to the user via FK `ON DELETE
    CASCADE`, so one delete is a full data-deletion path (see `docs/PRIVACY.md`).
    The Account modal surfaces this as "Delete my account and data".
+
+### Google OAuth with Better Auth (`server/betterAuth.ts`)
+
+Better Auth adds the standard "Continue with Google" button on top of magic
+links. It stays **opt-in and DB-gated**:
+
+- The instance is built only when `DATABASE_URL` is set (`authEnabled()`); in
+  local mode/CI `auth` is `null` and the `/api/ba/*` mount in `server.ts` +
+  every Better Auth code path is skipped.
+- The Google social provider is attached only when both
+  `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are present (`getSecret`).
+  `GET /api/auth/providers` → `{ google, email }` (booleans only) lets the UI
+  hide the button when unconfigured. The OAuth redirect target is
+  `{APP_URL}/api/ba/callback/google`; `BETTER_AUTH_SECRET` signs the session
+  cookie (in dev it's derived from `APP_URL`).
+- `requireAuth` starts with Better Auth: `auth.api.getSession` reads the
+  `awde.session_token` OAuth cookie (Express headers bridged to fetch `Headers`)
+  and, on success, `bridgeBetterAuthUser()` writes/updates the **legacy `users`
+  row** so all FK'd data (workspaces, study events) works unchanged. If the
+  Google email matches an existing magic-link account, its data is re-keyed onto
+  the OAuth id and its legacy sessions/tokens revoked. Only when there's no
+  valid OAuth session does it fall back to the legacy bearer token.
+- The client (`src/lib/betterAuthClient.ts` + `syncServerSession()` in
+  `src/lib/sync.ts`) calls `authClient.signIn.social({ provider: 'google' })`,
+  then on every app mount adopts the OAuth session into the local session hint
+  so the UI and `/api/me/*` pulls work identically for both login methods.
+- Logout signs out of Better Auth (`auth.api.signOut`) *and* revokes the legacy
+  token; `DELETE /api/me` deletes the Better Auth user row (cascades its
+  session/account rows) plus the legacy `users` row (cascades workspaces/events).
 
 ### Auth hardening (`server/rateLimit.ts`)
 
@@ -384,6 +414,8 @@ simpler and keeps changes localized. Two indexes keep lookups fast.
 
 ### The sync routes (`server/sync.ts`)
 
+- `GET /api/auth/providers` — which login methods exist (`{ google, email }`,
+  no credentials leaked) so the client can enable/disable the Google button.
 - `GET /api/me` — who am I? (auth-gated)
 - `GET /api/me/workspaces` — pull server workspaces.
 - `PUT /api/me/workspaces` — upsert one workspace (`onConflictDoUpdate` keys on
@@ -767,7 +799,8 @@ A mental checklist before you edit anything:
 | `server/unitCache.ts` | Content-addressed cache of AI generations (canonical key, shape validation, no-op without DB) |
 | `server/quota.ts` | Per-fingerprint daily spending caps for the free tier |
 | `server/textbook.ts` | PDF upload → text → AI workspace (+ fallback builder) |
-| `server/auth.ts` | Magic-link issue/consume, bearer sessions, `requireAuth` (no-op in local mode) |
+| `server/auth.ts` | Magic-link issue/consume, bearer sessions, `requireAuth` (Better Auth first, then legacy token; no-op in local mode), `bridgeBetterAuthUser` |
+| `server/betterAuth.ts` | Better Auth instance (Google OAuth, `/api/ba` basePath, Drizzle adapter) — built only when a DB exists; `headersFromExpress`, `isGoogleAuthConfigured` |
 | `server/email.ts` | Login-link email message: `buildLoginLinkEmail` HTML+text template (true 15-min expiry, escaped recipient+link, CTA+fallback), `sendLoginLinkEmail` wrapper, dev/prod fallback |
 | `server/mail.ts` | **Shared transport** for login links + contact form: Resend REST API (8s timeout, one transient retry, 4xx fail-fast) or Gmail SMTP via `nodemailer` (when `RESEND_API_KEY` absent); `sendMail`, `emailConfigured`, `contactRecipient`, `htmlEscape` |
 | `server/contact.ts` | `POST /api/contact`: in-app contact form → validated + HTML-escaped + rate-limited (10/hr/IP) email to `contactRecipient()`; honest `delivered:false` when no transport |
@@ -775,10 +808,12 @@ A mental checklist before you edit anything:
 | `server/sync.ts` | `registerSyncRoutes`: login/confirm (rate-limited) + me/workspaces/study-events + account deletion |
 | `server/safety.ts` | `blockedReason`/`checkInputs` filter + `withSafetyInstruction` AI prompt guard |
 | `server/db/schema.ts` | Drizzle tables: users, sessions, workspaces (JSONB), study_events, generated_units |
+| `server/db/baSchema.ts` | Better Auth core tables (user, session, account, verification) |
 | `server/db/client.ts` | Lazy postgres.js client; `hasDb()`/`authEnabled()` gates |
 | `server/db/migrate.ts` | Runs Drizzle migrations from `drizzle/` at startup |
 | `src/lib/api.ts` | Weak-wifi-safe `postJson`/`postFormData` + `useOnlineStatus` |
-| `src/lib/sync.ts` | Session storage, magic-link confirm, workspace push/pull, study events, sync-meta ledger |
+| `src/lib/sync.ts` | Session storage, magic-link confirm, workspace push/pull, study events, sync-meta ledger, Google session bootstrap (`syncServerSession`), provider detection |
+| `src/lib/betterAuthClient.ts` | Better Auth client (`createAuthClient`, `googleSignIn`) over `/api/ba` |
 | `src/components/ConsentGate.tsx` | One-time age-gate + privacy consent before the workspace |
 | `src/components/PrivacyModal.tsx` | In-app Privacy & Terms (EN+AM), reachable from footer, Account modal, and consent gate; ends with the published contact channel (in-app "Contact us" form + lewikb13@gmail.com) |
 | `src/data/persistence.ts` | localStorage load/save/migrate + the single-source-of-truth logic |

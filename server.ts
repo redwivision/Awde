@@ -25,6 +25,7 @@ import {
 import { processTextbookPdf } from './server/textbook';
 import { registerSyncRoutes } from './server/sync';
 import { registerContactRoutes } from './server/contact';
+import { registerBetterAuthRoutes, isGoogleAuthConfigured } from './server/betterAuth';
 import { smtpConfigured, contactRecipient } from './server/mail';
 import { runMigrations } from './server/db/migrate';
 import { hasDb } from './server/db/client';
@@ -649,6 +650,17 @@ export async function startServer(port: number = PORT): Promise<any> {
   if (hasDb()) {
     try {
       await runMigrations();
+      // Better Auth (Google OAuth) mounts at /api/ba/* — AFTER migrations so
+      // its tables exist before the instance validates them. Skipped entirely
+      // in local mode / CI (no DB) and on migration failure.
+      const baMounted = registerBetterAuthRoutes(app);
+      if (baMounted) {
+        console.log(
+          isGoogleAuthConfigured()
+            ? '[awde:auth] Google OAuth enabled (Continue with Google)'
+            : '[awde:auth] Google OAuth not configured (email magic-link only)'
+        );
+      }
       // Hourly sweep of expired login tokens + sessions (data hygiene — the
       // auth tables would otherwise grow without bound).
       const { cleanupExpiredAuthRows } = await import('./server/auth');
