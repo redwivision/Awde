@@ -13,13 +13,13 @@ beforeAll(() => {
 });
 
 describe('health endpoint', () => {
-  it('reports ok with hasGeminiKey false', async () => {
+  it('reports ok without leaking configuration details', async () => {
     const res = await request(app).get('/api/health');
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
-    expect(res.body.hasGeminiKey).toBe(false);
-    // Transport depends on local .env (none / gmail-smtp / resend) — must just be one of them.
-    expect(['none', 'gmail-smtp', 'resend']).toContain(res.body.mailTransport);
+    // Must not leak provisioning info to unauthenticated callers.
+    expect(res.body.hasGeminiKey).toBeUndefined();
+    expect(res.body.mailTransport).toBeUndefined();
   });
 });
 

@@ -142,7 +142,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
 
                 <button
                   onClick={() => {
-                    import('../lib/sync').then((m) => m.clearSession());
+                    import('../lib/sync').then((m) => m.logout());
                     onSignedIn?.();
                   }}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-colors"

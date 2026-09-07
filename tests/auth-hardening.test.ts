@@ -98,6 +98,7 @@ beforeEach(() => {
   confirmIpLimiter.clear();
   delete process.env.RESEND_API_KEY;
   delete process.env.NODE_ENV;
+  delete process.env.ALLOW_DEV_LOGIN_LINK;
   for (const k of ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM']) {
     delete process.env[k];
   }
@@ -108,6 +109,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   delete process.env.RESEND_API_KEY;
   delete process.env.NODE_ENV;
+  delete process.env.ALLOW_DEV_LOGIN_LINK;
   for (const k of ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM']) {
     delete process.env[k];
   }
@@ -214,13 +216,23 @@ describe('POST /api/auth/login (auth enabled)', () => {
     expect(res.body.devLink).toBeUndefined();
   });
 
-  it('falls back to a Dev link outside production when email is not configured', async () => {
+  it('refuses to return a login link in the response when email is not configured (logs it instead)', async () => {
     const res = await request(app).post('/api/auth/login').send({ email: 'devstudent@example.com' });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.emailSent).toBe(false);
+    expect(res.body.devLink).toBeUndefined();
+  });
+
+  it('only returns a Dev link when ALLOW_DEV_LOGIN_LINK=true (opt-in dev convenience)', async () => {
+    process.env.ALLOW_DEV_LOGIN_LINK = 'true';
+    const res = await request(app).post('/api/auth/login').send({ email: 'devstudent2@example.com' });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.emailSent).toBe(false);
     expect(res.body.devLink).toContain('/?token=');
     expect(res.body.devLink).not.toContain('/api/auth/confirm');
+    delete process.env.ALLOW_DEV_LOGIN_LINK;
   });
 
   it('refuses to leak a login link in production when email is not configured', async () => {
@@ -272,7 +284,8 @@ describe('POST /api/auth/login (auth enabled)', () => {
 });
 
 describe('GET /api/auth/confirm (magic-link exchange)', () => {
-  it('exchanges a fresh token for a session, then invalidates it (single-use)', async () => {
+  it('exchanges a fresh token for an HttpOnly session, then invalidates it (single-use)', async () => {
+    process.env.ALLOW_DEV_LOGIN_LINK = 'true';
     const login = await request(app).post('/api/auth/login').send({ email: 'confirm@example.com' });
     const link = login.body.devLink as string;
     const token = new URL(link, 'http://x').searchParams.get('token');
@@ -280,10 +293,15 @@ describe('GET /api/auth/confirm (magic-link exchange)', () => {
     const confirmed = await request(app).get(`/api/auth/confirm?token=${token}`);
     expect(confirmed.status).toBe(200);
     expect(confirmed.body.success).toBe(true);
-    expect(confirmed.body.token).toBeTruthy();
+    // The secret lives only in an HttpOnly cookie — never in the JSON body.
+    expect(confirmed.body.token).toBeUndefined();
     expect(confirmed.body.user.email).toBe('confirm@example.com');
+    const setCookie = confirmed.headers['set-cookie'] as unknown as string[] | undefined;
+    expect(setCookie?.some((c) => c.includes('awde_session_token'))).toBe(true);
+    expect(setCookie?.some((c) => /HttpOnly/i.test(c))).toBe(true);
 
     const replay = await request(app).get(`/api/auth/confirm?token=${token}`);
     expect(replay.status).toBe(400);
+    delete process.env.ALLOW_DEV_LOGIN_LINK;
   });
 });

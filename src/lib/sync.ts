@@ -1,8 +1,12 @@
 // Frontend server-side sync for Awde accounts.
 //
 // Design:
-// - A session (token + email) is stored in localStorage under awde_session.
-//   The user gets it by completing a magic-link login.
+// - Authentication uses an HttpOnly cookie set by the server on magic-link
+//   exchange. The token NEVER touches JavaScript (not in localStorage, not in
+//   the fetch response), so an XSS can't steal it.
+// - This module keeps only a lightweight, non-secret session hint
+//   ({ email, user }) in localStorage so the UI knows who is logged in without
+//   a network round-trip. API calls send the cookie automatically.
 // - Every API call here is offline-safe: it reuses the resilient postJson/get
 //   helpers and silently no-ops when there is no session or no network, so the
 //   app keeps working purely in local mode (localStorage) exactly as before.
@@ -13,7 +17,6 @@ import { postJson, isOnline } from './api';
 import type { TextbookWorkspace } from '../types';
 
 export interface Session {
-  token: string;
   email: string;
   user?: { id: string; email: string; role: string };
 }
@@ -39,7 +42,7 @@ export function getSession(): Session | null {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Session;
-    return parsed && parsed.token ? parsed : null;
+    return parsed && parsed.email ? parsed : null;
   } catch {
     return null;
   }
@@ -63,17 +66,17 @@ export function clearSession(): void {
   }
 }
 
-// A compact async fetch wrapper that adds the Authorization header.
+// A compact async fetch wrapper. Credentials are sent via the HttpOnly
+// session cookie (no Authorization header — the token never touches JS).
 async function authedJson<T = unknown>(url: string, init: { method?: string; payload?: unknown } = {}) {
-  const session = getSession();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (session) headers.Authorization = `Bearer ${session.token}`;
 
   const res = await fetch(url, {
     method: init.method || 'GET',
     headers,
     body: init.payload !== undefined ? JSON.stringify(init.payload) : undefined,
-    signal: undefined
+    signal: undefined,
+    credentials: 'include'
   });
   let data: any = null;
   try {
@@ -155,10 +158,14 @@ export async function requestLogin(email: string) {
 /** Exchange a magic-link token for a session and store it locally. */
 export async function confirmLogin(token: string): Promise<{ ok: boolean; session?: Session }> {
   try {
-    const res = await fetch(`/api/auth/confirm?token=${encodeURIComponent(token)}`, { method: 'GET' });
+    // The server sets an HttpOnly cookie; we never see the token itself.
+    const res = await fetch(`/api/auth/confirm?token=${encodeURIComponent(token)}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
     const data = await res.json();
-    if (res.ok && data.success && data.token) {
-      const session: Session = { token: data.token, email: data.user?.email || '', user: data.user };
+    if (res.ok && data.success && data.user?.email) {
+      const session: Session = { email: data.user.email, user: data.user };
       saveSession(session);
       return { ok: true, session };
     }
@@ -166,6 +173,17 @@ export async function confirmLogin(token: string): Promise<{ ok: boolean; sessio
   } catch {
     return { ok: false };
   }
+}
+
+/** Revoke the session server-side and sign out locally. */
+export async function logout(): Promise<void> {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+  } catch {
+    /* best-effort — still clear locally */
+  }
+  clearSession();
+  clearSyncMeta();
 }
 
 /**

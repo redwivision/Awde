@@ -7,9 +7,9 @@ import { Router } from 'express';
 import { eq } from 'drizzle-orm';
 import { getDb, authEnabled } from './db/client';
 import { workspaces, studyEvents, users } from './db/schema';
-import { issueMagicToken, consumeMagicToken, requireAuth, loginLinkUrl } from './auth';
+import { issueMagicToken, consumeMagicToken, requireAuth, getUserFromToken, revokeSession, loginLinkUrl, sessionCookieOptions, SESSION_COOKIE } from './auth';
 import { sendLoginLinkEmail, emailConfigured } from './email';
-import { makeRateLimiter, getClientIp } from './rateLimit';
+import { makeRateLimiter, rateLimitKey } from './rateLimit';
 
 // Auth-gate hardening (milestone 4-adjacent).
 // - Per-email+IP: 5 login links / 15 min stops someone spamming one address.
@@ -17,21 +17,21 @@ import { makeRateLimiter, getClientIp } from './rateLimit';
 const loginEmailLimiter = makeRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 5,
-  key: (req) => `${String(req.body?.email || '').trim().toLowerCase()}|${getClientIp(req)}`,
+  key: (req) => `${String(req.body?.email || '').trim().toLowerCase()}|${rateLimitKey(req)}`,
   message: 'Too many login attempts for this email. Please wait a few minutes and try again.'
 });
 
 const loginIpLimiter = makeRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 40,
-  key: (req) => getClientIp(req),
+  key: (req) => rateLimitKey(req),
   message: 'Too many login attempts from this network. Please try again later.'
 });
 
 const confirmIpLimiter = makeRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 60,
-  key: (req) => getClientIp(req),
+  key: (req) => rateLimitKey(req),
   message: 'Too many login-link checks from this network. Please try again later.'
 });
 
@@ -62,8 +62,10 @@ export function registerSyncRoutes(app: Router) {
         return;
       }
 
-      // Email transport missing or failed: dev fallback only outside production.
-      // In production we must NOT leak a usable login link into the response.
+      // Email transport missing or failed.
+      // NEVER return a usable login link in the response body — even in dev —
+      // because a non-production deployment exposed to the internet would allow
+      // complete account takeover. Log the link server-side only.
       if (process.env.NODE_ENV === 'production') {
         return res.status(502).json({
           error: emailConfigured()
@@ -72,13 +74,24 @@ export function registerSyncRoutes(app: Router) {
         });
       }
 
+      // Dev-only: log the link so local devs can click it, but do NOT send it
+      // to the client. Use ALLOW_DEV_LOGIN_LINK=true to restore the old
+      // convenience response only in local trusted environments.
       console.log(`[awde:auth] login link for ${email}: ${link}`);
-      res.json({
-        success: true,
-        emailSent: false,
-        devLink: link,
-        message: 'Login link ready (email not configured here). Open the Dev link to finish.'
-      });
+      if (process.env.ALLOW_DEV_LOGIN_LINK === 'true') {
+        res.json({
+          success: true,
+          emailSent: false,
+          devLink: link,
+          message: 'Login link ready (email not configured here). Open the Dev link to finish.'
+        });
+      } else {
+        res.json({
+          success: true,
+          emailSent: false,
+          message: 'Login link generated but email is not configured. Check server logs for the link.'
+        });
+      }
     } catch (err) {
       console.error('Error issuing magic token:', err);
       res.status(500).json({ error: 'Could not start login. Please try again.' });
@@ -86,7 +99,7 @@ export function registerSyncRoutes(app: Router) {
   });
 
   // GET /api/auth/confirm?token=... — exchange magic token for a session token.
-  // Returns JSON so the frontend can capture token/email and persist it.
+  // Sets an HttpOnly session cookie and returns the user (never the token).
   app.get('/api/auth/confirm', confirmIpLimiter, async (req, res) => {
     if (!authEnabled()) {
       return res.status(400).json({ error: 'Accounts are not configured on this server.' });
@@ -98,12 +111,29 @@ export function registerSyncRoutes(app: Router) {
       if (!sessionToken) {
         return res.status(400).json({ error: 'That login link is invalid or has expired.' });
       }
-      const lookup = await import('./auth');
-      const user = await lookup.getUserFromToken(sessionToken);
-      res.json({ success: true, token: sessionToken, user });
+      const user = await getUserFromToken(sessionToken);
+      // Issue the session as an HttpOnly cookie — never in the JSON response,
+      // so JavaScript on the page cannot read it (XSS can't steal the token).
+      res.cookie(SESSION_COOKIE, sessionToken, sessionCookieOptions());
+      res.json({ success: true, user });
     } catch (err) {
       console.error('Error confirming login:', err);
       res.status(500).json({ error: 'Could not complete login.' });
+    }
+  });
+
+  // POST /api/auth/logout — revoke the current session and clear the cookie.
+  app.post('/api/auth/logout', async (req, res) => {
+    if (!authEnabled()) return res.json({ localMode: true, ok: true });
+    try {
+      const header = req.headers.authorization || '';
+      const token = header.startsWith('Bearer ') ? header.slice(7) : (req.cookies?.[SESSION_COOKIE] as string | undefined);
+      await revokeSession(token || '');
+      res.clearCookie(SESSION_COOKIE, { path: '/' });
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('Error logging out:', err);
+      res.status(500).json({ error: 'Could not log out. Please try again.' });
     }
   });
 
@@ -119,6 +149,7 @@ export function registerSyncRoutes(app: Router) {
     try {
       const db = getDb()!;
       await db.delete(users).where(eq(users.id, req.user.id));
+      res.clearCookie(SESSION_COOKIE, { path: '/' });
       res.json({ ok: true, message: 'Your account and all associated data were deleted.' });
     } catch (err) {
       console.error('Error deleting account:', err);

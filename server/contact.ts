@@ -5,14 +5,14 @@
 // free Resend test mailbox (onboarding@resend.dev) delivers them even without a
 // verified domain — unlike login links to arbitrary users.
 import { Router } from 'express';
-import { makeRateLimiter, getClientIp } from './rateLimit';
+import { makeRateLimiter, rateLimitKey } from './rateLimit';
 import { sendMail, emailConfigured, contactRecipient, htmlEscape } from './mail';
 
 // 10 messages per hour per IP — generous for one person, tight for a bot.
 export const contactLimiter = makeRateLimiter({
   windowMs: 60 * 60 * 1000,
   max: 10,
-  key: (req) => getClientIp(req),
+  key: (req) => rateLimitKey(req),
   message: 'You have sent a lot of messages recently. Please wait an hour and try again.'
 });
 

@@ -1,6 +1,8 @@
 import express from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { createServer as createViteServer } from 'vite';
 import multer from 'multer';
 import { GoogleGenAI, Type } from '@google/genai';
@@ -17,16 +19,53 @@ import {
 import { processTextbookPdf } from './server/textbook';
 import { registerSyncRoutes } from './server/sync';
 import { registerContactRoutes } from './server/contact';
-import { smtpConfigured, contactRecipient, emailConfigured } from './server/mail';
+import { smtpConfigured, contactRecipient } from './server/mail';
 import { runMigrations } from './server/db/migrate';
 import { hasDb } from './server/db/client';
-import { checkInputs, BLOCKED_MESSAGE, withSafetyInstruction } from './server/safety';
-import { makeRateLimiter, getClientIp } from './server/rateLimit';
+import { checkInputs, BLOCKED_MESSAGE, withSafetyInstruction, wrapUserInput, PROMPT_DATA_BOUNDARY } from './server/safety';
+import { makeRateLimiter, rateLimitKey } from './server/rateLimit';
 
 dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+
+// Trust the first proxy hop (Render, Cloudflare, etc.) so req.ip resolves to
+// the real client IP instead of the proxy's address. This is required for
+// rate-limiting to work correctly — without it every request appears to come
+// from 127.0.0.1. Set to 1 (single trusted proxy) rather than true (any
+// number of hops) to prevent IP spoofing through chained headers.
+app.set('trust proxy', 1);
+
+// Security headers: CSP, framing protections, MIME-sniffing prevention,
+// referrer policy, HSTS, and removal of X-Powered-By. CSP needs to allow the
+// dev server (Vite HMR websockets), inline styles used by the SPA, and the
+// data: URIs used for SVG/confetti. In production the SPA is served from the
+// same origin so 'self' covers scripts/styles.
+app.use(
+  helmet({
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        'default-src': ["'self'"],
+        // Dev needs unsafe-eval/inline for Vite HMR transforms; production
+        // uses the bundled build which runs fine with scripts from self only.
+        'script-src': process.env.NODE_ENV === 'production'
+          ? ["'self'"]
+          : ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        'style-src': ["'self'", "'unsafe-inline'"],
+        'img-src': ["'self'", 'data:', 'blob:'],
+        'font-src': ["'self'", 'data:'],
+        'connect-src': ["'self'", 'ws:', 'wss:'],
+        'frame-ancestors': ["'none'"],
+        'base-uri': ["'self'"],
+        'form-action': ["'self'"]
+      }
+    },
+    referrerPolicy: { policy: 'no-referrer' }
+  })
+);
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 120;
 
@@ -37,7 +76,17 @@ const RATE_LIMIT_MAX_REQUESTS = 120;
 const aiRateLimiter = makeRateLimiter({
   windowMs: RATE_LIMIT_WINDOW_MS,
   max: RATE_LIMIT_MAX_REQUESTS,
-  key: (req) => getClientIp(req)
+  key: (req) => rateLimitKey(req)
+});
+
+// Textbook PDF processing is expensive (parse + full AI pipeline) and has no
+// auth by design (works in local mode). A tight per-client limiter prevents
+// cost/CPU abuse while staying transparent for real students.
+const textbookLimiter = makeRateLimiter({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  max: 10,
+  key: (req) => rateLimitKey(req),
+  message: 'Too many textbook uploads. Please slow down and try again shortly.'
 });
 
 function getSafeJsonBody(req: express.Request, res: express.Response): Record<string, any> | null {
@@ -50,6 +99,7 @@ function getSafeJsonBody(req: express.Request, res: express.Response): Record<st
 }
 
 app.use(express.json({ limit: '10mb' }));
+app.use(cookieParser());
 
 // Return a safe, human-friendly error message. In production we never leak
 // internal error details (Gemini SDK internals, stack traces) to clients.
@@ -67,14 +117,11 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   next(err);
 });
 
-// Health check. Exposes the active mail transport so deploy verification is a
-// one-liner instead of digging through logs.
+// Health check for uptime monitors / deploy verification. Kept deliberately
+// bare: it must NOT reveal which AI keys, mail transport, or database are in
+// use, since that would hand an attacker infrastructure profiling for free.
 app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
-    mailTransport: emailConfigured() ? (process.env.RESEND_API_KEY ? 'resend' : 'gmail-smtp') : 'none'
-  });
+  res.json({ status: 'ok' });
 });
 
 // In-memory multer storage for textbook PDF uploads (no disk writes needed).
@@ -91,11 +138,19 @@ const upload = multer({
 });
 
 // API: Upload a real textbook PDF -> extract text -> build an AI mastery workspace
-app.post('/api/textbook/process', upload.single('file'), async (req, res) => {
+app.post('/api/textbook/process', textbookLimiter, upload.single('file'), async (req, res) => {
   try {
     const genericError = 'Could not process the textbook. Please try again or use a Quick-Start sample.';
     if (!req.file) {
       return res.status(400).json({ error: 'No PDF file was uploaded.' });
+    }
+
+    // Verify magic bytes: a real PDF starts with "%PDF-" within the first 1024
+    // bytes. Guards against a non-PDF file renamed to .pdf (mimetype/ext only).
+    const head = req.file.buffer.subarray(0, 1024).toString('latin1');
+    const isPdf = /%PDF-\d/.test(head);
+    if (!isPdf) {
+      return res.status(400).json({ error: 'The uploaded file does not look like a valid PDF.' });
     }
 
     const bookTitle = String(req.body?.bookTitle || '').trim() || req.file.originalname.replace(/\.pdf$/i, '').replace(/_/g, ' ');
@@ -159,12 +214,12 @@ CRITICAL MANDATES:
 Format response strictly as valid JSON matching the requested schema.`);
 
     const prompt = `Deconstruct the following textbook/topic into a full Awde Mind-Map Unit:
-Topic / Title: ${topic || 'Key Textbook Unit'}
-Subject: ${subject || 'General STEM'}
-Grade/Level: ${gradeLevel || 'Secondary / University'}
-Textbook Extract or Outline:
-${(textbookText || topic || 'Key core concepts and formulas').slice(0, 4000)}
-Primary Language: ${language === 'am' ? 'Amharic (አማርኛ) prioritized alongside English' : 'English with complete Amharic translations'}`;
+${wrapUserInput('topic', topic || 'Key Textbook Unit')}
+${wrapUserInput('subject', subject || 'General STEM')}
+${wrapUserInput('gradeLevel', gradeLevel || 'Secondary / University')}
+${wrapUserInput('textbook', (textbookText || topic || 'Key core concepts and formulas').slice(0, 4000))}
+Primary Language: ${language === 'am' ? 'Amharic (አማርኛ) prioritized alongside English' : 'English with complete Amharic translations'}
+${PROMPT_DATA_BOUNDARY()}`;
 
     const response = await withTimeout(ai.models.generateContent({
       model: 'gemini-3.7-flash',
@@ -356,15 +411,16 @@ The student has selected: ${language === 'am' ? 'Amharic (አማርኛ)' : 'Engl
 
 Output must strictly be valid JSON.`);
 
-    const prompt = `Node / Concept being taught: ${nodeLabel}
-Concept Standard Definition / Truth: ${nodeSummary}
+    const prompt = `Node / Concept being taught: ${wrapUserInput('nodeLabel', nodeLabel)}
+Concept Standard Definition / Truth: ${wrapUserInput('nodeSummary', nodeSummary)}
 User's Explanation / Lesson:
-"${userExplanation}"
+${wrapUserInput('userExplanation', userExplanation)}
 
 Previous dialogue context if any:
-${JSON.stringify(chatHistory || [])}
+${wrapUserInput('chatHistory', chatHistory || [])}
 
-Evaluate this Feynman attempt now.`;
+Evaluate this Feynman attempt now.
+${PROMPT_DATA_BOUNDARY()}`;
 
     const response = await withTimeout(ai.models.generateContent({
       model: 'gemini-3.7-flash',
@@ -459,14 +515,15 @@ Your job is to answer student questions about a specific concept clearly and int
 - LANGUAGE: The student's interface language is ${language === 'am' ? 'Amharic (አማርኛ)' : 'English'}. When it's Amharic, make "answerAmharic" natural, idiomatic, fluent Amharic as a native speaker would write (not a literal word-for-word translation) and keep "answer" as a faithful English version. When it's English, still provide a complete, natural "answerAmharic" alongside the "answer".
 - Be warm and encouraging, like a brilliant older sibling helping with homework.`);
 
-    const prompt = `Concept: ${nodeLabel}
-Standard Definition: ${nodeSummary || 'No summary available.'}
+    const prompt = `Concept: ${wrapUserInput('nodeLabel', nodeLabel)}
+Standard Definition: ${wrapUserInput('nodeSummary', nodeSummary || 'No summary available.')}
 
-Student's question: "${question}"
+Student's question: ${wrapUserInput('question', question)}
 
-${chatHistory && chatHistory.length > 0 ? `Previous conversation:\n${JSON.stringify(chatHistory.slice(-6))}` : ''}
+${chatHistory && chatHistory.length > 0 ? `Previous conversation:\n${wrapUserInput('chatHistory', JSON.stringify(chatHistory.slice(-6)))}` : ''}
 
-Answer the student's question now. Be clear, concise, and encouraging.`;
+Answer the student's question now. Be clear, concise, and encouraging.
+${PROMPT_DATA_BOUNDARY()}`;
 
     const response = await withTimeout(ai.models.generateContent({
       model: 'gemini-3.7-flash',
@@ -519,8 +576,9 @@ Generate high-yield, conceptual multiple-choice and scenario questions based str
 Include common misconception traps as plausible distractors. Provide complete bilingual English and Amharic question text, options, and explanations.`);
 
     const prompt = `Generate ${safeCount} ${difficulty} conceptual quiz questions for:
-Topic: ${topic}
-Textbook Context: ${(textbookText || topic).slice(0, 3000)}`;
+${wrapUserInput('topic', topic)}
+${wrapUserInput('textbook', (textbookText || topic).slice(0, 3000))}
+${PROMPT_DATA_BOUNDARY()}`;
 
     const response = await withTimeout(ai.models.generateContent({
       model: 'gemini-3.7-flash',
@@ -579,10 +637,11 @@ app.post('/api/blurting/evaluate', aiRateLimiter, async (req, res) => {
 
     const systemPrompt = withSafetyInstruction(`You evaluate active recall (the Blurting Method). The student was given 3 minutes to type everything they remember about a topic. Compare their blurt against the target key concepts. Give an accuracy score, list what they correctly retrieved, what they missed, and provide constructive feedback in English and Amharic.`);
 
-    const prompt = `Topic: ${topicTitle}
-Target Key Points to know: ${JSON.stringify(targetKeyPoints)}
+    const prompt = `Topic: ${wrapUserInput('topicTitle', topicTitle)}
+Target Key Points to know: ${wrapUserInput('targetKeyPoints', targetKeyPoints)}
 Student's Blurting Recall text:
-"${userRecallText}"`;
+${wrapUserInput('userRecallText', userRecallText)}
+${PROMPT_DATA_BOUNDARY()}`;
 
     const response = await withTimeout(ai.models.generateContent({
       model: 'gemini-3.7-flash',
@@ -619,6 +678,11 @@ export async function startServer(port: number = PORT): Promise<any> {
   if (hasDb()) {
     try {
       await runMigrations();
+      // Hourly sweep of expired login tokens + sessions (data hygiene — the
+      // auth tables would otherwise grow without bound).
+      const { cleanupExpiredAuthRows } = await import('./server/auth');
+      await cleanupExpiredAuthRows();
+      setInterval(() => void cleanupExpiredAuthRows(), 60 * 60 * 1000).unref();
     } catch (err) {
       console.error('DB migration failed (continuing in local-only mode):', err);
     }
@@ -632,6 +696,13 @@ export async function startServer(port: number = PORT): Promise<any> {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
+    // Block source maps and other sensitive build artifacts from being served.
+    app.use((req, res, next) => {
+      if (req.path.endsWith('.map') || req.path.endsWith('.js.map') || req.path.endsWith('.cjs.map')) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+      next();
+    });
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));

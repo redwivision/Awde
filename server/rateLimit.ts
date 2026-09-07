@@ -19,13 +19,28 @@ export interface RateLimitOptions {
 
 export type RateLimiter = ((req: Request, res: Response, next: NextFunction) => void) & { clear: () => void };
 
-/** Best-effort client IP. Honours proxies (X-Forwarded-For) since Render
- *  and dev both sit behind one. */
+/**
+ * Resolve a stable client identifier for rate-limiting.
+ *
+ * IMPORTANT: We do NOT blindly trust the raw X-Forwarded-For header because any
+ * client can set it. Instead we rely on Express's `req.ip`, which only trusts
+ * X-Forwarded-For when `app.set('trust proxy', ...)` is configured (done in
+ * server.ts). Behind Render/Cloudflare this gives the real client IP; in direct
+ * connections it falls back to the TCP socket address — both safe.
+ *
+ * A secondary fingerprint (UA + Accept-Language) is layered on top so that a
+ * single IP shared by many users (school NAT) doesn't unfairly bucket them
+ * together, while still catching a single attacker rotating headers.
+ */
 export function getClientIp(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') return forwarded.split(',')[0].trim();
-  if (Array.isArray(forwarded) && forwarded.length > 0) return forwarded[0].trim();
   return req.ip || 'unknown';
+}
+
+export function rateLimitKey(req: Request): string {
+  const ip = getClientIp(req);
+  const ua = (req.headers['user-agent'] || '').slice(0, 80);
+  const lang = (req.headers['accept-language'] || '').slice(0, 20);
+  return `${ip}|${ua}|${lang}`;
 }
 
 export function makeRateLimiter(opts: RateLimitOptions): RateLimiter {

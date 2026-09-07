@@ -87,7 +87,8 @@ export async function postJson<T = unknown>(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-        signal: controller.signal
+        signal: controller.signal,
+        credentials: 'include'
       });
       clearTimeout(timer);
       let data: any = null;
@@ -138,7 +139,8 @@ export async function postFormData<T = unknown>(
     const res = await fetch(url, {
       method: 'POST',
       body: form, // browser sets multipart boundary automatically
-      signal: controller.signal
+      signal: controller.signal,
+      credentials: 'include'
     });
     clearTimeout(timer);
     let data: any = null;
