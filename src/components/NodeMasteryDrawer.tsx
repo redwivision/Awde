@@ -614,7 +614,7 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                     <div className="flex justify-start">
                       <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-slate-800 border border-slate-700 flex items-center gap-2">
                         <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
-                        <span className="text-xs text-slate-400">{isAmharic ? '栎-ti ይazeneka...' : 'Rooty is thinking...'}</span>
+                        <span className="text-xs text-slate-400">{isAmharic ? 'ሩቲ እያሰበ ነው...' : 'Rooty is thinking...'}</span>
                       </div>
                     </div>
                   )}

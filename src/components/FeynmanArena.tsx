@@ -49,7 +49,9 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
   const [isRecording, setIsRecording] = useState(false);
 
   // Efficacy Delta & Pre-Confidence Tracking
-  const [preConfidence, setPreConfidence] = useState<number>(2);
+  // null until the student answers the pre-assessment shown when a node is
+  // selected — the "You grew +X%" delta must never be fabricated.
+  const [preConfidence, setPreConfidence] = useState<number | null>(null);
   const [showPreAssessmentModal, setShowPreAssessmentModal] = useState<boolean>(false);
   const [showDeltaSuccessBanner, setShowDeltaSuccessBanner] = useState<boolean>(false);
   const [computedDelta, setComputedDelta] = useState<number | null>(null);
@@ -80,6 +82,13 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
     setComputedDelta(null);
     setCurrentStep(1);
   }, [selectedNode.id, language]);
+
+  // Open the pre-assessment whenever a new node is selected so the growth
+  // delta is measured honestly (before → after), never assumed.
+  useEffect(() => {
+    setPreConfidence(null);
+    setShowPreAssessmentModal(true);
+  }, [selectedNode.id]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -199,44 +208,48 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
           onUpdateNodeMastery(selectedNode.id, evalData.score, newStatus);
         }
 
-        // Calculate and record Efficacy Delta in Study Method Lab
-        const preScore = preConfidence * 20; // 2 -> 40%
-        const delta = Math.max(0, evalData.score - preScore);
-        setComputedDelta(delta);
+        // Calculate and record Efficacy Delta in Study Method Lab — only when
+        // the student actually answered the pre-assessment (never a made-up number).
+        const pc = preConfidence;
+        const preScore = pc !== null ? pc * 20 : null;
+        setComputedDelta(preScore !== null ? Math.max(0, evalData.score - preScore) : null);
 
         if (evalData.passed || evalData.score >= 75) {
-          setShowDeltaSuccessBanner(true);
+          if (preScore !== null) setShowDeltaSuccessBanner(true);
           confetti({
             particleCount: 80,
             spread: 70,
             origin: { y: 0.7 }
           });
 
-          // Record in localStorage experiments
-          try {
-            const existingRaw = localStorage.getItem('awde_experiments_v1');
-            const list: MethodExperimentLog[] = existingRaw ? JSON.parse(existingRaw) : [];
-            const newLog: MethodExperimentLog = {
-              id: 'exp_' + Date.now(),
-              timestamp: Date.now(),
-              dateStr: 'Just now',
-              nodeId: selectedNode.id,
-              nodeTitle: selectedNode.label,
-              unitId: unit.id,
-              unitTitle: unit.title,
-              methodsUsed: ['feynman'],
-              preConfidence,
-              preRecallScore: preScore,
-              postRecallScore: evalData.score,
-              deltaPercent: delta,
-              timeSpentSeconds: 300,
-              jargonEliminatedCount: evalData.detectedJargon?.length || 2,
-              retentionRating: delta >= 40 ? 'Super Synergy' : 'High Retention',
-              notes: `Feynman dialogue evaluated at ${evalData.score}% clarity.`
-            };
-            localStorage.setItem('awde_experiments_v1', JSON.stringify([newLog, ...list]));
-          } catch (e) {
-            console.error('Error saving experiment log:', e);
+          // Record in localStorage experiments — only with a real pre-assessment
+          if (pc !== null && preScore !== null) {
+            const deltaForLog = Math.max(0, evalData.score - preScore);
+            try {
+              const existingRaw = localStorage.getItem('awde_experiments_v1');
+              const list: MethodExperimentLog[] = existingRaw ? JSON.parse(existingRaw) : [];
+              const newLog: MethodExperimentLog = {
+                id: 'exp_' + Date.now(),
+                timestamp: Date.now(),
+                dateStr: 'Just now',
+                nodeId: selectedNode.id,
+                nodeTitle: selectedNode.label,
+                unitId: unit.id,
+                unitTitle: unit.title,
+                methodsUsed: ['feynman'],
+                preConfidence: pc,
+                preRecallScore: preScore,
+                postRecallScore: evalData.score,
+                deltaPercent: deltaForLog,
+                timeSpentSeconds: 300,
+                jargonEliminatedCount: evalData.detectedJargon?.length || 2,
+                retentionRating: deltaForLog >= 40 ? 'Super Synergy' : 'High Retention',
+                notes: `Feynman dialogue evaluated at ${evalData.score}% clarity.`
+              };
+              localStorage.setItem('awde_experiments_v1', JSON.stringify([newLog, ...list]));
+            } catch (e) {
+              console.error('Error saving experiment log:', e);
+            }
           }
         }
       } else {
@@ -246,10 +259,10 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
         const isOffline = data.error === 'offline';
         const offlineReply = isOffline
               ? (isAmharic
-              ? `ከበይነመረብ ጋር ስላልተገናኘህ አሁን ሙሉ ማወቅ አልችልም። ነገር ግን ይህን ነው ያለብך፡ «${conceptLabel}»ን በቀላል ቃላት ለማስተማር ሞክር — ይህ በእውነት መረዳት ለመፍጠር መሠረት ነው።`
+              ? `ከበይነመረብ ጋር ስላልተገናኘህ አሁን ሙሉ ማወቅ አልችልም። ነገር ግን ይህን ነው ያለብህ፡ «${conceptLabel}»ን በቀላል ቃላት ለማስተማር ሞክር — ይህ በእውነት መረዳት ለመፍጠር መሠረት ነው።`
               : `I can't do a full evaluation while you're offline, but here's my coaching:\n\nTry explaining "${conceptLabel}" in your own words using a simple everyday analogy. That's the core of teaching it — you're already doing it!`)
           : (isAmharic
-              ? `ሰርቨሩን ጋር ችግር አጋጥሞኛል። «${conceptLabel}»ን በቀላል ምሳሌ ማብራራት ሞክር — ይህ ተደራሽ መረዳት እንድትፈጥር ይช่วยሃል።`
+              ? `ሰርቨሩን ጋር ችግር አጋጥሞኛል። «${conceptLabel}»ን በቀላል ምሳሌ ማብራራት ሞክር — ይህ ተደራሽ መረዳት እንድትፈጥር ይረዳሃል።`
               : `I can't reach the server for a full evaluation right now, but here's my coaching:\n\nTry explaining "${conceptLabel}" using a simple, concrete analogy from daily life. That builds genuine understanding — keep going!`);
 
         setDialogue((prev) => [
@@ -273,7 +286,7 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
           id: 'turn_rooty_err_' + Date.now(),
           speaker: 'rooty',
           text: isAmharic
-            ? `ሰርቨሩን ጋር ችግር አጋጥሞኛል። «${conceptLabel}»ን በቀላል ቃላት በመስማራት ሞክር — ይህ በእውነት መረዳት እንድትፈጥር ያስተምርሃል።`
+            ? `ሰርቨሩን ጋር ችግር አጋጥሞኛል። «${conceptLabel}»ን በቀላል ቃላት በማስረዳት ሞክር — ይህ በእውነት መረዳት እንድትፈጥር ያስተምርሃል።`
             : `Something went wrong reaching the server, but don't stop! Try explaining "${conceptLabel}" in your own words using a simple analogy — that's how real learning builds.`,
           emotion: 'challenging',
           timestamp: Date.now()
@@ -581,6 +594,79 @@ export const FeynmanArena: React.FC<FeynmanArenaProps> = ({
           </form>
         </div>
       </div>
+
+      {/* Pre-Assessment Confidence Modal — measures the "before" so the growth delta is real */}
+      <AnimatePresence>
+        {showPreAssessmentModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 12 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 12 }}
+              className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-mono uppercase tracking-wider text-indigo-400 font-bold">
+                    {isAmharic ? 'ከመጀመርዎ በፊት' : 'Before we start'}
+                  </p>
+                  <h3 className="text-base font-bold text-white mt-1 leading-relaxed">
+                    {isAmharic
+                      ? `«${selectedNode.labelAmharic}»ን አሁን ለተጀማሪ ማስተማር ምን ያህል እንደምትችል ታምናለህ?`
+                      : `How confident are you right now that you could teach "${selectedNode.label}" to a beginner?`}
+                  </h3>
+                </div>
+                <RootyAvatar emotion="intrigued" size="md" />
+              </div>
+
+              <div className="mt-5 grid gap-2">
+                {[
+                  { v: 1, label: isAmharic ? 'በጭራሽ አልችልም' : "I can't yet" },
+                  { v: 2, label: isAmharic ? 'ትንሽ ብቻ' : 'A little' },
+                  { v: 3, label: isAmharic ? 'በመጠኑ' : 'Somewhat' },
+                  { v: 4, label: isAmharic ? 'እርግጠኛ ነኝ' : 'Confident' },
+                  { v: 5, label: isAmharic ? 'በጣም እርግጠኛ ነኝ' : 'Very confident' }
+                ].map((opt) => (
+                  <button
+                    key={opt.v}
+                    onClick={() => {
+                      setPreConfidence(opt.v);
+                      setShowPreAssessmentModal(false);
+                    }}
+                    className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-colors text-left text-sm font-medium ${
+                      preConfidence === opt.v
+                        ? 'bg-indigo-600/20 border-indigo-500 text-indigo-200'
+                        : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                    <span className="text-[11px] font-mono text-slate-400">{opt.v}/5</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <p className="text-[11px] text-slate-400 font-mono">
+                  {isAmharic
+                    ? 'ይህ መልስ በመጨረሻ ላይ ያለውን እውነተኛ የእድገት ደረጃ እንዲለካ ያግዛል።'
+                    : 'Your "before" rating lets Rooty measure your real growth at the end.'}
+                </p>
+                <button
+                  onClick={() => setShowPreAssessmentModal(false)}
+                  className="text-[11px] font-mono text-slate-400 hover:text-slate-200 underline shrink-0"
+                >
+                  {isAmharic ? 'ለአሁን ዝለሉት' : 'Skip for now'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

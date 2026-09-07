@@ -26,12 +26,131 @@ interface MindMapCanvasProps {
   selectedNodeId?: string;
 }
 
+// Categories drawn as columns, so a unit always renders as a real map instead
+// of the flat horizontal row that raw AI/seed coordinates tend to produce.
+const CATEGORY_ORDER = ['Foundation', 'Mechanism', 'Core Law', 'Real-World App'];
+
+const CARD_W = 260;
+const CARD_H = 175;
+const COL_STEP_X = 340;
+const ROW_STEP_Y = 215;
+const EDGE_CORNER_R = 14;
+
+// Column gap lanes the edges run through, so lines never cross card content.
+// Gap of column c spans [c.x + CARD_W, (c+1).x]; its center is the lane.
+function laneXOf(column: number): number {
+  return 140 + column * COL_STEP_X + CARD_W + (COL_STEP_X - CARD_W) / 2;
+}
+
+const sgn = (n: number) => (n > 0 ? 1 : n < 0 ? -1 : 0);
+
+function columnIndexOf(posX: number): number {
+  return Math.round((posX - 140) / COL_STEP_X);
+}
+
+// Route an edge as an orthogonal path with rounded corners along the thin gap
+// between node columns (matching a classic flowchart / metro-map look). Returns
+// the SVG path plus the midpoint where the edge label should sit.
+function routeEdge(
+  from: { x: number; y: number },
+  to: { x: number; y: number }
+): { path: string; midX: number; midY: number } {
+  const cFrom = columnIndexOf(from.x);
+  const cTo = columnIndexOf(to.x);
+  const y0 = from.y + CARD_H / 2;
+  const y1 = to.y + CARD_H / 2;
+
+  if (cFrom === cTo) {
+    // Same column: connect through the lane to the right of the column, from the
+    // vertical edge that points toward the destination. Arrow stays sensible for
+    // both up and down connections.
+    const goingDown = from.y <= to.y;
+    const x0 = from.x + CARD_W / 2;
+    const x1 = to.x + CARD_W / 2;
+    const startY = goingDown ? from.y + CARD_H : from.y;
+    const endY = goingDown ? to.y : to.y + CARD_H;
+    const laneX = laneXOf(cFrom);
+    const dy = endY - startY;
+    if (Math.abs(dy) < 1) {
+      return { path: `M ${x0} ${startY} L ${x1} ${endY}`, midX: laneX, midY: (startY + endY) / 2 };
+    }
+    const r = Math.min(EDGE_CORNER_R, Math.abs(dy) / 2);
+    const dirY = sgn(dy);
+    const d = [
+      `M ${x0} ${startY}`,
+      `L ${laneX} ${startY}`,
+      `Q ${laneX} ${startY}, ${laneX} ${startY + dirY * r}`,
+      `L ${laneX} ${endY - dirY * r}`,
+      `Q ${laneX} ${endY}, ${laneX} ${endY}`,
+      `L ${x1} ${endY}`
+    ].join(' ');
+    return { path: d, midX: laneX, midY: (startY + endY) / 2 };
+  }
+
+  const forward = cTo > cFrom;
+  // Exit the source card on the side that heads toward the destination, and the
+  // vertical run happens in the lane just outside the nearer column so the line
+  // only ever travels through empty gaps.
+  const x0 = forward ? from.x + CARD_W : from.x;
+  const x3 = forward ? to.x : to.x + CARD_W;
+  const laneX = forward ? laneXOf(cFrom) : laneXOf(cTo);
+  const dx = laneX - x0;
+  const dy = y1 - y0;
+  if (Math.abs(dy) < 1 && Math.abs(dx) < 1) {
+    return { path: `M ${x0} ${y0} L ${x3} ${y1}`, midX: (x0 + x3) / 2, midY: (y0 + y1) / 2 };
+  }
+  const r = Math.min(EDGE_CORNER_R, Math.abs(dy) / 2);
+  const dirY = sgn(dy);
+  const d = [
+    `M ${x0} ${y0}`,
+    `L ${laneX - sgn(dx) * r} ${y0}`,
+    `Q ${laneX} ${y0}, ${laneX} ${y0 + dirY * r}`,
+    `L ${laneX} ${y1 - dirY * r}`,
+    `Q ${laneX} ${y1}, ${laneX + sgn(x3 - laneX) * r} ${y1}`,
+    `L ${x3} ${y1}`
+  ].join(' ');
+  return { path: d, midX: laneX, midY: (y0 + y1) / 2 };
+}
+
+// Deterministic layout: one column per category (ordered so learning flows
+// left → right), nodes stacked and vertically centered per column. AI-provided
+// x/y are ignored for positioning, so the graph stays a legible map even when
+// a provider returns degenerate or overlapping coordinates.
+function computeMapLayout(nodes: ConceptNode[]): Record<string, { x: number; y: number }> {
+  const columns = new Map<string, ConceptNode[]>();
+  for (const n of nodes) {
+    const list = columns.get(n.category) || [];
+    list.push(n);
+    columns.set(n.category, list);
+  }
+
+  const presentCategories = Array.from(columns.keys());
+  const order = CATEGORY_ORDER.filter((c) => columns.has(c)).concat(
+    presentCategories.filter((c) => !CATEGORY_ORDER.includes(c))
+  );
+
+  const positions: Record<string, { x: number; y: number }> = {};
+  order.forEach((category, colIdx) => {
+    const members = (columns.get(category) || []).slice().sort((a, b) => a.depthLevel - b.depthLevel);
+    if (members.length === 0) return;
+    const x = 140 + colIdx * COL_STEP_X;
+    const stackH = members.length * ROW_STEP_Y;
+    const startY = Math.max(90, 800 - stackH / 2);
+    members.forEach((node, rowIdx) => {
+      positions[node.id] = { x, y: startY + rowIdx * ROW_STEP_Y };
+    });
+  });
+
+  return positions;
+}
+
 export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
   unit,
   language,
   onSelectNode,
   selectedNodeId
 }) => {
+  const positions = React.useMemo(() => computeMapLayout(unit.nodes), [unit]);
   const [zoom, setZoom] = useState(() => {
     // On a narrow (mobile) screen the map opens zoomed out a bit so the whole
     // graph fits and is easier to pan around; desktop keeps the fuller view.
@@ -50,6 +169,41 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const isAmharic = language === 'am';
+
+  // Fit the view so the whole map is visible and centered (instead of opening
+  // at an arbitrary pan offset that leaves nodes cut off).
+  const fitToLayout = React.useCallback(() => {
+    const viewport = containerRef.current;
+    if (!viewport) return;
+    const ids = Object.keys(positions);
+    if (ids.length === 0) return;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const id of ids) {
+      const p = positions[id];
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+      maxX = Math.max(maxX, p.x + CARD_W);
+      maxY = Math.max(maxY, p.y + CARD_H);
+    }
+    const w = maxX - minX;
+    const h = maxY - minY;
+    const cw = viewport.clientWidth;
+    const ch = viewport.clientHeight;
+    const zoom = Math.max(0.3, Math.min(1, Math.min(cw / w, ch / h) * 0.92));
+    setZoom(zoom);
+    setPan({
+      x: cw / 2 - (minX + w / 2) * zoom,
+      y: ch / 2 - (minY + h / 2) * zoom
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unit.id]);
+
+  useEffect(() => {
+    fitToLayout();
+  }, [fitToLayout]);
 
   // Drag pan handlers (Mouse & Touch)
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -101,9 +255,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
   };
 
   const handleResetView = () => {
-    const narrow = typeof window !== 'undefined' && window.innerWidth < 768;
-    setZoom(narrow ? 0.65 : 1);
-    setPan({ x: narrow ? -20 : 30, y: 30 });
+    fitToLayout();
   };
 
   // Node filtering
@@ -117,12 +269,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  // Calculate SVG curve paths between connected nodes
-  const getNodeCenter = (nodeId: string) => {
-    const node = unit.nodes.find((n) => n.id === nodeId);
-    if (!node) return { x: 0, y: 0 };
-    return { x: node.x + 130, y: node.y + 75 };
-  };
+  const visibleNodeIds = React.useMemo(() => new Set(filteredNodes.map((n) => n.id)), [filteredNodes]);
 
   const categories = Array.from(new Set(unit.nodes.map((n) => n.category)));
 
@@ -279,31 +426,25 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
               </defs>
 
               {unit.connections.map((conn) => {
-                const start = getNodeCenter(conn.from);
-                const end = getNodeCenter(conn.to);
-                if (!start.x || !end.x) return null;
+                const fromPos = positions[conn.from];
+                const toPos = positions[conn.to];
+                if (!fromPos || !toPos) return null;
+                // Skip edges whose endpoints are hidden by search/filters.
+                if (!visibleNodeIds.has(conn.from) || !visibleNodeIds.has(conn.to)) return null;
 
-                // Curved Bezier calculation
-                const dx = end.x - start.x;
-                const dy = end.y - start.y;
-                const cx1 = start.x + dx * 0.45;
-                const cy1 = start.y;
-                const cx2 = start.x + dx * 0.55;
-                const cy2 = end.y;
-
-                const pathData = `M ${start.x} ${start.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${end.x} ${end.y}`;
-                const midX = (start.x + end.x) / 2;
-                const midY = (start.y + end.y) / 2;
+                const { path: pathData, midX, midY } = routeEdge(fromPos, toPos);
 
                 return (
-                  <g key={conn.id} className="opacity-85 hover:opacity-100 transition-opacity">
+                  <g key={conn.id} className="opacity-85 pointer-events-none">
                     {/* Glow Shadow */}
                     <path
                       d={pathData}
                       fill="none"
                       stroke="#3730A3"
-                      strokeWidth="4"
-                      strokeOpacity="0.3"
+                      strokeWidth="5"
+                      strokeOpacity="0.28"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
                     {/* Main Link Line */}
                     <path
@@ -311,23 +452,27 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
                       fill="none"
                       stroke="url(#lineGradient)"
                       strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                       strokeDasharray={conn.relationType === 'depends_on' ? '6 4' : 'none'}
                       markerEnd="url(#arrowhead)"
                     />
                     {/* Edge Label Badge */}
-                    <foreignObject
-                      x={midX - 90}
-                      y={midY - 14}
-                      width="180"
-                      height="28"
-                      className="overflow-visible pointer-events-none"
-                    >
-                      <div className="flex justify-center items-center">
-                        <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-slate-950/95 text-slate-200 border border-slate-800 shadow-md backdrop-blur-sm truncate max-w-[170px]">
-                          {isAmharic && conn.labelAmharic ? conn.labelAmharic : conn.label}
-                        </span>
-                      </div>
-                    </foreignObject>
+                    {(conn.label || conn.labelAmharic) && (
+                      <foreignObject
+                        x={midX - 92}
+                        y={midY - 13}
+                        width="184"
+                        height="26"
+                        className="overflow-visible pointer-events-none"
+                      >
+                        <div className="flex justify-center items-center">
+                          <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-slate-950 text-slate-200 border border-slate-800 shadow-md truncate max-w-[176px]">
+                            {isAmharic && conn.labelAmharic ? conn.labelAmharic : conn.label}
+                          </span>
+                        </div>
+                      </foreignObject>
+                    )}
                   </g>
                 );
               })}
@@ -364,8 +509,8 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
                 <div
                   key={node.id}
                   style={{
-                    left: `${node.x}px`,
-                    top: `${node.y}px`,
+                    left: `${positions[node.id]?.x ?? node.x}px`,
+                    top: `${positions[node.id]?.y ?? node.y}px`,
                     position: 'absolute'
                   }}
                   className="pointer-events-auto mindmap-node-card z-10"

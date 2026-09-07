@@ -43,8 +43,8 @@ Students today rely on static textbooks that force rote-reading and memorization
 
 | Feature | Description |
 |---|---|
-| 🧠 **Mind-Map Studio** | Interactive concept graph with typed relationships (`depends_on`, `causes`, `transforms_into`), search, filters, master cards, canvas or grid views |
-| 💬 **Feynman Arena (Teach Rooty)** | Real-time Socratic dialogue; Rooty evaluates simplicity, clarity, jargon avoidance, analogy quality & accuracy; voice input + text-to-speech; 3 strictness modes |
+| 🧠 **Mind-Map Studio** | Interactive concept graph with typed relationships (`depends_on`, `causes`, `transforms_into`), search, filters, master cards, canvas or grid views. Deterministic layout engine (`computeMapLayout`) arranges nodes into category columns (Foundation → Mechanism → Core Law → Real-World App) with an auto-fit view and orthogonal, rounded-corner edge routing through the gaps — so a unit always reads as a map, never a flat row of cards |
+| 💬 **Feynman Arena (Teach Rooty)** | Real-time Socratic dialogue; Rooty evaluates simplicity, clarity, jargon avoidance, analogy quality & accuracy; voice input + text-to-speech; 3 strictness modes. Growth is measured honestly: it asks your starting confidence ("How confident are you, right now?") before you begin, so the before→after efficacy delta is a real measurement, never a fabricated number |
 | ❓ **Active Recall Quizzes** | Diagnostic MCQs with difficulty filtering, misconception traps, and AI-generated unlimited questions (bilingual) |
 | ⏱️ **Deep Work Suite** | Pomodoro focus timer with ambient noise (incl. traditional Krar drone), distraction parking lot, Blurting Method (3-min active recall sprint with AI grading), Leitner SRS flashcards |
 | 🧪 **Method Laboratory** | Test & validate study protocols (Map+Feynman, Pure Socratic, Spatial Scaffolding) with measurable recall deltas |
@@ -330,7 +330,7 @@ devices — `localStorage` stays as the offline cache.
 - ✅ **Interactive feature set** — all 6 study modes are functional with live client/server wiring
 - ✅ **Enriched concept nodes** — detailed explanations, key takeaways, and related concepts in the node drawer
 - ✅ **Ask Rooty Q&A** — lightweight in-drawer chat for asking questions about any concept
-- ✅ **Test suite** — 141 tests (135 offline/unit/integration + 6 Postgres-backed cache tests run in CI)
+- ✅ **Test suite** — 142 tests (136 unit/integration/offline + 6 Postgres-backed cache tests that run in a dedicated CI job; the DB ones self-skip without a `DATABASE_URL`)
 - ✅ **Bilingual support** — complete English/Amharic toggle across all UI
 - ✅ **Theme system** — 5 design aesthetics with CSS variable theming
 - ✅ **Accounts & cloud sync** — optional passwordless accounts via Neon/Postgres; local-first (works offline) with cross-device sync when signed in
@@ -359,7 +359,7 @@ devices — `localStorage` stays as the offline cache.
 | Auth / API Keys | None required by default (deterministic fallback generators); optional Google OAuth + magic-link accounts when `DATABASE_URL` is set (magic links emailed via `RESEND_API_KEY`) |
 | Languages | 2 (English + Amharic) |
 | Recall Deltas | Measured per-user in the Method Laboratory (before vs after) |
-| Test Coverage | 141 tests (135 offline/unit/integration based + 6 Postgres-backed cache tests in a dedicated CI job; incl. content-safety, auth/hardening, provider chain, quotas, cache) |
+| Test Coverage | 142 tests (136 unit/integration/offline based + 6 Postgres-backed cache tests in a dedicated CI job; incl. content-safety, auth/hardening, provider chain, quotas, cache) |
 | Persistence | localStorage-first offline cache; optional cloud sync (workspaces + study events) via Neon/Postgres |
 
 ---

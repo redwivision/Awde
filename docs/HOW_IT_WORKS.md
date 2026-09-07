@@ -639,6 +639,23 @@ It gets the unit to draw and a callback `onSelectNode` to tell `App` "the user
 picked this node." It does NOT own the workspaces — it can't mutate them directly.
 That's the point: all mutations go back up to `App` through callbacks.
 
+**The map is a real layout, not random scatter.** `MindMapCanvas.tsx` ships a
+deterministic layout engine instead of trusting AI/seed coordinates (which were
+near-linear, so a unit rendered as a flat row of touching cards). `computeMapLayout`
+groups nodes into category columns (Foundation → Mechanism → Core Law → Real-World
+App), centers each column vertically, and sorts by `depthLevel`; `fitToLayout`
+auto-zooms to fit the whole unit on open/reset. `routeEdge` + `laneXOf` draw
+orthogonal rounded-corner SVG edges through the column gaps (metro-map style),
+anchoring arrows at card edges and routing same-column links via a side lane.
+Everything is filter-aware — edges to hidden nodes are skipped, not orphaned.
+
+A related honesty fix lives in `FeynmanArena.tsx`: the "«You grew +X%»" efficacy
+delta used to be computed from a hardcoded `preConfidence = 2`. Now every time a
+node is selected, a short "How confident are you right now?" modal
+(`setShowPreAssessmentModal`) records a real 1–5 starting confidence, and the
+delta / Study-Method-Lab experiment is only shown and logged when the student
+actually answered — "Skip for now" means no measurement, never a fabricated one.
+
 Heavy components are **lazy-loaded** via `React.lazy(...)`:
 
 ```tsx
@@ -708,7 +725,9 @@ scroll" + "radial gradient, not solid dim."
 
 ## 11. Tests: what they protect
 
-`tests/` uses **Vitest** + **supertest**. The suite (138 tests) clusters around
+`tests/` uses **Vitest** + **supertest**. The suite (142 tests; the 6
+Postgres-backed ones in `cache-db.test.ts` self-skip without a `DATABASE_URL`)
+clusters around
 the most failure-prone, most important logic:
 
 - `persistence.test.ts` — the migration / single-source-of-truth invariants.
@@ -844,10 +863,11 @@ The best way to learn is to break it a little. Try each, then `git` your way bac
 ---
 
 *This guide describes the code as it stands after the accounts + persistence,
-trust & safety, auth-hardening, and resilient-free-tier (provider chain, daily
-quotas, content cache) milestones. When things change, the architecture (one
-server, local state, props-down data flow, AI via a multi-provider
-fallback chain with guaranteed resolution, daily spend quotas, content-addressed
-generation cache, localStorage-first with optional account sync, and
-rate-limited passwordless email auth) is the stable part — that's the part to
-internalize.*
+trust & safety, auth-hardening, resilient-free-tier (provider chain, daily
+quotas, content cache), and UX-honesty milestones (deterministic mind-map layout
+with orthogonal edge routing; real pre-assessment efficacy measurement). When
+things change, the architecture (one server, local state, props-down data flow,
+AI via a multi-provider fallback chain with guaranteed resolution, daily spend
+quotas, content-addressed generation cache, localStorage-first with optional
+account sync, and rate-limited passwordless email auth) is the stable part —
+that's the part to internalize.*

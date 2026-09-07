@@ -275,7 +275,7 @@ const handleCreateWorkspace = async () => {
                   {isAmharic ? 'ፋይል ይምረጡ' : 'Pick a PDF'}
                   <input
                     type="file"
-                    accept=".pdf,.docx,.txt,.epub"
+                    accept=".pdf,application/pdf"
                     className="hidden"
                     onChange={handleFileInput}
                   />
