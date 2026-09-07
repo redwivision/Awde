@@ -8,7 +8,13 @@ export const authClient = createAuthClient({
   basePath: '/api/ba'
 });
 
-/** Start Google OAuth; the browser redirects to Google and back to the app. */
-export function googleSignIn(callbackURL: string): Promise<unknown> {
-  return authClient.signIn.social({ provider: 'google', callbackURL });
+/**
+ * Start Google OAuth. `signIn.social` POSTs to /api/ba/sign-in/social, which
+ * returns { url, redirect: true }; the client's built-in redirect plugin then
+ * navigates the browser to Google. Resolves true when a redirect was issued.
+ */
+export async function googleSignIn(callbackURL: string): Promise<boolean> {
+  const res = await authClient.signIn.social({ provider: 'google', callbackURL });
+  if (res.data?.url && res.data.redirect) return true;
+  throw new Error(res.error?.message || 'Google sign-in failed');
 }

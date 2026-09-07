@@ -254,7 +254,17 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
                     <button
                       onClick={async () => {
                         setGoogleLoading(true);
-                        await googleSignIn(window.location.pathname + window.location.search);
+                        try {
+                          await googleSignIn(window.location.pathname + window.location.search);
+                        } catch {
+                          setGoogleLoading(false);
+                          setStatus('error');
+                          setMessage(
+                            isAmharic
+                              ? 'በ Google መግባት አልተሳካም። እባክዎ በኋላ ይሞክሩ።'
+                              : 'Google sign-in failed. Please try again.'
+                          );
+                        }
                       }}
                       disabled={googleLoading}
                       className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-opacity disabled:opacity-60"

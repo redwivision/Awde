@@ -44,7 +44,11 @@ export function getAuth(): AuthInstance | null {
       secret: getSecret('BETTER_AUTH_SECRET') || createHash('sha256').update(`awde-better-auth:${appUrlBase()}`).digest('base64'),
       database: drizzleAdapter(db, {
         provider: 'pg',
-        schema: { User, Session, Account, Verification }
+        // Keys MUST match Better Auth's lowercase model names (user, session,
+        // account, verification); the adapter does schema[model] lookups with
+        // those exact keys and a capitalized key (User, ...) fails with
+        // "The model X was not found in the schema object" on every table op.
+        schema: { user: User, session: Session, account: Account, verification: Verification }
       }),
       socialProviders: {
         ...(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET
