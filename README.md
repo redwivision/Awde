@@ -52,7 +52,7 @@ Students today rely on static textbooks that force rote-reading and memorization
 | 🌍 **Bilingual** | Full English ⇄ Amharic (አማርኛ) toggle across all content, analogies, quizzes, and Rooty's critique |
 | 🎨 **Theming** | Multiple design aesthetics incl. Nordic Minimal, Scholar Parchment, Obsidian Cyber, and the warm "Addis Espresso" heritage theme |
 | 📴 **Single-Server Simplicity** | One Express process serves the React build and all /api endpoints — no separate backend required |
-| 🔑 **Resilient AI (no single point of failure)** | Every AI endpoint runs a provider chain — Gemini → Groq → NVIDIA → deterministic offline generator — with per-provider timeouts and a circuit breaker. One dead/expired key never breaks the app; with no keys at all it still works offline |
+| 🔑 **Resilient AI (no single point of failure)** | Every AI endpoint runs a provider chain — **OpenRouter → Groq → NVIDIA** → deterministic offline generator — with per-provider timeouts, an overall chain deadline, and a circuit breaker. One dead/expired key never breaks the app; with no keys at all it still works offline |
 | 👤 **Accounts & Cloud Sync** | Optional passwordless (magic-link) accounts via Neon/Postgres — progress syncs across devices while staying available offline (localStorage-first) |
 | 🛡️ **Privacy-First & Age-Gated** | One-time consent gate before use, in-app Privacy & Terms (footer / Account / gate), no PII by default (only a login email), learning data used for personalization with an account, AI content-safety filter + model guard, one-tap account/data deletion, in-app contact form + published contact email (lewikb13@gmail.com) in footer / Account / policy |
 | 🔍 **Node Mastery Drawer** | Slide-in detail panel for every concept with 5 tabs: Localized Analogy, Concept Core (detailed explanation + key takeaways + related concepts), Common Traps, Rules & Formulas, and Ask Rooty |
@@ -75,19 +75,27 @@ Open http://localhost:3000 in your browser.
 
 ### Environment setup (optional)
 
-Copy the template and add a Gemini key to enable **live AI generation**:
+Copy the template and add an OpenRouter key to enable **live AI generation**:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Set `GEMINI_API_KEY` (get one at https://aistudio.google.com/apikey), and — for
-extra resilience against rate limits/outages — optionally add `GROQ_API_KEY`
+Set `OPENROUTER_API_KEY` (get one at https://openrouter.ai/keys — one key in
+front of 400+ models; the `openrouter/free` auto-router costs $0). For extra
+resilience against rate limits/outages, optionally add `GROQ_API_KEY`
 (https://console.groq.com) and/or `NVIDIA_API_KEY` (https://build.nvidia.com).
-Providers are tried in order on **every** request: Gemini → Groq → NVIDIA → a
-deterministic offline generator. A key that fails 3× in a row is skipped for a
+Providers are tried in order on **every** request: OpenRouter → Groq → NVIDIA →
+a deterministic offline generator. A key that fails 3× in a row is skipped for a
 minute (circuit breaker) and retried automatically, so a dead/expired key can
 never leave students stranded.
+
+> **Keys are production secrets.** They live only in `.env` locally and in your
+> host's secret store (`sync: false`) in production — never in code, git, logs,
+> or the browser. The server logs provider **names only**; rotating a key is a
+> config change + restart, and the chain absorbs the gap with no user-visible
+> outage. See `server/secrets.ts`. Optional: set `OPENROUTER_MODEL` to pin a
+> specific model instead of the self-updating `openrouter/free` default.
 
 > **Free-tier spend caps (built-in):** daily AI generation is bounded per client
 > fingerprint — 30 mind-maps, 120 quizzes, 240 AI-chat responses, and 10 PDF
@@ -116,7 +124,7 @@ never leave students stranded.
 > This project also runs on [Google AI Studio](https://ai.studio), which injects `GEMINI_API_KEY` and `APP_URL` from your account secrets automatically (see `metadata.json`).
 
 > **No keys? No problem.** Awde ships with a resilient **provider chain** for
-> every AI endpoint — Gemini → Groq → NVIDIA → deterministic offline generators —
+> every AI endpoint — OpenRouter → Groq → NVIDIA → deterministic offline generators —
 > so the full app (mind-maps, Rooty Feynman evaluation, quizzes, blurting
 > grading, PDF ingestion) works out of the box with zero keys, and keeps working
 > if any provider key dies. Live providers just make the output richer.
@@ -148,8 +156,11 @@ never leave students stranded.
 
 **Required environment variables** (set in your host's dashboard):
 - `NODE_ENV=production`
-- `GEMINI_API_KEY` — your Google Gemini API key (live AI). If omitted, the app
-  runs in offline-fallback mode (deterministic generators) as a safety net.
+- `OPENROUTER_API_KEY` — your OpenRouter API key (live AI; one key = every
+  model, free auto-router default). If omitted, the app runs in offline-fallback
+  mode (deterministic generators) as a safety net. Optional: `OPENROUTER_MODEL`
+  to pin a model. Add it to Render with `sync: false` so it never lands in
+  source control; rotate from the OpenRouter dashboard + restart.
 - _Optional:_ `GROQ_API_KEY`, `NVIDIA_API_KEY` (fallback AI providers),
   `APP_URL` (public URL of the service).
 - `DATABASE_URL` — Neon/Postgres connection string. **Required for accounts +
@@ -171,7 +182,7 @@ never leave students stranded.
 2. In Render, choose **New → Web Service** and connect the repo.
 3. Render auto-detects [`render.yaml`](./render.yaml). Set the **Build
    Command** to `npm ci && npm run build` and **Start Command** to `npm start`.
-4. Add `GEMINI_API_KEY`, `DATABASE_URL`, and `RESEND_API_KEY` (plus
+4. Add `OPENROUTER_API_KEY`, `DATABASE_URL`, and `RESEND_API_KEY` (plus
    `RESEND_FROM_ADDRESS` for a verified sender) in the service's
    **Environment** tab.
 5. The service starts on port `3000` (set with `PORT` if needed) and handles
@@ -185,7 +196,7 @@ runs `node dist/server.cjs` on port `3000`.
 - **Railway:** New Project → Deploy from repo → Railway auto-detects the
   `Dockerfile`. Add the env vars above, and set the public port to `3000`.
 - **Fly.io:** `fly launch` (accept the generated `fly.toml`), then
-  `fly secrets set GEMINI_API_KEY=...` and `fly deploy`.
+  `fly secrets set OPENROUTER_API_KEY=...` and `fly deploy`.
 
 ### Local production check
 
@@ -202,8 +213,9 @@ curl http://localhost:3000/api/health   # → {"status":"ok"}
 ```
 ├── server.ts                 # Express AI backend (routes, quotas, cache wiring)
 ├── server/
-│   ├── ai.ts                 # Provider clients (Gemini/Groq/NVIDIA keys) + offline fallback generators
-│   ├── providerRouter.ts     # callAiWithFallback: Gemini → Groq → NVIDIA → fallback, circuit breaker
+│   ├── ai.ts                 # Provider key/model access (OpenRouter/Groq/NVIDIA) + offline fallback generators
+│   ├── providerRouter.ts     # callAiWithFallback: OpenRouter → Groq → NVIDIA → fallback, circuit breaker
+│   ├── secrets.ts            # Env-only key access, provider status logging (names, never keys)
 │   ├── unitCache.ts          # Content-addressed cache of generated units (Postgres, shape-validated)
 │   ├── quota.ts              # Per-fingerprint daily AI-spend caps (free tier)
 │   ├── auth.ts               # Passwordless magic-link auth + requireAuth middleware
@@ -258,14 +270,14 @@ curl http://localhost:3000/api/health   # → {"status":"ok"}
 | `POST /api/textbook/process` | Process uploaded PDF → generate full workspace |
 | `GET /api/health` | Minimal uptime probe — returns only `{"status":"ok"}` (deliberately reveals nothing about internals) |
 
-Every AI endpoint routes through `callAiWithFallback` (Gemini → Groq → NVIDIA →
-deterministic generator) and sits behind a per-fingerprint **daily quota** plus a
-per-minute rate limit. Successful responses tag `provider` (`"gemini"`/`"groq"`/
-`"nvidia"`) so the UI can label output; `isFallback: true` means every provider
-was unavailable. Mind-maps and quizzes are additionally **content-addressed**:
-with a `DATABASE_URL`, two students studying the same topic+text get the *same*
-unit, and repeat requests are served with `fromCache: true` — instantly and at
-$0 AI cost.
+Every AI endpoint routes through `callAiWithFallback` (OpenRouter → Groq →
+NVIDIA → deterministic generator) and sits behind a per-fingerprint **daily
+quota** plus a per-minute rate limit. Successful responses tag `provider`
+(`"openrouter"`/`"groq"`/`"nvidia"`) so the UI can label output;
+`isFallback: true` means every provider was unavailable. Mind-maps and quizzes
+are additionally **content-addressed**: with a `DATABASE_URL`, two students
+studying the same topic+text get the *same* unit, and repeat requests are served
+with `fromCache: true` — instantly and at $0 AI cost.
 
 **Accounts & sync (active only when `DATABASE_URL` is set):**
 
@@ -291,7 +303,7 @@ devices — `localStorage` stays as the offline cache.
 ## Project Status
 
 - ✅ **Production-ready** — installs, typechecks, builds, boots, and handles all AI endpoints (live or offline fallback)
-- ✅ **Resilient AI free tier** — every AI endpoint runs a Gemini → Groq → NVIDIA → offline-generator chain (per-provider timeouts, circuit breaker), behind per-fingerprint daily spending quotas
+- ✅ **Resilient AI free tier** — every AI endpoint runs an OpenRouter → Groq → NVIDIA → offline-generator chain (per-provider timeouts, overall chain deadline, circuit breaker), behind per-fingerprint daily spending quotas
 - ✅ **Content-addressed generation cache** — repeat mind-maps/quizzes are served from Postgres (`generated_units`) for free; shape-validated, poisoned/oversized payloads rejected
 - ✅ **Landing page** — cinematic first-run experience with clear problem statement and solution overview
 - ✅ **Offline mode** — fully functional without any API keys (deterministic fallback generators)
@@ -299,7 +311,7 @@ devices — `localStorage` stays as the offline cache.
 - ✅ **Interactive feature set** — all 6 study modes are functional with live client/server wiring
 - ✅ **Enriched concept nodes** — detailed explanations, key takeaways, and related concepts in the node drawer
 - ✅ **Ask Rooty Q&A** — lightweight in-drawer chat for asking questions about any concept
-- ✅ **Test suite** — 138 tests (132 offline/unit/integration + 6 Postgres-backed cache tests run in CI)
+- ✅ **Test suite** — 141 tests (135 offline/unit/integration + 6 Postgres-backed cache tests run in CI)
 - ✅ **Bilingual support** — complete English/Amharic toggle across all UI
 - ✅ **Theme system** — 5 design aesthetics with CSS variable theming
 - ✅ **Accounts & cloud sync** — optional passwordless accounts via Neon/Postgres; local-first (works offline) with cross-device sync when signed in
@@ -328,7 +340,7 @@ devices — `localStorage` stays as the offline cache.
 | Auth / API Keys | None required by default (deterministic fallback generators); optional magic-link accounts when `DATABASE_URL` is set (emailed via `RESEND_API_KEY`) |
 | Languages | 2 (English + Amharic) |
 | Recall Deltas | Measured per-user in the Method Laboratory (before vs after) |
-| Test Coverage | 138 tests (132 offline/unit/integration based + 6 Postgres-backed cache tests in a dedicated CI job; incl. content-safety, auth/hardening, provider chain, quotas, cache) |
+| Test Coverage | 141 tests (135 offline/unit/integration based + 6 Postgres-backed cache tests in a dedicated CI job; incl. content-safety, auth/hardening, provider chain, quotas, cache) |
 | Persistence | localStorage-first offline cache; optional cloud sync (workspaces + study events) via Neon/Postgres |
 
 ---

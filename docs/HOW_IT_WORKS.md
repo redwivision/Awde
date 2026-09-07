@@ -24,8 +24,9 @@ What's in it:
 | API layer | `src/lib/api.ts` | How the browser talks to the server |
 | Session + sync layer | `src/lib/sync.ts` | Magic-link session storage, workspace push/pull, study events |
 | HTTP server + AI routes | `server.ts` | Receives `/api` calls, routes them through the AI provider chain |
-| AI wrappers + fallbacks | `server/ai.ts` | Gemini client + "no key" deterministic generators |
-| AI provider router | `server/providerRouter.ts` | Gemini → Groq → NVIDIA → offline fallback, with per-provider timeouts + circuit breaker |
+| AI wrappers + fallbacks | `server/ai.ts` | Provider key/model access (OpenRouter/Groq/NVIDIA) + "no key" deterministic generators |
+| AI provider router | `server/providerRouter.ts` | OpenRouter → Groq → NVIDIA → offline fallback, with per-provider timeouts, overall chain deadline + circuit breaker |
+| AI secret handling | `server/secrets.ts` | Env-only key access; logs provider names only (never keys) |
 | Content cache | `server/unitCache.ts` | Content-addressed cache of generated units/quizzes (Postgres, shape-validated) |
 | Free-tier quotas | `server/quota.ts` | Per-fingerprint daily caps on AI generation spend |
 | Accounts + sync routes | `server/auth.ts`, `server/sync.ts` | Passwordless login, `/api/me/*` sync (only active with a DB) |
@@ -404,16 +405,15 @@ behavior, tests included.**
 
 ---
 
-## 6. The AI: a resilient provider chain, not "just Gemini"
+## 6. The AI: a resilient provider chain, not "just one model"
 
 Open `server/providerRouter.ts`. The headline function is `callAiWithFallback`,
 and **every AI route in `server.ts` calls it** — mind-maps, quizzes, Feynman
-evaluations, node Q&A, blurting grading, and the PDF pipeline. There is no
-Gemini-only path anymore.
+evaluations, node Q&A, blurting grading, and the PDF pipeline.
 
 ```ts
 // server/providerRouter.ts (simplified)
-const PROVIDER_ORDER = ['gemini', 'groq', 'nvidia'] as const;
+const PROVIDER_ORDER = ['openrouter', 'groq', 'nvidia'] as const;
 
 export async function callAiWithFallback(req: AiRouterRequest): Promise<AiRouterResult> {
   const perProviderMs = req.timeoutMs ?? AI_TIMEOUT_MS;        // e.g. 9s each
@@ -436,12 +436,14 @@ export async function callAiWithFallback(req: AiRouterRequest): Promise<AiRouter
 
 The four guarantees it gives the product:
 
-1. **Provider order, tried on every request** — Gemini → Groq → NVIDIA. Each
-   is tried only if its key is configured (`ai.ts` exports the key getters), so
-   you can enable just Gemini, or all three.
+1. **Provider order, tried on every request** — **OpenRouter → Groq → NVIDIA**.
+   OpenRouter is primary: one key in front of 400+ models, defaulting to
+   `openrouter/free` (the $0 auto-router; pin `OPENROUTER_MODEL` to override).
+   Each is tried only if its key is configured, so you can run just OpenRouter,
+   or add both fallbacks.
 2. **Per-provider timeout** — each call is bounded (default `AI_TIMEOUT_MS` =
-   9s). Groq/NVIDIA use `AbortController` on a plain OpenAI-compatible `fetch`;
-   Gemini uses the SDK's async result raced against the same timer.
+   9s). All three providers use `AbortController` on a plain OpenAI-compatible
+   `fetch`.
 3. **Circuit breaker** — 3 consecutive failures for one provider skip it for 60s
    (`recordFailure`/`shouldTryProvider`/`healthState`), then it's retried
    automatically. `resetProviderHealth()` re-arms it (used by tests and any
@@ -453,8 +455,8 @@ The four guarantees it gives the product:
 
 Each provider runner parses the model output with `extractJson()` — it strips
 markdown fences, scans past leading prose, and handles both top-level objects
-(Gemini) and arrays (quizzes) so a model that wraps output in ```json fences
-still counts as a success instead of an error.
+and arrays (quizzes) so a model that wraps output in ```json fences still counts
+as a success instead of an error.
 
 `shouldTryProvider` remembers failures via a module-level `healthState` map —
 it's **per process**, which is fine for the single-instance free tier (same
@@ -464,9 +466,24 @@ process).
 > **Why this design?** The target user is *on weak WiFi*, and the *cheapest*
 > year of the free tier is the one where a dead key or an overloaded provider
 > never takes the app down. `isFallback: true` in the response (resp.
-> `provider: "gemini" | "groq" | "nvidia"` on success) lets the UI label output.
-> **The app NEVER hangs or hard-fails on AI** — the guarantee is only as good as
-> the fallback, and the fallback never fails.
+> `provider: "openrouter" | "groq" | "nvidia"` on success) lets the UI label
+> output. **The app NEVER hangs or hard-fails on AI** — the guarantee is only as
+> good as the fallback, and the fallback never fails.
+
+### 6.0 Key handling: env-only, logged by name, rotated by restart (`server/secrets.ts`)
+
+All provider keys are read exclusively through `server/secrets.ts`
+(`getSecret`), which:
+- reads from `process.env` **only** (Render secrets with `sync: false`, or
+  `.env` locally) — keys are never in code, git, logs, or the browser;
+- treats missing/blank values as "not configured" (null), so an empty string
+  can't half-enable a provider;
+- logs provider **names only** at boot (`logProviderStatus()` in
+  `startServer`); production logs a loud warning when no keys are configured.
+
+Rotating a key is: set the new value in the provider dashboard + env, restart.
+The chain + circuit breaker absorb the gap — current traffic falls to the next
+provider while the dead key cools down, then comes back.
 
 ### 6.1 The content cache: same topic → same unit, for free (`server/unitCache.ts`)
 
@@ -562,10 +579,11 @@ app.post('/api/textbook/process', upload.single('file'), async (req, res) => { .
 Then it delegates to `server/textbook.ts` → `processTextbookPdf`, which does:
 
 1. `extractPdfText(buffer)` — parse the PDF text pages with `pdf-parse`.
-2. Send the text to Gemini to build a full `TextbookWorkspace`.
-3. If no key / no text / Gemini down → `buildFallbackTextbookWorkspace()` builds a
-   deterministic workspace from the extracted text (it even splits the text into
-   rough topic lines to generate unit titles).
+2. Send the text through the shared provider router (OpenRouter → Groq → NVIDIA)
+   to build a full `TextbookWorkspace`.
+3. If no key / no text / every provider down → `buildFallbackTextbookWorkspace()`
+   builds a deterministic workspace from the extracted text (it even splits the
+   text into rough topic lines to generate unit titles).
 
 The browser side (`UploadPdfModal.tsx`) uses `postFormData` (the multipart sibling
 of `postJson`) with a long timeout because upload + AI can be slow.
@@ -630,8 +648,8 @@ had to be careful with a dark overlay — the workspace can be near-black.
 ### Bilingual (EN/AM)
 Nearly every data type stores `_Amharic` sibling fields, and UI text uses
 `isAmharic ? ... : ...`. `LanguageMode = 'en' | 'am'` is threaded through props.
-The AI prompts explicitly ask Gemini to produce both languages (see the
-`responseSchema` and system prompts in `server.ts`). For child-simple UI labels,
+The AI prompts explicitly ask the model to produce both languages (see the
+system prompts and `responseSchema` in `server.ts`). For child-simple UI labels,
 `App.tsx` has a `getTabTitle()` switch.
 
 ### The Onboarding Tour (`OnboardingTour.tsx`)
@@ -743,8 +761,9 @@ A mental checklist before you edit anything:
 | `src/App.tsx` | **The brain**: owns all state, decides landing vs workspace, wires tabs & modals |
 | `src/types.ts` | The domain schema every other file types against |
 | `server.ts` | Express server: mounts Vite, runs migrations when a DB exists, registers sync routes, rate limiting + daily quotas, static serving |
-| `server/ai.ts` | Provider clients (Gemini SDK, Groq/NVIDIA key access) + all `generateFallback*` deterministic generators |
-| `server/providerRouter.ts` | `callAiWithFallback`: Gemini → Groq → NVIDIA → offline generator, per-provider timeouts + circuit breaker |
+| `server/ai.ts` | Provider key/model access (OpenRouter/Groq/NVIDIA) + all `generateFallback*` deterministic generators |
+| `server/providerRouter.ts` | `callAiWithFallback`: OpenRouter → Groq → NVIDIA → offline generator, per-provider timeouts + overall chain deadline + circuit breaker |
+| `server/secrets.ts` | Env-only key access; provider status logging (names only, never keys) |
 | `server/unitCache.ts` | Content-addressed cache of AI generations (canonical key, shape validation, no-op without DB) |
 | `server/quota.ts` | Per-fingerprint daily spending caps for the free tier |
 | `server/textbook.ts` | PDF upload → text → AI workspace (+ fallback builder) |
@@ -779,9 +798,10 @@ The best way to learn is to break it a little. Try each, then `git` your way bac
 1. **Prove the single-source-of-truth.** In `App.tsx`, change
    `const units = useMemo(..., [workspaces])` to a separate `useState` that you
    also push to. Watch progress diverge after a node update. Then revert.
-2. **Kill the AI key.** In `server/ai.ts`, make `getGeminiClient()` always return
-   `null`. Reload the app and generate a quiz — you'll see `isFallback` output
-   from the deterministic generator instead of Gemini. Revert.
+2. **Kill the AI key.** In `server/secrets.ts`, set every provider key to null
+   (or unset them all in `.env`). Reload the app and generate a quiz — you'll
+   see `isFallback` output from the deterministic generator instead of a live
+   model. Revert.
 3. **Recreate the tour bug.** Set the veil back to `bg-slate-950/60 backdrop-blur`
    and run the tour over the dark theme. See the "blank screen" yourself, then
    restore the radial gradient.

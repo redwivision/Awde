@@ -5,18 +5,18 @@ const baseRequest = {
   label: 'test',
   systemPrompt: 'Output JSON.',
   prompt: 'Do the thing.',
-  geminiSchema: {}
+  jsonSchema: {}
 };
 
 beforeEach(() => {
-  delete process.env.GEMINI_API_KEY;
+  delete process.env.OPENROUTER_API_KEY;
   delete process.env.GROQ_API_KEY;
   delete process.env.NVIDIA_API_KEY;
   resetProviderHealth();
 });
 
 afterEach(() => {
-  delete process.env.GEMINI_API_KEY;
+  delete process.env.OPENROUTER_API_KEY;
   delete process.env.GROQ_API_KEY;
   delete process.env.NVIDIA_API_KEY;
   vi.unstubAllGlobals();
@@ -53,7 +53,33 @@ describe('callAiWithFallback (offline/no-key resolve)', () => {
     expect(fallback).toHaveBeenCalledTimes(1);
   });
 
-  it('uses Groq and parses its JSON when Gemini/NVIDIA are unconfigured', async () => {
+  it('uses OpenRouter first and parses its JSON when it is configured', async () => {
+    process.env.OPENROUTER_API_KEY = 'test-key';
+    let calledUrl = '';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        calledUrl = url;
+        return {
+          ok: true,
+          status: 200,
+          text: async () => '',
+          json: async () => ({
+            choices: [{ message: { content: '{"answer":"forty-two"}' } }]
+          })
+        };
+      })
+    );
+
+    const fallback = vi.fn(() => ({ answer: 'offline' }));
+    const result = await callAiWithFallback({ ...baseRequest, fallback });
+    expect(calledUrl).toBe('https://openrouter.ai/api/v1/chat/completions');
+    expect(result.provider).toBe('openrouter');
+    expect(result.data).toEqual({ answer: 'forty-two' });
+    expect(fallback).not.toHaveBeenCalled();
+  });
+
+  it('uses Groq when only Groq is configured', async () => {
     process.env.GROQ_API_KEY = 'test-key';
     vi.stubGlobal(
       'fetch',
@@ -72,6 +98,54 @@ describe('callAiWithFallback (offline/no-key resolve)', () => {
     expect(result.provider).toBe('groq');
     expect(result.data).toEqual({ answer: 'forty-two' });
     expect(fallback).not.toHaveBeenCalled();
+  });
+
+  it('falls through from OpenRouter to Groq when OpenRouter fails', async () => {
+    process.env.OPENROUTER_API_KEY = 'dead-key';
+    process.env.GROQ_API_KEY = 'good-key';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('openrouter.ai')) {
+          throw new Error('openrouter down');
+        }
+        return {
+          ok: true,
+          status: 200,
+          text: async () => '',
+          json: async () => ({
+            choices: [{ message: { content: '{"answer":"groq-saved-it"}' } }]
+          })
+        };
+      })
+    );
+
+    const fallback = vi.fn(() => ({ answer: 'offline' }));
+    const result = await callAiWithFallback({ ...baseRequest, fallback });
+    expect(result.provider).toBe('groq');
+    expect(result.data).toEqual({ answer: 'groq-saved-it' });
+    expect(fallback).not.toHaveBeenCalled();
+  });
+
+  it('renders the OpenRouter default model (openrouter/free) into the request body', async () => {
+    process.env.OPENROUTER_API_KEY = 'test-key';
+    let body = '';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (_url: string, init: { body: string }) => {
+        body = init.body;
+        return {
+          ok: true,
+          status: 200,
+          text: async () => '',
+          json: async () => ({ choices: [{ message: { content: '{"answer":"ok"}' } }] })
+        };
+      })
+    );
+
+    const fallback = () => ({ answer: 'offline' });
+    await callAiWithFallback({ ...baseRequest, fallback });
+    expect(JSON.parse(body).model).toBe('openrouter/free');
   });
 
   it('falls back when the only configured provider errors', async () => {

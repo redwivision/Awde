@@ -9,7 +9,7 @@ import { generateFallbackFeynmanEvaluation } from '../server/ai';
 // offline student with no network and no paid key.
 
 beforeAll(() => {
-  delete process.env.GEMINI_API_KEY;
+  delete process.env.OPENROUTER_API_KEY;
   delete process.env.GROQ_API_KEY;
   delete process.env.NVIDIA_API_KEY;
 });

@@ -9,7 +9,7 @@ import { refreshQuotaLimits } from '../server/quota';
 // requests again after a quota reset.
 
 beforeAll(() => {
-  delete process.env.GEMINI_API_KEY;
+  delete process.env.OPENROUTER_API_KEY;
   delete process.env.GROQ_API_KEY;
   delete process.env.NVIDIA_API_KEY;
 });

@@ -68,7 +68,7 @@ minutes; sessions last 30 days.
 
 ## 5. The AI
 
-Awde uses a hosted AI model (e.g. Gemini) to explain concepts, grade Feynman
+Awde uses a hosted AI model (via OpenRouter, with Groq/NVIDIA as fallbacks) to explain concepts, grade Feynman
 explanations, and generate quizzes. Free-text you type is sent to the AI
 provider to get an answer. Awde runs both an automated content-safety filter
 and a strict safety instruction on the model, but **no automated filter is

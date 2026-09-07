@@ -1,8 +1,8 @@
 // Shared multi-provider AI router.
 //
 // Every AI endpoint routes through this one function so a request tries ALL
-// configured providers (Gemini → Groq → NVIDIA) before giving up and running
-// the deterministic offline fallback. This is what makes the free tier
+// configured providers (OpenRouter → Groq → NVIDIA) before giving up and
+// running the deterministic offline fallback. This is what makes the free tier
 // resilient: one dead/expired key never bricks the app, and any working key
 // still produces a real (non-canned) answer.
 //
@@ -12,40 +12,41 @@
 //
 // Design notes:
 // - Every provider call is bounded by its own timeout (never block a student).
-// - Gemini speaks native JSON schema; Groq + NVIDIA speak OpenAI-compatible
-//   chat-completions (plain fetch, no extra SDK).
+// - All three providers speak OpenAI-compatible chat-completions (plain fetch,
+//   no extra SDK); JSON output is extracted from the response text.
 // - The caller provides `fallback` — a deterministic offline generator run as
 //   the last resort. The router returns `provider: null` in that case so
 //   routes can report `isFallback: true` and skip caching.
 import {
-  getGeminiClient,
+  getOpenRouterApiKey,
+  getOpenRouterModel,
   getGroqApiKey,
   getNvidiaApiKey,
+  OPENROUTER_BASE_URL,
   GROQ_BASE_URL,
   GROQ_TT_MODEL,
   NVIDIA_BASE_URL,
   NVIDIA_TT_MODEL,
-  withTimeout,
   AI_TIMEOUT_MS
 } from './ai';
 
-export type AiProviderName = 'gemini' | 'groq' | 'nvidia';
+export type AiProviderName = 'openrouter' | 'groq' | 'nvidia';
 
 export interface AiRouterRequest {
   // Logging label for the kind of generation (e.g. 'mindmap', 'quiz').
   label: string;
   systemPrompt: string;
   prompt: string;
-  // Gemini's responseSchema (built by the caller with `Type` from @google/genai).
-  geminiSchema: unknown;
-  geminiModel?: string;
+  // Optional JSON shape hint for the chain (currently advisory — the OpenAI
+  // providers are driven by the prompt alone).
+  jsonSchema?: unknown;
   // Output token budget for the OpenAI-compatible providers.
   maxTokens?: number;
   // Per-provider deadline; defaults to the shared AI_TIMEOUT_MS.
   timeoutMs?: number;
   // Hard cap on the WHOLE provider chain. Without it, three hung providers
-  // would each burn their per-call timeout before the offline fallback runs
-  // (9s x 3 = 27s worst case). Defaults to OVERALL_CHAIN_TIMEOUT_MS.
+  // would each burn their per-call timeout before the offline fallback runs.
+  // Defaults to OVERALL_CHAIN_TIMEOUT_MS.
   overallTimeoutMs?: number;
   // Deterministic generator invoked when every provider fails or is unset.
   fallback: () => unknown;
@@ -56,16 +57,15 @@ export interface AiRouterResult {
   provider: AiProviderName | null; // null => fallback generator was used
 }
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-3.7-flash';
-
 // Cap on the entire fallback chain (all providers combined). Kept above a
 // single provider's timeout so one normal attempt fits, but below 3x so a
 // slow/derped provider can't make a student wait half a minute.
 export const OVERALL_CHAIN_TIMEOUT_MS = 12_000;
 
-// Provider fail-fast order. Gemini is primary; Groq/NVIDIA are the resilience
-// layer. Health tracking re-orders which one actually answers at runtime.
-const PROVIDER_ORDER: AiProviderName[] = ['gemini', 'groq', 'nvidia'];
+// Provider fail-fast order. OpenRouter is primary (one key = every model);
+// Groq/NVIDIA are the resilience layer. Health tracking re-orders which one
+// actually answers at runtime.
+const PROVIDER_ORDER: AiProviderName[] = ['openrouter', 'groq', 'nvidia'];
 
 // Circuit-breaker tuning: 3 consecutive failures triples the breaker for
 // CIRCUIT_COOLDOWN_MS, then it re-arms automatically.
@@ -78,7 +78,7 @@ interface ProviderHealth {
 }
 
 const healthState: Record<AiProviderName, ProviderHealth> = {
-  gemini: { failures: 0, retryAt: 0 },
+  openrouter: { failures: 0, retryAt: 0 },
   groq: { failures: 0, retryAt: 0 },
   nvidia: { failures: 0, retryAt: 0 }
 };
@@ -110,8 +110,8 @@ export function resetProviderHealth(): void {
 
 function providerConfigured(name: AiProviderName): boolean {
   switch (name) {
-    case 'gemini':
-      return getGeminiClient() !== null;
+    case 'openrouter':
+      return getOpenRouterApiKey() !== null;
     case 'groq':
       return getGroqApiKey() !== null;
     case 'nvidia':
@@ -139,25 +139,9 @@ export function extractJson(raw: string): any {
   throw new Error('No JSON found in model output');
 }
 
-async function callGemini(req: AiRouterRequest, timeoutMs: number): Promise<any> {
-  const ai = getGeminiClient();
-  if (!ai) throw new Error('gemini not configured');
-  const response = await withTimeout(
-    ai.models.generateContent({
-      model: req.geminiModel || DEFAULT_GEMINI_MODEL,
-      contents: req.prompt,
-      config: {
-        systemInstruction: req.systemPrompt,
-        responseMimeType: 'application/json',
-        responseSchema: req.geminiSchema as any
-      }
-    }),
-    timeoutMs
-  );
-  return extractJson(response.text || '{}');
-}
-
-// OpenAI-compatible chat-completions call shared by Groq and NVIDIA NIM.
+// OpenAI-compatible chat-completions call shared by OpenRouter, Groq and
+// NVIDIA NIM. OpenRouter additionally gets attribution headers for its public
+// leaderboard ranking.
 async function callOpenAiCompat(
   baseUrl: string,
   model: string,
@@ -173,7 +157,10 @@ async function callOpenAiCompat(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
+        Authorization: `Bearer ${apiKey}`,
+        ...(name === 'openrouter'
+          ? { 'HTTP-Referer': process.env.APP_URL || 'https://awde.app', 'X-Title': 'Awde' }
+          : {})
       },
       signal: controller.signal,
       body: JSON.stringify({
@@ -202,8 +189,11 @@ async function callOpenAiCompat(
 
 async function callProvider(name: AiProviderName, req: AiRouterRequest, timeoutMs: number): Promise<any> {
   switch (name) {
-    case 'gemini':
-      return callGemini(req, timeoutMs);
+    case 'openrouter': {
+      const apiKey = getOpenRouterApiKey();
+      if (!apiKey) throw new Error('openrouter not configured');
+      return callOpenAiCompat(OPENROUTER_BASE_URL, getOpenRouterModel(), apiKey, name, req, timeoutMs);
+    }
     case 'groq': {
       const apiKey = getGroqApiKey();
       if (!apiKey) throw new Error('groq not configured');

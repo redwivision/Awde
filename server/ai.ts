@@ -1,9 +1,13 @@
 import { GoogleGenAI, Type } from '@google/genai';
+import { getSecret } from './secrets';
 
-// Lazy init Gemini SDK. Returns null when no API key is configured, in which
-// case every AI endpoint falls back to a deterministic offline generator.
+// All provider keys are read through ./secrets (env-only, never logged). The
+// router chain is OpenRouter → Groq → NVIDIA, so these getters are the single
+// source of truth shared by the router, textbook pipeline, and ops status.
+
+// Optional direct-only Gemini client (kept for legacy calls; not in the chain).
 export function getGeminiClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = getSecret('GEMINI_API_KEY');
   if (!apiKey) {
     return null;
   }
@@ -17,11 +21,28 @@ export function getGeminiClient(): GoogleGenAI | null {
   });
 }
 
-// Groq (OpenAI-compatible, fast LPU inference) used as a fallback provider when
-// Gemini is unavailable or overloaded. Optional via GROQ_API_KEY; returns null
-// when not configured so the pipeline skips straight to the demo builder.
+// OpenRouter is the PRIMARY provider: one key in front of 400+ models,
+// including `openrouter/free` which costs $0. A single key replaces per-vendor
+// dashboards, so key rotation is one dashboard instead of three.
+export function getOpenRouterApiKey(): string | null {
+  return getSecret('OPENROUTER_API_KEY');
+}
+
+export const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+
+// `openrouter/free` is OpenRouter's free auto-router: requests cost $0 and the
+// model list self-updates as models enter/leave the free pool. Override with
+// OPENROUTER_MODEL to pin a specific model (recommended for CI/containers so
+// behavior is reproducible).
+export function getOpenRouterModel(): string {
+  return getSecret('OPENROUTER_MODEL') || 'openrouter/free';
+}
+
+// Groq (OpenAI-compatible, fast LPU inference): first fallback when OpenRouter
+// is unavailable or overloaded. Optional via GROQ_API_KEY; null when unset so
+// the chain skips straight to the next provider.
 export function getGroqApiKey(): string | null {
-  return process.env.GROQ_API_KEY || null;
+  return getSecret('GROQ_API_KEY');
 }
 
 // The Groq chat-completions endpoint (OpenAI-compatible). Kept as a constant so
@@ -32,19 +53,20 @@ export const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
 // truncation (verified: 4 nodes + quiz + flashcards, ~3s, finish=stop).
 export const GROQ_TT_MODEL = 'qwen/qwen3.8-27b';
 
-// NVIDIA NIM: free-tier OpenAI-compatible gateway (build.nvidia.com, 40 RPM).
-// Another optional fallback provider between Gemini and Groq.
+// NVIDIA NIM: free-tier OpenAI-compatible gateway (build.nvidia.com, RPM-capped).
+// Second fallback provider. Returns null when not configured.
 export function getNvidiaApiKey(): string | null {
-  return process.env.NVIDIA_API_KEY || null;
+  return getSecret('NVIDIA_API_KEY');
 }
 export const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1';
 // Only model currently enabled+callable on this account (verified: others 404).
 // Note: NVIDIA free tier is very slow for large outputs - may time out.
 export const NVIDIA_TT_MODEL = 'minimaxai/minimax-m3';
 
-// How long an upstream AI call (Gemini) is allowed to run before we give up and
-// fall back to the deterministic generator. Kept short so weak-wifi students get
-// a usable answer fast instead of a stuck spinner or a 5xx error.
+// How long an upstream AI call is allowed to run before we give up and fall
+// back to the next provider / deterministic generator. Kept short so
+// weak-wifi students get a usable answer fast instead of a stuck spinner or a
+// 5xx error. (The router also applies an overall chain deadline.)
 export const AI_TIMEOUT_MS = 9000;
 
 // Wraps a promise with an absolute deadline. If the promise doesn't settle in
@@ -72,7 +94,7 @@ export async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T
 
 // Deterministic offline fallback generators. These run instantly with zero
 // network, so weak-wifi / offline students always get a working experience.
-// They power every AI feature until a GEMINI_API_KEY is configured.
+// They power every AI feature until a provider key is configured.
 
 // Monotonic counter guarantees unique ids even when two units are created
 // within the same millisecond (prevents localStorage key collisions).
@@ -393,6 +415,6 @@ export function generateFallbackNodeAnswer(
   return { answer, answerAmharic };
 }
 
-// The schema shared by every Gemini call (documented in server.ts). Kept here
+// The JSON-shape helpers shared with the route schemas in server.ts. Kept here
 // so offline fallbacks and live responses stay shape-compatible.
 export const GeminiSchema = { Type };

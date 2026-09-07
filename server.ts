@@ -5,7 +5,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { createServer as createViteServer } from 'vite';
 import multer from 'multer';
-import { GoogleGenAI, Type } from '@google/genai';
+import { Type } from '@google/genai';
 import {
   generateFallbackUnit,
   generateFallbackFeynmanEvaluation,
@@ -14,6 +14,7 @@ import {
   generateFallbackNodeAnswer
 } from './server/ai';
 import { callAiWithFallback } from './server/providerRouter';
+import { logProviderStatus } from './server/secrets';
 import { getCachedUnit, storeCachedUnit, unitCacheKey } from './server/unitCache';
 import {
   mindmapDailyQuota,
@@ -107,7 +108,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
 // Return a safe, human-friendly error message. In production we never leak
-// internal error details (Gemini SDK internals, stack traces) to clients.
+// internal error details (SDK internals, stack traces) to clients.
 function safeErrorMessage(err: unknown, fallback: string): string {
   const msg = err instanceof Error ? err.message : String(err);
   if (process.env.NODE_ENV === 'production') {
@@ -221,7 +222,7 @@ ${wrapUserInput('textbook', (textbookText || topic || 'Key core concepts and for
 Primary Language: ${language === 'am' ? 'Amharic (አማርኛ) prioritized alongside English' : 'English with complete Amharic translations'}
 ${PROMPT_DATA_BOUNDARY()}`;
 
-    const geminiSchema = {
+    const jsonSchema = {
           type: Type.OBJECT,
           properties: {
             title: { type: Type.STRING },
@@ -335,7 +336,7 @@ ${PROMPT_DATA_BOUNDARY()}`;
       label: 'mindmap',
       systemPrompt,
       prompt,
-      geminiSchema,
+      jsonSchema,
       maxTokens: 5000,
       fallback: () => generateFallbackUnit(topic || 'Concept Study', subject || 'Science', textbookText || '')
     });
@@ -411,7 +412,7 @@ ${wrapUserInput('chatHistory', chatHistory || [])}
 Evaluate this Feynman attempt now.
 ${PROMPT_DATA_BOUNDARY()}`;
 
-    const geminiSchema = {
+    const jsonSchema = {
           type: Type.OBJECT,
           properties: {
             score: { type: Type.INTEGER, description: '0 to 100 grade based on genuine Feynman clarity' },
@@ -459,7 +460,7 @@ ${PROMPT_DATA_BOUNDARY()}`;
       label: 'feynman',
       systemPrompt,
       prompt,
-      geminiSchema,
+      jsonSchema,
       fallback: () => generateFallbackFeynmanEvaluation(nodeLabel, userExplanation, strictnessLevel)
     });
 
@@ -504,7 +505,7 @@ ${chatHistory && chatHistory.length > 0 ? `Previous conversation:\n${wrapUserInp
 Answer the student's question now. Be clear, concise, and encouraging.
 ${PROMPT_DATA_BOUNDARY()}`;
 
-    const geminiSchema = {
+    const jsonSchema = {
           type: Type.OBJECT,
           properties: {
             answer: { type: Type.STRING },
@@ -517,7 +518,7 @@ ${PROMPT_DATA_BOUNDARY()}`;
       label: 'node-ask',
       systemPrompt,
       prompt,
-      geminiSchema,
+      jsonSchema,
       fallback: () => generateFallbackNodeAnswer(nodeLabel, question)
     });
 
@@ -554,7 +555,7 @@ ${wrapUserInput('topic', topic)}
 ${wrapUserInput('textbook', (textbookText || topic).slice(0, 3000))}
 ${PROMPT_DATA_BOUNDARY()}`;
 
-    const geminiSchema = {
+    const jsonSchema = {
           type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
@@ -578,7 +579,7 @@ ${PROMPT_DATA_BOUNDARY()}`;
       label: 'quiz',
       systemPrompt,
       prompt,
-      geminiSchema,
+      jsonSchema,
       maxTokens: 3000,
       fallback: () => generateFallbackQuestions(topic, safeCount)
     });
@@ -610,7 +611,7 @@ Student's Blurting Recall text:
 ${wrapUserInput('userRecallText', userRecallText)}
 ${PROMPT_DATA_BOUNDARY()}`;
 
-    const geminiSchema = {
+    const jsonSchema = {
           type: Type.OBJECT,
           properties: {
             accuracyScore: { type: Type.INTEGER },
@@ -626,7 +627,7 @@ ${PROMPT_DATA_BOUNDARY()}`;
       label: 'blurting',
       systemPrompt,
       prompt,
-      geminiSchema,
+      jsonSchema,
       fallback: () => generateFallbackBlurting(targetKeyPoints)
     });
 
@@ -641,6 +642,9 @@ ${PROMPT_DATA_BOUNDARY()}`;
 
 // Vite middleware or static serving
 export async function startServer(port: number = PORT): Promise<any> {
+  // Which AI providers hold valid keys (names only — never the keys).
+  logProviderStatus();
+
   // When a DB is configured, apply migrations and enable server-side auth+sync.
   if (hasDb()) {
     try {

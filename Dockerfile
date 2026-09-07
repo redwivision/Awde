@@ -4,7 +4,7 @@
 #
 # Requires these runtime env vars (set in your host):
 #   NODE_ENV=production
-#   GEMINI_API_KEY=...
+#   OPENROUTER_API_KEY=...
 #   (optional) GROQ_API_KEY, NVIDIA_API_KEY, APP_URL
 FROM node:22-slim AS build
 WORKDIR /app

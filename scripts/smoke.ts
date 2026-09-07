@@ -7,22 +7,23 @@
 //      (fromCache: true) — the money path local unit tests cannot cover.
 //
 // Run:  npm run smoke
-// This needs real provider keys in .env (GEMINI/GROQ/NVIDIA). It is NOT part of
-// CI (which has no secrets); run it locally before you push to a deploy.
+// This needs a real OPENROUTER_API_KEY (primary; Groq/NVIDIA optional
+// fallbacks) in .env. It is NOT part of CI (which has no secrets); run it
+// locally before you push to a deploy.
 import request from 'supertest';
 import { app } from '../server';
 import { runMigrations } from '../server/db/migrate';
-import { getGeminiClient, getGroqApiKey, getNvidiaApiKey } from '../server/ai';
+import { listConfiguredProviders } from '../server/secrets';
 
-const configured = [getGeminiClient(), getGroqApiKey(), getNvidiaApiKey()].filter(Boolean).length;
+const configured = listConfiguredProviders();
 const hasDb = Boolean(process.env.DATABASE_URL);
 
 async function main(): Promise<void> {
-  if (configured === 0) {
+  if (configured.length === 0) {
     console.error('SMOKE FAIL: no AI provider keys configured (.env). Nothing meaningful to test.');
     process.exit(1);
   }
-  console.log(`Providers configured: ${configured}  |  DATABASE_URL: ${hasDb ? 'yes' : 'no'}`);
+  console.log(`Providers configured: ${configured.join(', ')}  |  DATABASE_URL: ${hasDb ? 'yes' : 'no'}`);
   if (hasDb) {
     await runMigrations();
     console.log('Migrations applied.');

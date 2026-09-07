@@ -1,9 +1,9 @@
 # Awde CI: lint + test + build on every push/PR, plus a DB-backed job that
 # exercises the content cache against a REAL Postgres.
 #
-# The main suite runs WITHOUT a DATABASE_URL on purpose (130 tests cover the
+# The main suite runs WITHOUT a DATABASE_URL on purpose (135 tests cover the
 # local/offline invariant, and the app must keep working with no DB
-# configured). Secrets (GEMINI_API_KEY, DATABASE_URL) are never needed here;
+# configured). Secrets (OPENROUTER_API_KEY, DATABASE_URL) are never needed here;
 # they belong to the host's secrets manager at deploy time. The DB job starts a
 # throwaway postgres service container (no secrets) purely to exercise
 # migrations + the generated_units cache read/write path.
