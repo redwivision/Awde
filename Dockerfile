@@ -30,7 +30,10 @@ COPY --from=build /app/drizzle ./drizzle
 # Keep the documented env template available for operators only; real secrets
 # always come from the host's secrets manager at runtime.
 COPY --from=build /app/.env.example ./.env.example
-RUN npm ci --omit=dev && chown -R app:app /app
+# --legacy-peer-deps: better-auth declares drizzle-kit (a dev tool) as an
+# optional peer, and npm auto-installs it into the prod tree even with
+# --omit=dev, pulling esbuild whose postinstall then fails in Docker.
+RUN npm ci --omit=dev --legacy-peer-deps && chown -R app:app /app
 USER app
 EXPOSE 3000
 CMD ["node", "dist/server.cjs"]
