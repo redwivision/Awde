@@ -3,7 +3,6 @@ import path from 'path';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import { createServer as createViteServer } from 'vite';
 import multer from 'multer';
 import { Type } from '@google/genai';
 import {
@@ -672,6 +671,9 @@ export async function startServer(port: number = PORT): Promise<any> {
   }
 
   if (process.env.NODE_ENV !== 'production') {
+    // vite is a dev-only tool; load it lazily so the production bundle never
+    // requires it at runtime (keeps the prod image free of dev dependencies).
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
