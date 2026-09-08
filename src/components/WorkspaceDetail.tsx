@@ -223,7 +223,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
 
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
         {/* Whole-Book Multi-Level Map */}
-        <div className="flex-1 min-h-0 relative" ref={containerRef}>
+        <div className="relative lg:flex-1 lg:min-h-0 h-[42vh] shrink-0 lg:h-auto" ref={containerRef}>
           <div
             onWheel={handleWheel}
             onPointerDown={handlePointerDown}
@@ -484,7 +484,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
         {/* Unit Shelf */}
         <div
           style={{ borderColor: 'var(--app-border, #cbd5e1)' }}
-          className="shrink-0 lg:w-80 xl:w-96 overflow-y-auto border-t lg:border-t-0 lg:border-l"
+          className="flex-1 min-h-0 overflow-y-auto border-t lg:flex-none lg:w-80 xl:w-96 lg:border-t-0 lg:border-l"
         >
           <div className="p-4 space-y-3">
             <div className="flex items-center justify-between px-1">

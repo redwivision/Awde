@@ -785,7 +785,7 @@ export default function App() {
                 )}
 
                 {activeTab === 'groups' && (
-                  <GroupsPanel language={language} />
+                  <GroupsPanel language={language} session={session} />
                 )}
               </React.Suspense>
             )}

@@ -24,15 +24,16 @@ import {
   fetchInsights,
   leaveGroup
 } from '../lib/groups';
-import { getSession } from '../lib/sync';
+import { Session } from '../lib/sync';
 
 interface GroupsPanelProps {
   language: LanguageMode;
+  session?: Session | null;
 }
 
-export function GroupsPanel({ language }: GroupsPanelProps) {
+export function GroupsPanel({ language, session }: GroupsPanelProps) {
   const isAmharic = language === 'am';
-  const session = getSession();
+  const signedIn = Boolean(session);
 
   const [groups, setGroups] = useState<StudyGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -175,7 +176,7 @@ export function GroupsPanel({ language }: GroupsPanelProps) {
         </div>
       </div>
 
-      {!session && (
+      {!signedIn && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-200">
           {t(
             'You need to sign in to create or join groups.',
@@ -339,7 +340,7 @@ export function GroupsPanel({ language }: GroupsPanelProps) {
       ) : (
         <>
           {/* Action buttons */}
-          {session && (
+          {signedIn && (
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => { setShowJoin(false); setShowCreate(true); }}
@@ -359,7 +360,7 @@ export function GroupsPanel({ language }: GroupsPanelProps) {
           )}
 
           {/* Create form */}
-          {showCreate && session && (
+          {showCreate && signedIn && (
             <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 max-w-md">
               <h3 className="font-semibold text-slate-200">{t('New study group', 'አዲስ የጥናት ቡድን')}</h3>
               <input
@@ -387,7 +388,7 @@ export function GroupsPanel({ language }: GroupsPanelProps) {
           )}
 
           {/* Join form */}
-          {showJoin && session && (
+          {showJoin && signedIn && (
             <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3 max-w-md">
               <h3 className="font-semibold text-slate-200">{t('Join a study group', 'የጥናት ቡድን ይቀላቀሉ')}</h3>
               <input
@@ -432,7 +433,7 @@ export function GroupsPanel({ language }: GroupsPanelProps) {
             <div className="rounded-xl border border-dashed border-slate-700 p-8 text-center space-y-2">
               <Users className="w-8 h-8 text-slate-600 mx-auto" />
               <p className="text-sm text-slate-400">
-                {session
+                {signedIn
                   ? t('No groups yet. Create one or join with a friend’s code.', 'ገና ቡድን የለም። አዲስ ይፍጠሩ ወይም በጓደኛ ኮድ ይቀላቀሉ።')
                   : t('Groups let friends and students share their progress — completely voluntarily.', 'ቡድኖች ጓደኞች እና ተማሪዎች በፍጹም ፈቃዳቸው ዕድገታቸውን እንዲጋሩ ያስችላቸዋል።')}
               </p>
