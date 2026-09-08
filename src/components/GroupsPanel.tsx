@@ -29,9 +29,10 @@ import { Session } from '../lib/sync';
 interface GroupsPanelProps {
   language: LanguageMode;
   session?: Session | null;
+  onRequestSignIn?: () => void;
 }
 
-export function GroupsPanel({ language, session }: GroupsPanelProps) {
+export function GroupsPanel({ language, session, onRequestSignIn }: GroupsPanelProps) {
   const isAmharic = language === 'am';
   const signedIn = Boolean(session);
 
@@ -177,10 +178,21 @@ export function GroupsPanel({ language, session }: GroupsPanelProps) {
       </div>
 
       {!signedIn && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-200">
-          {t(
-            'You need to sign in to create or join groups.',
-            'ቡድኖችን ለመፍጠር ወይም ለመቀላቀል መግባት ያስፈልግዎታል።'
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm text-amber-200">
+            {t(
+              'You need to sign in to create or join groups.',
+              'ቡድኖችን ለመፍጠር ወይም ለመቀላቀል መግባት ያስፈልግዎታል።'
+            )}
+          </div>
+          {onRequestSignIn && (
+            <button
+              onClick={onRequestSignIn}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 px-3 py-1.5 text-xs font-semibold text-amber-100 hover:bg-amber-500/30 transition-colors"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              {t('Sign in', 'ይግቡ')}
+            </button>
           )}
         </div>
       )}

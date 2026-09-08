@@ -289,9 +289,15 @@ export default function App() {
         const magicToken = getSession() ? null : extractMagicToken(window.location.href);
         if (magicToken) {
           const res = await confirmLogin(magicToken);
-          if (!res.ok || cancelled) return;
           // Don't leave a one-time token sitting in the address bar.
           window.history.replaceState({}, '', window.location.pathname);
+          if (cancelled) return;
+          if (!res.ok) {
+            // Don't drop the user on a silently-unauthenticated Groups tab —
+            // an expired/already-used link otherwise looks like "I logged in
+            // but groups still say not signed in".
+            showNotice('error', 'This sign-in link is invalid, expired, or already used. Request a new one from the Account menu.');
+          }
         }
         const serverRows = await pullWorkspaces();
         if (!serverRows || cancelled) return;
@@ -812,7 +818,11 @@ export default function App() {
                 )}
 
                 {activeTab === 'groups' && (
-                  <GroupsPanel language={language} session={session} />
+                  <GroupsPanel
+                    language={language}
+                    session={session}
+                    onRequestSignIn={() => setIsAccountModalOpen(true)}
+                  />
                 )}
               </React.Suspense>
             )}

@@ -364,7 +364,10 @@ simpler and keeps changes localized. Two indexes keep lookups fast.
 2. The SPA loads with `?token=…`; `App.tsx` reads it, calls
    `GET /api/auth/confirm?token=…` (a plain JSON fetch) which consumes the token
    (single-use) and returns a fresh **30-day bearer session** token, then strips
-   the token from the address bar with `history.replaceState`.
+   the token from the address bar with `history.replaceState`. If the token was
+   already used, expired, or the exchange failed, the app now shows an explicit
+   error toast ("invalid, expired, or already used – request a new one") instead
+   of silently dropping the user into a "not signed in" state.
 3. The frontend stores the session in `localStorage` (`awde_session`) and sends
    it as `Authorization: Bearer <token>` on `/api/me/*` calls.
 4. `DELETE /api/me` → erases the account and everything tied to it. Sessions,
