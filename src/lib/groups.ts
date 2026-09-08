@@ -3,6 +3,8 @@
 // Mirrors the resilient `authedJson` pattern in sync.ts: requests send the
 // HttpOnly session cookie, no-op when there's no session/network, and none of
 // these functions throw — the UI is always safe to call them offline.
+
+import { clearSession } from './sync';
 //
 // Anonymity contract: a member is only ever represented by the display name
 // they chose when joining. The roster/insights endpoints never return the real
@@ -63,6 +65,11 @@ async function authedJson<T = unknown>(url: string, init: { method?: string; pay
   } catch {
     data = null;
   }
+  if (res.status === 401) {
+    // Stale session cookie — drop the local hint so the sign-in banner shows
+    // instead of a confusing server-side "You must be logged in" red box.
+    clearSession();
+  }
   return { ok: res.ok, status: res.status, data: data as T };
 }
 
@@ -74,32 +81,34 @@ async function attempt<T extends GroupResponse>(url: string, init: { method?: st
   }
 }
 
-export async function createGroup(name: string): Promise<{ ok: boolean; data?: GroupResponse }> {
+export type GroupResult = { ok: boolean; status?: number; data?: GroupResponse };
+
+export async function createGroup(name: string): Promise<GroupResult> {
   const res = await attempt<GroupResponse>('/api/groups', { method: 'POST', payload: { name } });
-  return { ok: res.ok, data: res.data };
+  return { ok: res.ok, status: res.status, data: res.data };
 }
 
-export async function listGroups(): Promise<{ ok: boolean; data?: GroupResponse }> {
+export async function listGroups(): Promise<GroupResult> {
   const res = await attempt<GroupResponse>('/api/groups');
-  return { ok: res.ok, data: res.data };
+  return { ok: res.ok, status: res.status, data: res.data };
 }
 
-export async function joinGroup(code: string, displayName: string): Promise<{ ok: boolean; data?: GroupResponse }> {
+export async function joinGroup(code: string, displayName: string): Promise<GroupResult> {
   const res = await attempt<GroupResponse>('/api/groups/join', { method: 'POST', payload: { code, displayName } });
-  return { ok: res.ok, data: res.data };
+  return { ok: res.ok, status: res.status, data: res.data };
 }
 
-export async function fetchRoster(groupId: string): Promise<{ ok: boolean; data?: GroupResponse }> {
+export async function fetchRoster(groupId: string): Promise<GroupResult> {
   const res = await attempt<GroupResponse>(`/api/groups/${encodeURIComponent(groupId)}/roster`);
-  return { ok: res.ok, data: res.data };
+  return { ok: res.ok, status: res.status, data: res.data };
 }
 
-export async function fetchInsights(groupId: string): Promise<{ ok: boolean; data?: GroupResponse }> {
+export async function fetchInsights(groupId: string): Promise<GroupResult> {
   const res = await attempt<GroupResponse>(`/api/groups/${encodeURIComponent(groupId)}/insights`);
-  return { ok: res.ok, data: res.data };
+  return { ok: res.ok, status: res.status, data: res.data };
 }
 
-export async function leaveGroup(groupId: string): Promise<{ ok: boolean; data?: GroupResponse }> {
+export async function leaveGroup(groupId: string): Promise<GroupResult> {
   const res = await attempt<GroupResponse>(`/api/groups/${encodeURIComponent(groupId)}/leave`, { method: 'POST' });
-  return { ok: res.ok, data: res.data };
+  return { ok: res.ok, status: res.status, data: res.data };
 }

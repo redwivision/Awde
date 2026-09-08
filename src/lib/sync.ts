@@ -85,6 +85,13 @@ async function authedJson<T = unknown>(url: string, init: { method?: string; pay
   } catch {
     data = null;
   }
+  if (res.status === 401) {
+    // The server found no valid session cookie for this request (it was
+    // cleared or the session expired server-side), so the local hint is stale.
+    // Drop it so the UI and the server agree instead of showing a persistent
+    // "signed in" state that every real API call rejects.
+    clearSession();
+  }
   return { ok: res.ok, status: res.status, data: data as T };
 }
 

@@ -191,6 +191,18 @@ html[data-theme~="dark"] {
   background-color: var(--app-surface-elevated) !important;
 }
 
+/* Decorative "card" surfaces at partial opacity (roster/insight cards, chat
+   panels, forms) must follow the surface token too — otherwise they render as
+   hard gray slabs in light themes. */
+.bg-slate-900\/60,
+.bg-slate-900\/50 {
+  background-color: var(--app-surface-elevated) !important;
+}
+
+.hover\:bg-slate-900:hover {
+  background-color: var(--app-surface-subtle) !important;
+}
+
 .hover\:bg-slate-800:hover,
 .hover\:bg-slate-800\/70:hover,
 .hover\:bg-slate-800\/60:hover,
@@ -213,6 +225,11 @@ html[data-theme~="dark"] {
 .border-slate-700\/60,
 .border-slate-600 {
   border-color: var(--app-border-strong) !important;
+}
+
+.divide-slate-800\/60 > :not([hidden]) ~ :not([hidden]),
+.divide-slate-800\/70 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--app-border) !important;
 }
 
 /* 3. Typography */
@@ -306,6 +323,14 @@ html[data-theme~="dark"] {
   background-color: color-mix(in srgb, var(--app-accent) 12%, transparent) !important;
 }
 
+.bg-indigo-500\/5 {
+  background-color: color-mix(in srgb, var(--app-accent) 8%, transparent) !important;
+}
+
+.border-indigo-500\/20 {
+  border-color: color-mix(in srgb, var(--app-accent) 25%, transparent) !important;
+}
+
 .bg-indigo-950,
 .bg-indigo-950\/40,
 .bg-indigo-950\/60,
@@ -396,6 +421,10 @@ html[data-theme~="dark"] {
   background-color: color-mix(in srgb, var(--app-warning) 16%, transparent) !important;
 }
 
+.bg-amber-500\/5 {
+  background-color: color-mix(in srgb, var(--app-warning) 10%, transparent) !important;
+}
+
 .bg-amber-900\/60,
 .bg-amber-950,
 .bg-amber-950\/40,
@@ -431,6 +460,10 @@ html[data-theme~="dark"] {
 
 .bg-red-500\/10 {
   background-color: color-mix(in srgb, var(--app-danger) 12%, transparent) !important;
+}
+
+.bg-rose-500\/5 {
+  background-color: color-mix(in srgb, var(--app-danger) 10%, transparent) !important;
 }
 
 .border-rose-500,

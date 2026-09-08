@@ -62,6 +62,11 @@ export function GroupsPanel({ language, session, onRequestSignIn }: GroupsPanelP
     if (res.ok && res.data) {
       setGroups(res.data.groups ?? []);
       setError(null);
+    } else if (res.status === 401) {
+      // The stale session self-cleared — the sign-in banner already took its
+      // place, so don't surface the raw server error on top of it.
+      setGroups([]);
+      setError(null);
     } else if (res.data?.localMode) {
       setGroups([]);
     } else {
@@ -70,19 +75,24 @@ export function GroupsPanel({ language, session, onRequestSignIn }: GroupsPanelP
   }, [t]);
 
   useEffect(() => {
+    if (!signedIn) {
+      setLoading(false);
+      setError(null);
+      return;
+    }
     let cancelled = false;
     (async () => {
       const res = await listGroups();
       if (!cancelled) {
         if (res.ok && res.data) setGroups(res.data.groups ?? []);
-        setError(res.ok ? null : (res.data?.error ?? null));
+        setError(res.status === 401 ? null : (res.ok ? null : (res.data?.error ?? null)));
         setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [signedIn]);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -96,7 +106,7 @@ export function GroupsPanel({ language, session, onRequestSignIn }: GroupsPanelP
       setNotice(t('Group created!', 'ቡድን ተፈጥሯል!'));
       setGroups([res.data.group, ...groups]);
     } else {
-      setError(res.data?.error || t('Could not create the group.', 'ቡድን መፍጠር አልተቻለም።'));
+      setError(res.status === 401 ? null : res.data?.error || t('Could not create the group.', 'ቡድን መፍጠር አልተቻለም።'));
     }
   };
 
@@ -118,7 +128,7 @@ export function GroupsPanel({ language, session, onRequestSignIn }: GroupsPanelP
       setNotice(t('Joined the group!', 'ቡድኑን ተቀላቅለዋል!'));
       setGroups([res.data.group, ...groups]);
     } else {
-      setError(res.data?.error || t('Could not join that group.', 'ቡድኑን መቀላቀል አልተቻለም።'));
+      setError(res.status === 401 ? null : res.data?.error || t('Could not join that group.', 'ቡድኑን መቀላቀል አልተቻለም።'));
     }
   };
 
@@ -131,7 +141,7 @@ export function GroupsPanel({ language, session, onRequestSignIn }: GroupsPanelP
       setMemberCount(r.data.memberCount ?? (r.data.members?.length ?? 0));
     } else {
       setRoster([]);
-      setError(r.data?.error || t('Could not load the roster.', 'ዝርዝሩን ማምጣት አልተቻለም።'));
+      setError(r.status === 401 ? null : r.data?.error || t('Could not load the roster.', 'ዝርዝሩን ማምጣት አልተቻለም።'));
     }
     if (i.ok && i.data) {
       setConcepts(i.data.concepts ?? []);
@@ -155,7 +165,7 @@ export function GroupsPanel({ language, session, onRequestSignIn }: GroupsPanelP
       setRoster([]);
       setConcepts([]);
     } else {
-      setError(res.data?.error || t('Could not leave the group.', 'ቡድኑን መተው አልተቻለም።'));
+      setError(res.status === 401 ? null : res.data?.error || t('Could not leave the group.', 'ቡድኑን መተው አልተቻለም።'));
     }
   };
 

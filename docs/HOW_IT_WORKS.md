@@ -407,6 +407,11 @@ links. It stays **opt-in and DB-gated**:
   focus, on returning online, and whenever the **Groups** tab is opened — that
   self-heal is what stops the header/Groups from showing "not signed in" after a
   tab restore or a slow OAuth redirect even though the server cookie is valid.
+  The *reverse* direction is handled too: when the server answers any authed call
+  with a `401`, the local hint is stale (cookie cleared/expired server-side), so
+  the client clears it via `clearSession()` and the UI falls back to the
+  signed-out state instead of a permanently "signed in" UI whose API calls all
+  fail.
 - Logout signs out of Better Auth (`auth.api.signOut`) *and* revokes the legacy
   token; `DELETE /api/me` deletes the Better Auth user row (cascades its
   session/account rows) plus the legacy `users` row (cascades workspaces/events).
@@ -518,7 +523,19 @@ Client-side, the **Groups** sidebar tab (`src/components/GroupsPanel.tsx`)
 creates/joins groups, then shows a selected group's roster + curriculum insights,
 with explicit copy that anonymity and leave-anytime are guaranteed.
 `src/lib/groups.ts` mirrors `sync.ts`'s offline-safe `authedJson` pattern so the
-UI never throws when offline or local-only.
+UI never throws when offline or local-only. Two client-side behaviors matter for
+the sign-in story:
+
+- **Signed out = no fetch, no scary red text.** When `session` is null the panel
+  skips the `GET /api/groups` mount call entirely and shows only the amber
+  "You need to sign in" banner + Sign in button — no server-side "You must be
+  logged in to do that." spam on top of the invitation.
+- **Signed in but the server disagrees = self-heal.** If any group call comes
+  back `401`, `clearSession()` drops the stale local hint (the cookie is gone or
+  expired server-side), the panel re-renders to the amber sign-in state, and the
+  raw 401 message is suppressed. The same `401 → clearSession()` shortcut lives
+  in `src/lib/sync.ts`'s `authedJson`, so a stale hint clears app-wide the moment
+  any authed call is rejected — the header and Groups never disagree again.
 
 ### Why the guard exists
 
@@ -785,6 +802,15 @@ Components style themselves with **CSS variables** like `var(--app-accent)` and
 `[data-theme="..."]`. So the *same* components automatically pick up a light or
 dark palette without any re-render logic. That's why, in the onboarding tour, I
 had to be careful with a dark overlay — the workspace can be near-black.
+
+Beyond the token variables, `src/index.css` also carries a **global re-theming
+overlay** that remaps the Tailwind `slate`/`indigo`/`amber`/`rose`/`emerald`
+families onto the active palette, so hard-coded dark classes still follow the
+chosen theme. That includes the partially-transparent card surfaces used by the
+Groups/Progress/Feynman panels (`bg-slate-900/60` → the surface token, their
+`divide-slate-800/*` table rules → the border token, and the low-opacity
+`bg-*-500/5` banner tints → `color-mix(...)` from the semantic accent tokens) —
+otherwise "cards go gray" in light themes.
 
 ### Bilingual (EN/AM)
 Nearly every data type stores `_Amharic` sibling fields, and UI text uses
