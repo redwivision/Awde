@@ -321,6 +321,33 @@ export default function App() {
     };
   }, []);
 
+  // Session self-heal: re-adopt a server-side session (Google / Better Auth)
+  // whenever the user lands on the Groups tab or the window regains focus /
+  // connectivity. The session hint that drives the header + GroupsPanel is only
+  // written on mount, so a login that resolves later (tab restore, slow OAuth
+  // redirect) used to leave Groups showing "not signed in" until a full reload.
+  useEffect(() => {
+    const resync = () => {
+      void syncServerSession();
+    };
+    const onVisible = () => {
+      if (!document.hidden) resync();
+    };
+    window.addEventListener('focus', onVisible);
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('online', onVisible);
+    return () => {
+      window.removeEventListener('focus', onVisible);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('online', onVisible);
+    };
+  }, []);
+  useEffect(() => {
+    if (activeTab === 'groups') {
+      void syncServerSession();
+    }
+  }, [activeTab]);
+
   // Global shortcut for Cmd+K / Ctrl+K Command Palette
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

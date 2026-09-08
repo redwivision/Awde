@@ -398,8 +398,12 @@ links. It stays **opt-in and DB-gated**:
   valid OAuth session does it fall back to the legacy bearer token.
 - The client (`src/lib/betterAuthClient.ts` + `syncServerSession()` in
   `src/lib/sync.ts`) calls `authClient.signIn.social({ provider: 'google' })`,
-  then on every app mount adopts the OAuth session into the local session hint
-  so the UI and `/api/me/*` pulls work identically for both login methods.
+  then adopts the OAuth session into the local session hint so the UI and
+  `/api/me/*` pulls work identically for both login methods. The hint is only a
+  mirror of the real cookie, so App re-runs `syncServerSession()` on window
+  focus, on returning online, and whenever the **Groups** tab is opened — that
+  self-heal is what stops the header/Groups from showing "not signed in" after a
+  tab restore or a slow OAuth redirect even though the server cookie is valid.
 - Logout signs out of Better Auth (`auth.api.signOut`) *and* revokes the legacy
   token; `DELETE /api/me` deletes the Better Auth user row (cascades its
   session/account rows) plus the legacy `users` row (cascades workspaces/events).
@@ -928,7 +932,7 @@ A mental checklist before you edit anything:
 | `src/data/curricula.ts` | Seeded legacy curriculum units |
 | `src/data/textbookWorkspaces.ts` | Seeded default books (the "no data yet" start) |
 | `src/components/LandingPage.tsx` | The cinematic entry screen |
-| `src/components/WorkspaceSidebar.tsx` | Left nav (Books/Map/Teach/Quiz/Measure/Focus/Progress/Groups) + unit list |
+| `src/components/WorkspaceSidebar.tsx` | Left nav (Books/Map/Teach/Quiz/Measure/Focus/Progress/Groups) + unit list. Expanded width auto-widens with the viewport (`w-72 lg:w-[22rem] xl:w-96 2xl:w-[26rem]`); collapsed rail stacks the logo above the expand button (no collision at 64px); the nav caps itself at `48vh` (scrollable) so the Lessons tree below always keeps room |
 | `src/components/ProgressTimeline.tsx` | The **Progress** tab: streak + today + totals + avg score, and the study history grouped by day (merges local log with the server copy; EN/AM) |
 | `src/components/GroupsPanel.tsx` | The **Groups** tab: create/join groups by code, per-group roster (anonymous aggregates) + anonymous curriculum insights; leave-anytime |
 | `src/components/SharedWorkspaceView.tsx` | Read-only preview host for `?share=` links: unit switcher + live `MindMapCanvas` + `NodeMasteryDrawer` in `readOnly` mode + "Study it in Awde" CTA |

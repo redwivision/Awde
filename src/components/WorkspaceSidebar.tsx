@@ -164,7 +164,13 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   const sidebarContent = (
     <div className="flex flex-col h-full bg-slate-900 border-r border-slate-800/90 text-slate-200 select-none overflow-hidden">
       {/* Workspace Brand Header */}
-      <div className="p-3.5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-950/40">
+      <div
+        className={`border-b border-slate-800 shrink-0 bg-slate-950/40 ${
+          isCollapsed
+            ? 'flex flex-col items-center justify-center gap-1 py-2'
+            : 'p-3.5 flex items-center justify-between'
+        }`}
+      >
         <div
           onClick={() => {
             onSelectTab('library');
@@ -198,7 +204,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       </div>
 
       {/* Main Workspace Navigation Views */}
-      <div className="p-3 border-b border-slate-800/80 shrink-0 space-y-1.5">
+      <div className="p-3 border-b border-slate-800/80 shrink-0 space-y-1.5 max-h-[48vh] overflow-y-auto">
         {!isCollapsed && (
           <div className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
             {isAmharic ? 'ምን ማድረግ ይፈልጋሉ?' : 'What do you want to do?'}
@@ -248,7 +254,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
 
       {/* Curriculum Units & Nodes Tree Explorer */}
       {!isCollapsed ? (
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
           {/* Header with Search & Add Unit */}
           <div className="flex items-center justify-between px-1">
             <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -454,7 +460,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       {/* Desktop Persistent Sidebar */}
       <aside
         className={`hidden md:block transition-all duration-300 shrink-0 h-full ${
-          isCollapsed ? 'w-16' : 'w-72 lg:w-80'
+          isCollapsed ? 'w-16' : 'w-72 lg:w-[22rem] xl:w-96 2xl:w-[26rem]'
         }`}
         id="desktop-workspace-sidebar"
       >
