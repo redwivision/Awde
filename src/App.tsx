@@ -52,6 +52,9 @@ const CommandPalette = React.lazy(() =>
 const ProgressTimeline = React.lazy(() =>
   import('./components/ProgressTimeline').then((m) => ({ default: m.ProgressTimeline }))
 );
+const GroupsPanel = React.lazy(() =>
+  import('./components/GroupsPanel').then((m) => ({ default: m.GroupsPanel }))
+);
 const SharedWorkspaceView = React.lazy(() =>
   import('./components/SharedWorkspaceView').then((m) => ({ default: m.SharedWorkspaceView }))
 );
@@ -455,6 +458,8 @@ export default function App() {
         return isAmharic ? 'መጻሕፍት' : 'Books';
       case 'progress':
         return isAmharic ? 'እድገት' : 'Progress';
+      case 'groups':
+        return isAmharic ? 'ቡድኖች' : 'Groups';
       default:
         return 'Awde';
     }
@@ -777,6 +782,10 @@ export default function App() {
 
                 {activeTab === 'progress' && (
                   <ProgressTimeline language={language} />
+                )}
+
+                {activeTab === 'groups' && (
+                  <GroupsPanel language={language} />
                 )}
               </React.Suspense>
             )}

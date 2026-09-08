@@ -56,6 +56,7 @@ Students today rely on static textbooks that force rote-reading and memorization
 | 👤 **Accounts & Cloud Sync** | Optional Google OAuth + passwordless (magic-link) accounts via Neon/Postgres — progress syncs across devices while staying available offline (localStorage-first) |
 | 📈 **Progress Timeline** | Every quiz, taught idea, marked-done concept, blurting sprint, and completed focus session lands in a study history (local-first, merged with your account's server log on every device). The Progress tab shows a day-streak, today's activity, totals, and average scores, grouped by day in EN/AM |
 | 🔗 **Read-Only Share Links** | Share any synced book as a signed, read-only preview link (`?share=1&user=&id=&sig=`): the recipient sees the exact same mind-map + concept drawer (no edits, no account, no AI calls) with a "Study it in Awde" call-to-action. Signatures use an HMAC keyed to `SHARE_SECRET` or the auth secret |
+| 👥 **Opt-in Study Groups** | Anyone can create a study group and share a short code; students join with a display name of their choice and see/are seen only by aggregated, anonymous stats (events, quiz avg, mastery, focus minutes, streak). Owners get an anonymous curriculum-insight view to see which concepts a group finds harder — so schools can shape better curricula without ever pinning down an individual. Leaving deletes your membership instantly; your data stops being included. Consent-first, student-first |
 | 🛡️ **Privacy-First & Age-Gated** | One-time consent gate before use, in-app Privacy & Terms (footer / Account / gate), no PII by default (only a login email), learning data used for personalization with an account, AI content-safety filter + model guard, one-tap account/data deletion, in-app contact form + published contact email (lewikb13@gmail.com) in footer / Account / policy |
 | 🔍 **Node Mastery Drawer** | Slide-in detail panel for every concept with 5 tabs: Localized Analogy, Concept Core (detailed explanation + key takeaways + related concepts), Common Traps, Rules & Formulas, and Ask Rooty |
 | 💡 **Ask Rooty (Q&A)** | Lightweight chat in the node drawer — ask any question about a concept and get a clear, jargon-free answer with Ethiopian cultural analogies |
@@ -308,6 +309,12 @@ with `fromCache: true` — instantly and at $0 AI cost.
 | `GET /api/me/study-events` | Pull this user's study history (the Progress tab merges it with the on-device log) |
 | `POST /api/share/create` | Mint a signed read-only share link for a workspace the caller owns |
 | `GET /api/share/read` | Verify the signed `?user=&id=&sig=` link and return the workspace for a read-only preview |
+| `POST /api/groups` | Create a study group (owner = caller); returns a short join `code` |
+| `GET /api/groups` | List the groups you own or belong to (with `owner`/`joined` flags) |
+| `POST /api/groups/join` | Join by `code` + chosen `displayName` (opt-in consent; real identity never revealed) |
+| `GET /api/groups/:id/roster` | **Owner only** — anonymous per-member aggregates from `study_events` |
+| `GET /api/groups/:id/insights` | **Owner only** — anonymous, group-wide concept-difficulty trends to improve curricula |
+| `POST /api/groups/:id/leave` | Leave (membership row deleted → data instantly excluded) or, for owners, delete the group |
 | `DELETE /api/me` | Erase the account + all linked data (cascades) |
 
 Google OAuth lives under `/api/ba/*` (Better Auth handler), mounted only when a
@@ -340,6 +347,7 @@ devices — `localStorage` stays as the offline cache.
 - ✅ **Theme system** — 5 design aesthetics with CSS variable theming
 - ✅ **Accounts & cloud sync** — optional passwordless accounts via Neon/Postgres; local-first (works offline) with cross-device sync when signed in
 - ✅ **Progress timeline + share links** — honest study history (streak, daily totals, averages) merged from device + server, and read-only signed preview links for any synced book (no account, no AI, no writes) with a "Study it in Awde" CTA
+- ✅ **Opt-in study groups** — anonymous, consent-first groups with short-codes, per-member aggregate roster (owner only), and a fully anonymous curriculum-insight view; students leave any time and their data drops out instantly
 - ✅ **Hardened authentication** — Google OAuth (Better Auth) + rate-limited magic links (per-email + per-IP), real email delivery via Resend, no account enumeration, no dev-link leak in production
 - ✅ **Trust & safety** — one-time age-gate consent, in-app Privacy & Terms (footer / Account / gate), no PII by default, AI content-safety filter + model safety instruction, one-tap account/data deletion
 

@@ -91,7 +91,9 @@ jobs:
       - name: Typecheck
         run: npm run lint
 
-      - name: Run DB-gated cache tests
+      - name: Run DB-gated cache + groups tests
         env:
           DATABASE_URL: postgres://awde:awde@localhost:5432/awdetest
-        run: npx vitest run tests/cache-db.test.ts
+        run: |
+          npx vitest run tests/cache-db.test.ts
+          npx vitest run tests/groups-db.test.ts

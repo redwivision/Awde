@@ -49,6 +49,12 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, lan
         : "Questions you type are sent to an AI provider to get answers. Awde runs both an input content-safety filter and a strict safety instruction on the model — but no filter is perfect, so we recommend using it with a young learner.",
     },
     {
+      title: isAmharic ? 'የጥናት ቡድኖች' : 'Optional study groups',
+      body: isAmharic
+        ? 'ቡድኖች ሙሉ በሙሉ በፈቃድ ናቸው። የሚቀላቀሉት በኮድ እና በራስዎ በተመረጠ የማሳያ ስም ብቻ ነው። ባለቤቱ የሚያየው የተጠቃለለ ስታቲስቲክስ ብቻ ነው (የፈተና አማካይ፣ መለማመድ፣ የትኩረት ደቂቃዎች፣ ቀጣይነት) — እውነተኛ ስም፣ ኢሜይል፣ ወይም ማብራሪያዎችዎ በጭራሽ አይታዩም። መውጣት ውሂብዎን ወዲያውኑ ከቡድኑ ያስወግዳል። የቡድን ግንዛቤዎች ለሥርዓተ-ትምህርት ማሻሻያ ስም-አልባ የቡድን አዝማሚያዎች ናቸው።'
+        : 'Groups are entirely optional. You join by entering a code and the display name you choose. An owner sees only your aggregated stats (quiz average, mastery, focus minutes, streak) — never your real name, email, or explanations. Leaving deletes your membership, so your data is instantly excluded. Group insights are fully anonymous, group-wide trends used to improve curriculum — never to single out a student.',
+    },
+    {
       title: isAmharic ? 'መረጃዎን መቆጣጠር' : 'Your controls',
       body: isAmharic
         ? 'የአካባቢ ዳታ፦ የብራውዘር ውሂብ ማጽዳት ሁሉንም ያስወግዳል። የመለያ ዳታ፦ በመተግበሪያው Account → Delete የመለያዎን እና ሁሉንም የሰርቨር ውሂብዎን በቋሚነት ይሰርዛል።'

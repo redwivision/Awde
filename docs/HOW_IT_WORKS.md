@@ -298,6 +298,8 @@ a Postgres URL is configured.
 | `sessions` | Bearer session tokens issued after a successful login |
 | `workspaces` | One row per `user_id` + `workspace_id`; the whole workspace shape lives in a `data` **JSONB** column (same single-source-of-truth model as localStorage) |
 | `study_events` | An append-only log of study activity (quiz, mastery, feynman…) for progress-over-time |
+| `study_groups` | Opt-in study groups (`id`, `name`, join `code`, `owner_id`) — the consent boundary around teacher/community dashboards |
+| `study_group_members` | A membership row linking a user to a group with the **display name they chose**; PK `(group_id, user_id)`. Deleting this row is the "leave" action and instantly excludes that user's events from the group |
 | `generated_units` | Content-addressed cache of AI-generated mind-maps/quizzes (keyed by input hash) so repeat generations cost $0 |
 | `user`, `session`, `account`, `verification` | **Better Auth core tables** (`server/db/baSchema.ts`) backing Google OAuth — separate from the legacy magic-link tables so the two auth systems coexist |
 
@@ -442,6 +444,45 @@ links. It stays **opt-in and DB-gated**:
 All of these are wrapped in `requireAuth`, which in local mode is a **no-op**
 (no DB → no auth → open access). With a DB, an unauthenticated call gets a
 `401`.
+
+### The study-group routes (`server/groups.ts`)
+
+Consent-first, anonymous-by-construction:
+
+- `POST /api/groups` — any signed-in user can create a group; a short
+  unguessable `code` (no `0/O/1/I`) is minted for sharing and the creator is
+  auto-added as owner.
+- `GET /api/groups` — the groups you own **or** belong to (with owner/joined
+  flags).
+- `POST /api/groups/join` — join by `code` + a `displayName` you choose. The
+  **membership row is the consent boundary**: until you join, the group's owner
+  can't see any of your events. Real email/identity is never returned to others.
+- `GET /api/groups/:id/roster` — **owner only** (`403` otherwise). Returns each
+  member's chosen `displayName` plus aggregates (total events, quiz avg, mastery,
+  focus mins, day-streak) computed from `study_events` **for that group's members
+  only** (`inArray(userId)`). `userId` is explicitly mapped to `null` so real
+  identities can't leak.
+- `GET /api/groups/:id/insights` — **owner only**. Anonymized, group-wide
+  concept-difficulty trends (bucketed by unit title from event payloads), so a
+  school can see which topics students struggle with **without ever singling out
+  an individual** — the "improve curriculum without authority" view.
+- `POST /api/groups/:id/leave` — a member leaves by deleting their own
+  membership row (their data stops being included instantly); the owner deleting
+  the group cascades all memberships via the FK.
+
+Anonymity invariants worth calling out:
+1. **No identity in responses** — roster rows carry `userId: null`.
+2. **No cross-group visibility** — every query is filtered to the requesting
+   group's member IDs; a member who leaves is removed from those IDs on their
+   next join the group sees nothing of them.
+3. **No raw learner text** — only aggregates are surfaced to an owner; the
+   Feynman explanations and quiz content stay private to the student.
+
+Client-side, the **Groups** sidebar tab (`src/components/GroupsPanel.tsx`)
+creates/joins groups, then shows a selected group's roster + curriculum insights,
+with explicit copy that anonymity and leave-anytime are guaranteed.
+`src/lib/groups.ts` mirrors `sync.ts`'s offline-safe `authedJson` pattern so the
+UI never throws when offline or local-only.
 
 ### Why the guard exists
 
@@ -841,13 +882,15 @@ A mental checklist before you edit anything:
 | `server/rateLimit.ts` | Shared in-memory sliding-window limiter (`makeRateLimiter`) |
 | `server/share.ts` | HMAC signing/verify for **read-only share links** (secret = `SHARE_SECRET` → `BETTER_AUTH_SECRET` → dev default) |
 | `server/sync.ts` | `registerSyncRoutes`: login/confirm (rate-limited) + me/workspaces/study-events (GET+POST) + share create/read + account deletion |
+| `server/groups.ts` | `registerGroupRoutes`: create/list/join groups by code, owner-only roster (anonymous per-member aggregates), owner-only anonymous curriculum insights, leave/delete |
 | `server/safety.ts` | `blockedReason`/`checkInputs` filter + `withSafetyInstruction` AI prompt guard |
-| `server/db/schema.ts` | Drizzle tables: users, sessions, workspaces (JSONB), study_events, generated_units |
+| `server/db/schema.ts` | Drizzle tables: users, sessions, workspaces (JSONB), study_events, generated_units, study_groups, study_group_members |
 | `server/db/baSchema.ts` | Better Auth core tables (user, session, account, verification) |
 | `server/db/client.ts` | Lazy postgres.js client; `hasDb()`/`authEnabled()` gates |
 | `server/db/migrate.ts` | Runs Drizzle migrations from `drizzle/` at startup |
 | `src/lib/api.ts` | Weak-wifi-safe `postJson`/`postFormData` + `useOnlineStatus` |
 | `src/lib/sync.ts` | Session storage, magic-link confirm, workspace push/pull, study-activity log (local-first + server push), sync-meta ledger, share-link client helpers, Google session bootstrap (`syncServerSession`), provider detection |
+| `src/lib/groups.ts` | Offline-safe client helpers for study groups: create/list/join/roster/insights/leave (mirrors `sync.ts`'s `authedJson`) |
 | `src/lib/betterAuthClient.ts` | Better Auth client (`createAuthClient`, `googleSignIn`) over `/api/ba` |
 | `src/components/ConsentGate.tsx` | One-time age-gate + privacy consent before the workspace |
 | `src/components/PrivacyModal.tsx` | In-app Privacy & Terms (EN+AM), reachable from footer, Account modal, and consent gate; ends with the published contact channel (in-app "Contact us" form + lewikb13@gmail.com) |
@@ -856,8 +899,9 @@ A mental checklist before you edit anything:
 | `src/data/curricula.ts` | Seeded legacy curriculum units |
 | `src/data/textbookWorkspaces.ts` | Seeded default books (the "no data yet" start) |
 | `src/components/LandingPage.tsx` | The cinematic entry screen |
-| `src/components/WorkspaceSidebar.tsx` | Left nav (Books/Map/Teach/Quiz/Measure/Focus/Progress) + unit list |
+| `src/components/WorkspaceSidebar.tsx` | Left nav (Books/Map/Teach/Quiz/Measure/Focus/Progress/Groups) + unit list |
 | `src/components/ProgressTimeline.tsx` | The **Progress** tab: streak + today + totals + avg score, and the study history grouped by day (merges local log with the server copy; EN/AM) |
+| `src/components/GroupsPanel.tsx` | The **Groups** tab: create/join groups by code, per-group roster (anonymous aggregates) + anonymous curriculum insights; leave-anytime |
 | `src/components/SharedWorkspaceView.tsx` | Read-only preview host for `?share=` links: unit switcher + live `MindMapCanvas` + `NodeMasteryDrawer` in `readOnly` mode + "Study it in Awde" CTA |
 | Each feature component | A study mode that gets props from App and calls `/api` |
 

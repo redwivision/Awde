@@ -29,6 +29,7 @@ import {
   Globe,
   FlaskConical,
   TrendingUp,
+  Users,
   X
 } from 'lucide-react';
 
@@ -149,6 +150,14 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       icon: TrendingUp,
       tour: undefined,
       sub: isAmharic ? 'ታሪክ እና ቀጣይነት' : 'Streaks, history & insights'
+    },
+    {
+      id: 'groups' as ActiveTab,
+      label: 'Groups',
+      labelAmharic: 'ቡድኖች',
+      icon: Users,
+      tour: undefined,
+      sub: isAmharic ? 'ከጓደኞች ጋር ይማሩ' : 'Study groups & insights'
     }
   ];
 

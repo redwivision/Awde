@@ -81,8 +81,8 @@ export const ConsentGate: React.FC<ConsentGateProps> = ({ onAgree, language }) =
 
           <p className="mt-5 text-sm leading-relaxed">
             {isAmharic
-              ? 'አውደ (Awde) የጥናት መተግበሪያ ነው። በመደበኛነት ምንም መረጃ አንሰበስብም — ትምህርትዎ በራስዎ መሳሪያ ላይ ይኖራል። መለያ ከፈጠሩ፣ ኢሜይልዎን ብቻ ነው የሚጠየቀው።'
-              : 'Awde is a study app for students. By default we collect nothing — your learning stays on your own device. If you create an account, we only ask for your email to sync your books across devices.'}
+              ? 'አውደ (Awde) የጥናት መተግበሪያ ነው። በመደበኛነት ምንም መረጃ አንሰበስብም — ትምህርትዎ በራስዎ መሳሪያ ላይ ይኖራል። መለያ ከፈጠሩ፣ ኢሜይልዎን ብቻ ነው የሚጠየቀው። የጥናት ቡድን ከተቀላቀሉ፣ ያመጣሉት ነገር በራስዎ በተመረጠ ስም የተጠቃለለ ስታቲስቲክስ ብቻ ነው።'
+              : 'Awde is a study app for students. By default we collect nothing — your learning stays on your own device. If you create an account, we only ask for your email to sync your books across devices. If you ever join an optional study group, only your chosen-name aggregates are shared.'}
           </p>
 
           <div className="mt-5 space-y-2.5">
@@ -125,8 +125,8 @@ export const ConsentGate: React.FC<ConsentGateProps> = ({ onAgree, language }) =
               />
               <span>
                 {isAmharic
-                  ? 'በአውደ ግላዊነት መርሆዎች እና ደንቦች ላይ ተስማምቻለሁ — ተጨማሪ የመማር ዳታ (quiz፣ ውጤት፣ Feynman) ልምዱን ለማስተካከል ሊጠቀም ይችላል።'
-                  : 'I agree to Awde’s Privacy & Terms — including the use of my learning data (quizzes, scores, Feynman) to adapt the app to how I learn.'}
+                  ? 'በአውደ ግላዊነት መርሆዎች እና ደንቦች ላይ ተስማምቻለሁ — ተጨማሪ የመማር ዳታ (quiz፣ ውጤት፣ Feynman) ልምዱን ለማስተካከል ሊጠቀም ይችላል። የጥናት ቡድን በፈቃዴ ብቻ ነው የምቀላቀቀው።'
+                  : 'I agree to Awde’s Privacy & Terms — including the use of my learning data (quizzes, scores, Feynman) to adapt the app to how I learn. Study groups are shared only if I choose to join one.'}
               </span>
             </label>
             <button
@@ -151,8 +151,8 @@ export const ConsentGate: React.FC<ConsentGateProps> = ({ onAgree, language }) =
 
           <p className="mt-4 text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted, #475569)' }}>
             {isAmharic
-              ? 'ከኢሜይል ውጪ ምንም የአካል መረጃ አንሰበስብም፤ የመማር ዳታ ልምዱን ለማስተካከል ነው። በፈለጉት ጊዜ Account → Delete ሁሉንም ይሰርዛል።'
-              : 'We collect no personal data beyond a login email; learning data is used only to adapt the experience. You can erase everything anytime under Account → Delete.'}
+              ? 'ከኢሜይል ውጪ ምንም የአካል መረጃ አንሰበስብም፤ የመማር ዳታ ልምዱን ለማስተካከል ነው። የጥናት ቡድን በፈቃድዎት ብቻ ይጋራል — ገብተው መውጣት ይችላሉ። በፈለጉት ጊዜ Account → Delete ሁሉንም ይሰርዛል።'
+              : 'We collect no personal data beyond a login email; learning data is used only to adapt the experience. Study groups are shared only if you opt in — and you can leave any time. You can erase everything anytime under Account → Delete.'}
           </p>
         </div>
       </motion.div>

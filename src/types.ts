@@ -212,7 +212,8 @@ export type ActiveTab =
   | 'studysuite'
   | 'experiment_lab'
   | 'library'
-  | 'progress';
+  | 'progress'
+  | 'groups';
 
 export interface TextbookWorkspace {
   id: string;

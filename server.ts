@@ -23,6 +23,7 @@ import {
 } from './server/quota';
 import { processTextbookPdf } from './server/textbook';
 import { registerSyncRoutes } from './server/sync';
+import { registerGroupRoutes } from './server/groups';
 import { registerContactRoutes } from './server/contact';
 import { registerBetterAuthRoutes, isGoogleAuthConfigured } from './server/betterAuth';
 import { smtpConfigured, contactRecipient } from './server/mail';
@@ -714,6 +715,7 @@ export async function startServer(port: number = PORT): Promise<any> {
 // middleware). Done here — not inside startServer — so tests that import the
 // app directly get the same routing the running server has.
 registerSyncRoutes(app);
+registerGroupRoutes(app);
 registerContactRoutes(app);
 
 // Guard: only auto-start when executed directly, not when imported for tests.

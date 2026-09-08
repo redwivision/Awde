@@ -103,3 +103,42 @@ export const usersRelations = relations(users, ({ many }) => ({
   workspaces: many(workspaces),
   studyEvents: many(studyEvents)
 }));
+
+// Opt-in study groups (consent boundary for teacher/community dashboards).
+// Joining a group is explicit consent that its owner may see YOUR aggregated
+// study stats under the display name you chose — never your real identity.
+// Leaving deletes the membership row, so your events instantly stop being
+// included. `code` is a short human-shareable join token.
+export const studyGroups = pgTable(
+  'study_groups',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    code: text('code').notNull().unique(),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (t) => [index('study_groups_owner_idx').on(t.ownerId)]
+);
+
+// Membership row — the only thing linking a user to a group. The chosen
+// `displayName` is what others see; the real email is never exposed.
+export const studyGroupMembers = pgTable(
+  'study_group_members',
+  {
+    groupId: text('group_id')
+      .notNull()
+      .references(() => studyGroups.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    displayName: text('display_name').notNull(),
+    joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (t) => [
+    primaryKey({ columns: [t.groupId, t.userId], name: 'study_group_members_pk' }),
+    index('study_group_members_user_idx').on(t.userId)
+  ]
+);

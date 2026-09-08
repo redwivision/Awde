@@ -51,6 +51,31 @@ This is **learning data, not identity data** — it is tied to your email addres
 only so it can follow you across devices, and it is never sold or shared with
 advertisers. No account → no learning data leaves the device at all.
 
+## 2a. Optional study groups (teacher/community dashboards)
+
+Awde's **Groups** tab lets students learn together voluntarily — and is built so
+that sharing can never be turned into authority. The rules:
+
+- **Opt-in consent is the join action.** A student joins a group by entering the
+  owner's short code **and picking a display name**. Until they join, nobody can
+  see any of their activity. Joining shares only aggregated, anonymous stats for
+  that group: total study events, quiz average, mastery, focus minutes, and
+  day-streak.
+- **No real identity is ever exposed.** The group owner (and the roster
+  endpoint) only ever sees the display names members chose. Your real name,
+  email, and the explanations you type to Rooty are never shown to the group.
+- **Anyone can create a group.** Any signed-in user can own one — friend study
+  groups are equally valid as classroom groups. There is no privileged "teacher
+  role" that can force or see beyond what students opt into.
+- **Leave any time; data leaves with you.** Leaving deletes your membership row,
+  so your aggregated stats instantly stop being included in that group's roster
+  and insights.
+- **Group insights are fully anonymous.** The owner's "curriculum insights" are
+  group-wide trends at the concept level (which units students as a whole found
+  harder). They are computed from aggregated scores and can never single out an
+  individual student — a deliberate design choice so schools can improve
+  curricula without gaining leverage over students.
+
 ## 3. A note for parents & guardians
 
 - Awde is intended for students **13 and older**, or any age with a parent or
