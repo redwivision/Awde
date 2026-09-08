@@ -272,6 +272,32 @@ reachable again.
 
 ---
 
+## 4a. The Installable Offline Shell (`public/sw.js`)
+
+The app is a PWA: a small service worker precaches the shell (`./`,
+`./index.html`, fonts, icons, `manifest.webmanifest`) plus the hashed
+`dist/assets/*` files, so once a student has loaded the app it opens instantly
+and works offline (localStorage-first). The worker is registered in `main.tsx`
+(production only) with a proactive `registration.update()` and a
+`controllerchange` listener that does a single `window.location.reload()`, so a
+fresh deploy takes over in an already-open tab.
+
+**Why bump these?**
+
+```js
+const SHELL_CACHE = 'awde-shell-v3';
+const ASSET_CACHE = 'awde-assets-v3';
+```
+
+When the shell versions change, the `activate` handler deletes every other
+cache, so a new deploy gets a clean slate instead of the browser silently
+reusing the previous build's HTML/assets. Bump the version whenever you change
+the SW's caching behavior (or when users report "still seeing the old site"). It
+stays byte-identical across ordinary deploys on purpose — unversioned SW churn
+fights the browser cache policy and stalls fresh builds.
+
+---
+
 ## 5. Accounts, Magic Links, and the Database
 
 This is the newest piece, and it's built to be **entirely optional**. Read
@@ -344,7 +370,10 @@ simpler and keeps changes localized. Two indexes keep lookups fast.
 4. `DELETE /api/me` → erases the account and everything tied to it. Sessions,
    workspaces, and study events all cascade to the user via FK `ON DELETE
    CASCADE`, so one delete is a full data-deletion path (see `docs/PRIVACY.md`).
-   The Account modal surfaces this as "Delete my account and data".
+   The response also clears **both** the legacy bearer cookie and every Better
+   Auth cookie (`awde.session_token` and friends), and the client calls
+   `authClient.signOut({})`, so a refresh can never resurrect the just-deleted
+   account. The Account modal surfaces this as "Delete my account and data".
 
 ### Google OAuth with Better Auth (`server/betterAuth.ts`)
 

@@ -342,7 +342,7 @@ devices — `localStorage` stays as the offline cache.
 - ✅ **Interactive feature set** — all 6 study modes are functional with live client/server wiring
 - ✅ **Enriched concept nodes** — detailed explanations, key takeaways, and related concepts in the node drawer
 - ✅ **Ask Rooty Q&A** — lightweight in-drawer chat for asking questions about any concept
-- ✅ **Test suite** — 142 tests (136 unit/integration/offline + 6 Postgres-backed cache tests that run in a dedicated CI job; the DB ones self-skip without a `DATABASE_URL`)
+- ✅ **Test suite** — 146 tests (140 unit/integration/offline + 6 Postgres-backed cache tests that run in a dedicated CI job; the DB ones self-skip without a `DATABASE_URL`)
 - ✅ **Bilingual support** — complete English/Amharic toggle across all UI
 - ✅ **Theme system** — 5 design aesthetics with CSS variable theming
 - ✅ **Accounts & cloud sync** — optional passwordless accounts via Neon/Postgres; local-first (works offline) with cross-device sync when signed in
@@ -373,7 +373,7 @@ devices — `localStorage` stays as the offline cache.
 | Auth / API Keys | None required by default (deterministic fallback generators); optional Google OAuth + magic-link accounts when `DATABASE_URL` is set (magic links emailed via `RESEND_API_KEY`) |
 | Languages | 2 (English + Amharic) |
 | Recall Deltas | Measured per-user in the Method Laboratory (before vs after) |
-| Test Coverage | 142 tests (136 unit/integration/offline based + 6 Postgres-backed cache tests in a dedicated CI job; incl. content-safety, auth/hardening, provider chain, quotas, cache) |
+| Test Coverage | 146 tests (140 unit/integration/offline based + 6 Postgres-backed cache tests in a dedicated CI job; incl. content-safety, auth/hardening, provider chain, quotas, cache) |
 | Persistence | localStorage-first offline cache; optional cloud sync (workspaces + study events) via Neon/Postgres |
 
 ---

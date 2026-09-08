@@ -14,6 +14,19 @@ import { makeRateLimiter, rateLimitKey } from './rateLimit';
 import { getAuth, headersFromExpress, isGoogleAuthConfigured } from './betterAuth';
 import { issueShareSig, verifyShareSig } from './share';
 
+// Better Auth (Google OAuth) cookie names, cookiePrefix 'awde'. Also clears the
+// HttpOnly session token so a refresh can't resurrect a deleted account.
+const BetterAuthCookieNames = ['awde.session_token', 'awde.session_data', 'awde.account_data', 'awde.dont_remember', 'awde.oauth_state', 'awde.csrf_token'] as const;
+
+function betterAuthCookieOptions(): { httpOnly: boolean; secure: boolean; sameSite: 'lax'; path: string } {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/'
+  };
+}
+
 // Auth-gate hardening (milestone 4-adjacent).
 // - Per-email+IP: 5 login links / 15 min stops someone spamming one address.
 // - Per-IP: fewer than a real school NAT's burst, but enough to stop scanners.
@@ -175,7 +188,13 @@ export function registerSyncRoutes(app: Router) {
         await db.delete(BaUser).where(eq(BaUser.id, req.user.id));
       }
       await db.delete(users).where(eq(users.id, req.user.id));
-      res.clearCookie(SESSION_COOKIE, { path: '/' });
+      // Clear BOTH the legacy cookie and the Better Auth cookies so a refresh
+      // (or the service-worker-served old bundle) can't re-adopt the deleted
+      // account's sessions.
+      res.clearCookie(SESSION_COOKIE, sessionCookieOptions());
+      for (const name of BetterAuthCookieNames) {
+        res.clearCookie(name, betterAuthCookieOptions());
+      }
       res.json({ ok: true, message: 'Your account and all associated data were deleted.' });
     } catch (err) {
       console.error('Error deleting account:', err);

@@ -132,6 +132,13 @@ export async function deleteAccount(): Promise<{ ok: boolean; localMode?: boolea
   const session = getSession();
   if (!session) return { ok: true };
   const res = await authedJson<{ ok?: boolean; localMode?: boolean; error?: string }>('/api/me', { method: 'DELETE' });
+  // Also clear the Better Auth (Google OAuth) session + cookie cache so a
+  // refresh can't re-adopt the deleted account's cookies.
+  try {
+    await authClient.signOut({});
+  } catch {
+    /* best-effort — the server also clears the DB session */
+  }
   clearSession();
   clearSyncMeta();
   const data = res.data as any;
