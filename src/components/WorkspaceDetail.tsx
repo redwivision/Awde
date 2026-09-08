@@ -484,7 +484,7 @@ export const WorkspaceDetail: React.FC<WorkspaceDetailProps> = ({
         {/* Unit Shelf */}
         <div
           style={{ borderColor: 'var(--app-border, #cbd5e1)' }}
-          className="flex-1 min-h-0 overflow-y-auto border-t lg:flex-none lg:w-80 xl:w-96 lg:border-t-0 lg:border-l"
+          className="flex-1 min-h-0 overflow-y-auto border-t lg:flex-none lg:w-96 xl:w-[30rem] 2xl:w-[36rem] lg:border-t-0 lg:border-l"
         >
           <div className="p-4 space-y-3">
             <div className="flex items-center justify-between px-1">
