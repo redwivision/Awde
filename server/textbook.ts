@@ -36,6 +36,17 @@ export async function extractPdfText(buffer: Buffer): Promise<ExtractedPdf> {
 // Monotonic counter guarantees unique ids even for near-instant double uploads.
 let textbookIdCounter = 0;
 
+// A deterministic builder must never fabricate formulas it can't know. It only
+// surfaces a formula when the topic label itself already spells one out; for a
+// formula-less concept the drawer's empty state ("more about words than
+// numbers") is the honest answer rather than fake placeholder text.
+const FORMULA_MARKER = /(\bF\s*=\s*|=\s*|\bE\s*=\s*|\bV\s*=\s*|\bPV\s*=|Nernst|Δ|\bW\s*=\s*|\bQ\s*=\s*|\bP\s*=\s*)/i;
+function extractKnownFormulas(topicLabel: string): string[] {
+  const cleaned = topicLabel.replace(/\s+/g, ' ').trim();
+  if (FORMULA_MARKER.test(cleaned)) return [cleaned];
+  return [];
+}
+
 // Deterministic workspace builder (offline fallback). Mirrors the client-side
 // createCustomTextbookWorkspace so a real-workflow demo still works without AI.
 export function buildFallbackTextbookWorkspace(
@@ -72,19 +83,23 @@ export function buildFallbackTextbookWorkspace(
     depthLevel: idx === 0 ? 1 : 2,
     masteryScore: 0,
     masteryStatus: 'unstudied' as const,
-    summary: `Comprehensive cognitive breakdown of "${t}" extracted from ${bookTitle}.`,
-    summaryAmharic: `ከቀረበው የመማሪያ መጽሐፍ የተዘጋጀ ማብራሪያ።`,
-    keyFormulasOrRules: [`Core equation / invariant for ${t}`, 'Conservation and symmetry properties'],
-    commonMisconceptions: [`Common beginner pitfall when analyzing ${t}.`],
-    misconceptionsAmharic: ['በጥናት ወቅት የሚከሰቱ የተለመዱ ስህተቶች።'],
+    summary: `${t} is best understood step by step: what it is, how it behaves, and one everyday example that makes it concrete.`,
+    summaryAmharic: `${t}ን ደረጃ በደረጃ መረዳት አለብህ፡ ምን እንደሆነ፣ እንዴት እንደሚሰራ፣ እና አንድ የዕለት ተዕለት ምሳሌ።`,
+    detailedExplanation: `This is the concept "${t}". It was introduced in the textbook but we could not generate a full AI explanation right now (offline or no AI key). It stands in the book on its own, so the most reliable source for this node is the textbook itself. Use "Ask Rooty" for a plain-language walkthrough, or reconnect for a live AI explanation.`,
+    detailedExplanationAmharic: `ይህ "${t}" የተባለ ጽንሰ-ሀሳብ ነው። አሁን ሙሉ ማብራሪያ ማመንጨት አልተቻለም (AI አገልግሎት ስለሌለ ወይም ከመስመር ውጭ ስለሆነ)። ትክክለኛው ምንጭ መጽሐፉ ራሱ ነው። "ሩቲን ጠይቅ" ተጠቀም ወይም በመስመር ተመልሰህ ሙሉ ማብራሪያ እንደገና ለማግኘት።`,
+    keyTakeaways: ['Start from the textbook\u2019s own definition of this node.', 'Ask Rooty for a simple, jargon-free explanation.', 'Reconnect to generate a full AI explanation with cultural analogy.'],
+    keyTakeawaysAmharic: ['ይህንን ጽንሰ-ሀሳብ ከመጽሐፉ ራሱ ጀምር።', 'ለቀላል ማብራሪያ ሩቲን ጠይቅ።', 'ሙሉ የAI ማብራሪያ ለማግኘት በመስመር ተመለስ።'],
+    keyFormulasOrRules: extractKnownFormulas(t),
+    commonMisconceptions: ['Confusing this node with a neighboring topic in the same chapter.', 'Assuming the summary alone gives the whole picture \u2014 read the textbook section.'],
+    misconceptionsAmharic: ['ይህንን ጽንሰ-ሀሳብ ከሌላ ተመሳሳይ ርዕስ ጋር ማምታታት።', 'ማጠቃለያው ብቻ በቂ ነው ብሎ ማሰብ።'],
     localizedAnalogy: {
-      title: `Ethiopian Real-World Analogy for ${t}`,
-      titleAmharic: `የኢትዮጵያ ተግባራዊ ማነጻጸሪያ`,
-      context: `Daily Ethiopian natural or cultural phenomenon reflecting ${t}.`,
-      contextAmharic: `የዕለት ተዕለት ተግባር ማነጻጸሪያ።`,
-      culturalElement: 'Ethiopian Everyday Life (የኢትዮጵያ ተሞክሮ)',
-      explanation: `Visualizing ${t} through accessible physical intuition without abstract jargon.`,
-      explanationAmharic: `ጽንሰ-ሀሳቡን በቀላል መንገድ መረዳት።`
+      title: 'Study it like a real explanation',
+      titleAmharic: 'እንደ እውነተኛ ማብራሪያ ተማር',
+      context: 'No cultural analogy available yet \u2014 this node is awaiting an AI explanation.',
+      contextAmharic: 'ገና ምሳሌ አልተገኘም — ይህ ጽንሰ-ሀሳብ የAI ማብራሪያ ይጠብቃል።',
+      culturalElement: 'Ready for a real analogy',
+      explanation: 'A proper Ethiopian cultural analogy will appear here once we generate a live explanation. For now, open the textbook section and ask Rooty to help you make sense of it.',
+      explanationAmharic: 'የኢትዮጵያ ምሳሌ ወደፊት እዚህ ይታያል። እስከዚያ ድረስ መጽሐፉን ከፍተህ ሩቲን ለመረዳት ጠይቅ።'
     },
     prerequisites: idx > 0 ? [`${unitId}_node_${idx}`] : [],
     x: 200 + idx * 220,
@@ -245,6 +260,9 @@ function assembleUnit(
     masteryScore: 0,
     masteryStatus: 'unstudied',
     prerequisites: Array.isArray(n.prerequisites) ? n.prerequisites : [],
+    keyFormulasOrRules: Array.isArray(n.keyFormulasOrRules) ? n.keyFormulasOrRules : [],
+    commonMisconceptions: Array.isArray(n.commonMisconceptions) ? n.commonMisconceptions : [],
+    keyTakeaways: Array.isArray(n.keyTakeaways) ? n.keyTakeaways : [],
     x: typeof n.x === 'number' ? n.x : 200 + i * 150,
     y: typeof n.y === 'number' ? n.y : 120
   }));
@@ -277,12 +295,13 @@ function assembleUnit(
 function buildCompatPrompts(bookTitle: string, subject: string, gradeLevel: string, sample: string) {
   const systemPrompt = `You are Awde's textbook architect. Build a bilingual (English + Amharic) mastery unit for a student.
 Output ONLY compact valid JSON, no markdown, no commentary. Rules:
-- 4 nodes (label, labelAmharic, category, depthLevel, summary, localizedAnalogy{title,titleAmharic,culturalElement,explanation,explanationAmharic}, x, y)
+- 4 nodes (label, labelAmharic, category, depthLevel, summary, summaryAmharic, detailedExplanation, detailedExplanationAmharic, keyTakeaways, keyTakeawaysAmharic, commonMisconceptions, misconceptionsAmharic, keyFormulasOrRules, localizedAnalogy{title,titleAmharic,culturalElement,context,explanation,explanationAmharic}, x, y)
 - localizedAnalogy must be Ethiopian (Jebena/GERD/Injera/Merkato/Equb/Teff/Mesob/Genna/Light Rail)
+- detailedExplanation: a real plain-language explanation of the idea, at most 2 short sentences, ZERO jargon; if the topic has a formula, write keyFormulasOrRules as actual math (e.g. "F = m * a"), otherwise leave keyFormulasOrRules as an empty array []. Never invent placeholder text.
 - 3 connections (from,to,label,relationType)
 - 2 quizQuestions (question,options,correctIndex,explanation)
 - 2 flashcards (front,back)
-Keep every field SHORT.`;
+Keep every field SHORT and concrete — no boilerplate like "core underlying principle".`;
 
   const prompt = `Textbook: ${bookTitle} (${subject}, ${gradeLevel}). Excerpt:
 ${sample}

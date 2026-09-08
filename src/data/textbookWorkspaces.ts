@@ -468,6 +468,15 @@ export function generateTextbookMultiLevelGraph(workspace: TextbookWorkspace): M
   };
 }
 
+// A deterministic builder must never fabricate formulas it can't know. It only
+// surfaces a formula when the topic label itself already spells one out; for a
+// formula-less concept the drawer's empty state is the honest answer.
+const FORMULA_MARKER = /(\bF\s*=\s*|=\s*|\bE\s*=\s*|\bV\s*=\s*|\bPV\s*=|Nernst|Δ|\bW\s*=\s*|\bQ\s*=\s*|\bP\s*=\s*)/i;
+function extractKnownFormulas(topicLabel: string): string[] {
+  const cleaned = topicLabel.replace(/\s+/g, ' ').trim();
+  return FORMULA_MARKER.test(cleaned) ? [cleaned] : [];
+}
+
 // Function to synthesize a brand new custom Textbook Workspace from PDF upload
 export function createCustomTextbookWorkspace(
   fileName: string,
@@ -489,33 +498,37 @@ export function createCustomTextbookWorkspace(
         depthLevel: tIdx === 0 ? 1 : 2,
         masteryScore: 0,
         masteryStatus: 'unstudied',
-        summary: `Comprehensive synthesized knowledge breakdown for "${tName}" extracted from ${fileName}.`,
-        summaryAmharic: `ከቀረበው የመማሪያ መጽሐፍ የተዘጋጀ ማብራሪያ።`,
-        detailedExplanation: `This concept involves the core principles underlying ${tName}, including the foundational mechanisms, governing equations, and boundary conditions that determine behavior in this domain. Understanding it requires connecting theoretical definitions to concrete applications and recognizing how constraints shape the system's response. Mastering this topic provides a platform for tackling more advanced derivatives and interdisciplinary problems.`,
-        detailedExplanationAmharic: `ይህ ጽንሰ-ሀሳብ ${tName} የሚወስነውን መሠረታዊ ጉድጓዶች አካትቷል።`,
+        summary: `${tName} is best understood step by step: what it is, how it behaves, and one everyday example that makes it concrete.`,
+        summaryAmharic: `${tName}ን ደረጃ በደረጃ መረዳት አለብህ፡ ምን እንደሆነ፣ እንዴት እንደሚሰራ፣ እና አንድ የዕለት ተዕለት ምሳሌ።`,
+        detailedExplanation: `This is the concept "${tName}". We could not generate a full AI explanation right now (offline or no AI key). The textbook section is the reliable source for this node. Use "Ask Rooty" for a plain-language walkthrough, or reconnect for a live AI explanation.`,
+        detailedExplanationAmharic: `ይህ "${tName}" የተባለ ጽንሰ-ሀሳብ ነው። አሁን ሙሉ ማብራሪያ ማመንጨት አልተቻለም። ትክክለኛው ምንጭ መጽሐፉ ራሱ ነው። "ሩቲን ጠይቅ" ተጠቀም።`,
         keyTakeaways: [
-          `The central principle of ${tName} governs how the system behaves under varying conditions.`,
-          `Key equations and boundary constraints determine quantitative outcomes.`,
-          `Connecting theory to real-world examples deepens conceptual understanding.`,
-          `Reviewing common pitfalls helps avoid frequent errors in analysis.`
+          'Start from the textbook\u2019s own definition of this node.',
+          'Ask Rooty for a simple, jargon-free explanation.',
+          'Reconnect to generate a full AI explanation with a cultural analogy.'
         ],
         keyTakeawaysAmharic: [
-          `${tName} ዋናው መርህ የስርዓት ተግባርን ይወስናል።`,
-          'ቀመሮች እና የወሰን ሁኔታዎች ትክክለኛውን ውጤት ይወስናሉ።',
-          'ምክንያቱን ከተግባር ጋር ማገናኘት የጽንሰ-ሀሳብን ግንኙነት ያስፋል።',
-          'የተለመዱ ስህተቶችን መንከዝ ስህተትን ይከላከላል።'
+          'ይህንን ጽንሰ-ሀሳብ ከመጽሐፉ ራሱ ጀምር።',
+          'ለቀላል ማብራሪያ ሩቲን ጠይቅ።',
+          'ሙሉ የAI ማብራሪያ ለማግኘት በመስመር ተመለስ።'
         ],
-        keyFormulasOrRules: [`Core equation / invariant for ${tName}`, 'Conservation and symmetry properties'],
-        commonMisconceptions: [`Common beginner pitfall when analyzing ${tName}.`],
-        misconceptionsAmharic: ['በጥናት ወቅት የሚከሰቱ የተለመዱ ስህተቶች።'],
+        keyFormulasOrRules: extractKnownFormulas(tName),
+        commonMisconceptions: [
+          'Confusing this node with a neighboring topic in the same chapter.',
+          'Assuming the summary alone gives the whole picture \u2014 read the textbook section.'
+        ],
+        misconceptionsAmharic: [
+          'ይህንን ጽንሰ-ሀሳብ ከሌላ ተመሳሳይ ርዕስ ጋር ማምታታት።',
+          'ማጠቃለያው ብቻ በቂ ነው ብሎ ማሰብ።'
+        ],
         localizedAnalogy: {
-          title: `Ethiopian Real-World Analogy for ${tName}`,
-          titleAmharic: `የኢትዮጵያ ተግባራዊ ማነጻጸሪያ`,
-          context: `Daily Ethiopian natural or cultural phenomenon reflecting ${tName}.`,
-          contextAmharic: `የዕለት ተዕለት ተግባር ማነጻጸሪያ።`,
-          culturalElement: 'Ethiopian Everyday Life (የኢትዮጵያ ተሞክሮ)',
-          explanation: `Visualizing ${tName} through accessible physical intuition without abstract jargon.`,
-          explanationAmharic: `ጽንሰ-ሀሳቡን በቀላል መንገድ መረዳት።`
+          title: 'Study it like a real explanation',
+          titleAmharic: 'እንደ እውነተኛ ማብራሪያ ተማር',
+          context: 'No cultural analogy available yet \u2014 this node is awaiting an AI explanation.',
+          contextAmharic: 'ገና ምሳሌ አልተገኘም — ይህ ጽንሰ-ሀሳብ የAI ማብራሪያ ይጠብቃል።',
+          culturalElement: 'Ready for a real analogy',
+          explanation: 'A proper Ethiopian cultural analogy will appear here once we generate a live explanation. For now, open the textbook section and ask Rooty to help you make sense of it.',
+          explanationAmharic: 'የኢትዮጵያ ምሳሌ ወደፊት እዚህ ይታያል። እስከዚያ ድረስ መጽሐፉን ከፍተህ ሩቲን ለመረዳት ጠይቅ።'
         },
         prerequisites: tIdx > 0 ? [`${unitId}_node_${tIdx}`] : [],
         x: 200 + tIdx * 250,

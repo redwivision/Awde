@@ -565,17 +565,22 @@ export const NodeMasteryDrawer: React.FC<NodeMasteryDrawerProps> = ({
                     {node.keyFormulasOrRules.map((rule, idx) => (
                       <div
                         key={idx}
-                        className="p-3.5 rounded-lg bg-slate-950 border border-slate-800 font-mono text-xs text-purple-300 flex items-center gap-2"
+                        className="p-3.5 rounded-lg bg-slate-950 border border-purple-500/30 text-sm text-purple-200 overflow-x-auto"
                       >
-                        <span className="w-2 h-2 rounded-full bg-purple-400 shrink-0" />
-                        <code>{rule}</code>
+                        <code className="font-mono whitespace-pre-wrap break-words">
+                          {rule}
+                        </code>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-400 italic">
-                    {isAmharic ? 'ምንም ቀመር የለም (ይህ በቃላት የሚገለጽ ሃሳብ ነው)' : 'This idea is more about words than numbers.'}
-                  </p>
+                  <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
+                    <p className="text-xs text-slate-400">
+                      {isAmharic
+                        ? 'ይህ ሃሳብ የተጻፈ ቀመር ወይም ሕግ የለውም። ማንኛውም ቀመር ለመጨመር ሩቲን ይጠይቁ።'
+                        : 'No formula is listed for this idea. Ask Rooty for the formula or law if this topic has one.'}
+                    </p>
+                  </div>
                 )}
               </div>
             )}

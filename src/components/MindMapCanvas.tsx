@@ -432,7 +432,7 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
                 // Skip edges whose endpoints are hidden by search/filters.
                 if (!visibleNodeIds.has(conn.from) || !visibleNodeIds.has(conn.to)) return null;
 
-                const { path: pathData, midX, midY } = routeEdge(fromPos, toPos);
+                const { path: pathData } = routeEdge(fromPos, toPos);
 
                 return (
                   <g key={conn.id} className="opacity-85 pointer-events-none">
@@ -457,22 +457,6 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
                       strokeDasharray={conn.relationType === 'depends_on' ? '6 4' : 'none'}
                       markerEnd="url(#arrowhead)"
                     />
-                    {/* Edge Label Badge */}
-                    {(conn.label || conn.labelAmharic) && (
-                      <foreignObject
-                        x={midX - 92}
-                        y={midY - 13}
-                        width="184"
-                        height="26"
-                        className="overflow-visible pointer-events-none"
-                      >
-                        <div className="flex justify-center items-center">
-                          <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-slate-950 text-slate-200 border border-slate-800 shadow-md truncate max-w-[176px]">
-                            {isAmharic && conn.labelAmharic ? conn.labelAmharic : conn.label}
-                          </span>
-                        </div>
-                      </foreignObject>
-                    )}
                   </g>
                 );
               })}
@@ -644,6 +628,29 @@ export const MindMapCanvas: React.FC<MindMapCanvasProps> = ({
                 );
               })}
             </div>
+
+            {/* Edge Label Badges — above nodes so branch text is always readable */}
+            {unit.connections.map((conn) => {
+              const fromPos = positions[conn.from];
+              const toPos = positions[conn.to];
+              if (!fromPos || !toPos) return null;
+              if (!visibleNodeIds.has(conn.from) || !visibleNodeIds.has(conn.to)) return null;
+              if (!(conn.label || conn.labelAmharic)) return null;
+              const { midX, midY } = routeEdge(fromPos, toPos);
+              return (
+                <div
+                  key={`edge-label-${conn.id}`}
+                  className="absolute pointer-events-none"
+                  style={{ left: midX - 92, top: midY - 13, width: 184 }}
+                >
+                  <div className="flex justify-center items-center">
+                    <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-slate-950 text-slate-200 border border-slate-800 shadow-md truncate max-w-[176px]">
+                      {isAmharic && conn.labelAmharic ? conn.labelAmharic : conn.label}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

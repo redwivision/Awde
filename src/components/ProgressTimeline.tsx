@@ -98,21 +98,27 @@ export const ProgressTimeline: React.FC<ProgressTimelineProps> = ({ language }) 
       return;
     }
 
-    void pullStudyActivities(300).then((remote) => {
-      if (cancelled || !remote) return;
-      setSynced(true);
-      setActivities((prev) => {
-        const merged = remote.concat(prev);
-        const seen = new Set<string>();
-        return merged.filter((a) => {
-          const key = `${a.ts}|${a.eventType}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
+    void pullStudyActivities(300)
+      .then((remote) => {
+        if (cancelled) return;
+        if (remote) {
+          setSynced(true);
+          setActivities((prev) => {
+            const merged = remote.concat(prev);
+            const seen = new Set<string>();
+            return merged.filter((a) => {
+              const key = `${a.ts}|${a.eventType}`;
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
+          });
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
       });
-      setLoading(false);
-    });
 
     return () => {
       cancelled = true;
