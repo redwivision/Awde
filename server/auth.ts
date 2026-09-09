@@ -16,7 +16,7 @@ import { randomBytes, createHash } from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
 import { eq, lt } from 'drizzle-orm';
 import { getDb, authEnabled } from './db/client';
-import { users, loginTokens, sessions, workspaces, studyEvents } from './db/schema';
+import { users, loginTokens, sessions, workspaces, studyEvents, studyGroups, studyGroupMembers } from './db/schema';
 import { getAuth, headersFromExpress } from './betterAuth';
 
 export const MAGIC_TOKEN_TTL_MS = 15 * 60 * 1000; // login link valid 15 min
@@ -173,13 +173,20 @@ export async function cleanupExpiredAuthRows(): Promise<void> {
 
 /**
  * Bridge a Better Auth (Google OAuth) user into the legacy `users` table so
- * all the FK'd data (workspaces, study events) keeps working unchanged.
+ * all the FK'd data (workspaces, study events, study groups) keeps working
+ * unchanged.
  *
  * - Brand-new OAuth email → insert a matching `users` row with the OAuth id.
  * - Same id → return the existing row.
  * - Same email, different id → a magic-link account exists for that email. We
- *   re-key its workspaces/events onto the OAuth id (progress follows the same
- *   person), revoke its legacy sessions/tokens, and adopt the OAuth id.
+ *   re-key its workspaces/events/groups onto the OAuth id (progress follows the
+ *   same person), revoke its legacy sessions/tokens, and adopt the OAuth id.
+ *
+ * Every child table FKs to `users.id` with ON DELETE cascades and NO ON UPDATE
+ * clause, so Postgres rejects repointing a row at an id that isn't a user yet.
+ * The merge therefore inserts a temporary `users` row under the OAuth id first,
+ * rekeys all children onto it, drops the ghost legacy row, then restores the
+ * real email — all inside a transaction so a crash can't split the account.
  */
 export async function bridgeBetterAuthUser(baUserId: string, email: string) {
   const db = getDb()!;
@@ -194,12 +201,18 @@ export async function bridgeBetterAuthUser(baUserId: string, email: string) {
     return { id: existing.id, email: existing.email, role: existing.role };
   }
 
-  await db.update(workspaces).set({ userId: baUserId }).where(eq(workspaces.userId, existing.id));
-  await db.update(studyEvents).set({ userId: baUserId }).where(eq(studyEvents.userId, existing.id));
-  await db.delete(loginTokens).where(eq(loginTokens.userId, existing.id));
-  await db.delete(sessions).where(eq(sessions.userId, existing.id));
-  await db.update(users).set({ id: baUserId }).where(eq(users.id, existing.id));
-  return { id: baUserId, email: existing.email, role: existing.role };
+  await db.transaction(async (tx) => {
+    await tx.insert(users).values({ id: baUserId, email: `${baUserId}@bridge.internal`, role: existing.role });
+    await tx.update(workspaces).set({ userId: baUserId }).where(eq(workspaces.userId, existing.id));
+    await tx.update(studyEvents).set({ userId: baUserId }).where(eq(studyEvents.userId, existing.id));
+    await tx.update(studyGroups).set({ ownerId: baUserId }).where(eq(studyGroups.ownerId, existing.id));
+    await tx.update(studyGroupMembers).set({ userId: baUserId }).where(eq(studyGroupMembers.userId, existing.id));
+    await tx.delete(loginTokens).where(eq(loginTokens.userId, existing.id));
+    await tx.delete(sessions).where(eq(sessions.userId, existing.id));
+    await tx.delete(users).where(eq(users.id, existing.id));
+    await tx.update(users).set({ email: normalized }).where(eq(users.id, baUserId));
+  });
+  return { id: baUserId, email: normalized, role: existing.role };
 }
 
 /**
@@ -218,9 +231,20 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     try {
       const result = await ba.api.getSession({ headers: headersFromExpress(req) });
       if (result?.user) {
-        const user = await bridgeBetterAuthUser(result.user.id, result.user.email);
-        if (user) {
-          (req as any).user = user;
+        try {
+          const user = await bridgeBetterAuthUser(result.user.id, result.user.email);
+          if (user) {
+            (req as any).user = user;
+            (req as any).via = 'better-auth';
+            return next();
+          }
+        } catch (bridgeErr) {
+          // The Better Auth session itself is valid — a hiccup re-keying the
+          // legacy tables must never bounce a Google user to a 401. Authorize
+          // the request on the OAuth identity and surface the merge failure in
+          // the logs. (Next request retries the merge, which is idempotent.)
+          console.error('Better Auth user bridge error (authorizing anyway):', bridgeErr);
+          (req as any).user = { id: result.user.id, email: result.user.email, role: 'student' };
           (req as any).via = 'better-auth';
           return next();
         }

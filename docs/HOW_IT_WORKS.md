@@ -395,10 +395,15 @@ links. It stays **opt-in and DB-gated**:
 - `requireAuth` starts with Better Auth: `auth.api.getSession` reads the
   `awde.session_token` OAuth cookie (Express headers bridged to fetch `Headers`)
   and, on success, `bridgeBetterAuthUser()` writes/updates the **legacy `users`
-  row** so all FK'd data (workspaces, study events) works unchanged. If the
-  Google email matches an existing magic-link account, its data is re-keyed onto
-  the OAuth id and its legacy sessions/tokens revoked. Only when there's no
-  valid OAuth session does it fall back to the legacy bearer token.
+  row** so all FK'd data (workspaces, study events, study groups) works unchanged. If the
+  Google email matches an existing magic-link account, every child table is
+  re-keyed onto the Google id inside a transaction (a temp users row is inserted
+  first so the FKs point at a valid id), the ghost legacy row is dropped, then
+  the real email is restored — all atomically. Legacy sessions/tokens are revoked
+  at the same time. If the bridge itself hits a transient error the request is
+  still authorized via the valid BA session, so a merge hiccup never bounces a
+  Google user to a 401. Only when there's no valid OAuth session does
+  `requireAuth` fall back to the legacy bearer token.
 - The client (`src/lib/betterAuthClient.ts` + `syncServerSession()` in
   `src/lib/sync.ts`) calls `authClient.signIn.social({ provider: 'google' })`,
   then adopts the OAuth session into the local session hint so the UI and
@@ -843,9 +848,9 @@ scroll" + "radial gradient, not solid dim."
 
 ## 11. Tests: what they protect
 
-`tests/` uses **Vitest** + **supertest**. The suite (142 tests; the 6
-Postgres-backed ones in `cache-db.test.ts` self-skip without a `DATABASE_URL`)
-clusters around
+`tests/` uses **Vitest** + **supertest**. The suite (154 tests; the DB-backed ones
+in `groups-db.test.ts`, `cache-db.test.ts`, and `bridge.test.ts` self-skip
+without a `DATABASE_URL`) clusters around
 the most failure-prone, most important logic:
 
 - `persistence.test.ts` — the migration / single-source-of-truth invariants.
@@ -879,6 +884,10 @@ the most failure-prone, most important logic:
   store→read round-trip, cross-kind isolation, hit-count bumping, poisoned and
   oversized payloads refused. Skipped automatically without a `DATABASE_URL`;
   CI runs it in a dedicated job backed by a throwaway Postgres container.
+- `bridge.test.ts` — **Better Auth user bridge**: a magic-link account that
+  signs in with Google must adopt the Google id without tripping over FKs
+  (including study groups). Verifies the transactional re-key, data integrity,
+  and idempotency.
 
 `npm run lint` is just `tsc --noEmit` (type-checking). `npm test` runs Vitest.
 CI (`.github/workflows/ci.yml`) runs lint + the full suite + a production-bundle
