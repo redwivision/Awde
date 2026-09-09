@@ -1,0 +1,32 @@
+# Render free-tier keep-alive: Render's free web services idle out after ~15
+# minutes of inactivity and pay a multi-second cold start on the next request.
+# This job hits /api/health every 10 minutes so the production instance stays
+# warm (the health endpoint is a trivial JSON answer — no DB, no AI). GitHub
+# scheduled workflows are free and need no external account. Expect occasional
+# drift from the exact 10-min grid (GitHub may delay schedule runs) — that's
+# fine, the goal is just to never idle past Render's 15-minute window.
+name: keepalive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: # manual "Run workflow" button
+
+jobs:
+  ping:
+    name: Ping production health endpoint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit /api/health
+        run: |
+          for i in $(seq 1 3); do
+            if curl -fsS --max-time 40 https://awde.onrender.com/api/health; then
+              echo
+              echo "keepalive ok"
+              exit 0
+            fi
+            echo "attempt $i failed, retrying in 5s"
+            sleep 5
+          done
+          echo "production health endpoint unreachable" >&2
+          exit 1

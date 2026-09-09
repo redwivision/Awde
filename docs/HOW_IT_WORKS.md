@@ -898,7 +898,11 @@ the most failure-prone, most important logic:
 `npm run lint` is just `tsc --noEmit` (type-checking). `npm test` runs Vitest.
 CI (`.github/workflows/ci.yml`) runs lint + the full suite + a production-bundle
 boot smoke on **every push to main and every PR**, and a second job runs the
-DB-gated cache tests against a real Postgres.
+DB-gated cache tests against a real Postgres. A separate scheduled workflow
+(`.github/workflows/keepalive.yml`) pings `https://awde.onrender.com/api/health`
+every 10 minutes so the Render **free-tier instance never idles out** (Render
+sleeps free services after ~15 min idle and pays a multi-second cold start on the
+next request).
 
 `npm run smoke` is the **live, pre-deploy** check CI deliberately can't do (it
 has no secrets): it boots the real app with your `.env` keys/DB and asserts a
