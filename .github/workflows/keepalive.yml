@@ -1,15 +1,21 @@
 # Render free-tier keep-alive: Render's free web services idle out after ~15
 # minutes of inactivity and pay a multi-second cold start on the next request.
 # This job hits /api/health every 10 minutes so the production instance stays
-# warm (the health endpoint is a trivial JSON answer — no DB, no AI). GitHub
-# scheduled workflows are free and need no external account. Expect occasional
-# drift from the exact 10-min grid (GitHub may delay schedule runs) — that's
-# fine, the goal is just to never idle past Render's 15-minute window.
+# warm during waking hours (the health endpoint is a trivial JSON answer — no DB,
+# no AI). It also runs on every push to main, warming the fresh instance right
+# after Render deploys. The window is deliberately limited to 02:00-20:59 UTC
+# (05:00-23:59 EAT) because Render's free tier allows 750 instance-hours per
+# workspace per month; a 24/7 keep-alive burns ~744h and risks month-end
+# suspension. GitHub scheduled workflows are free and need no external account;
+# expect occasional drift from the exact 10-min grid — UptimeRobot/another
+# monitor is the belt-and-suspenders option if cold starts ever bother you again.
 name: keepalive
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/10 2-20 * * *" # UTC: 05:00-23:59 EAT; keeps the service warm in waking hours
+  push:
+    branches: [main]
   workflow_dispatch: # manual "Run workflow" button
 
 jobs:

@@ -900,9 +900,17 @@ CI (`.github/workflows/ci.yml`) runs lint + the full suite + a production-bundle
 boot smoke on **every push to main and every PR**, and a second job runs the
 DB-gated cache tests against a real Postgres. A separate scheduled workflow
 (`.github/workflows/keepalive.yml`) pings `https://awde.onrender.com/api/health`
-every 10 minutes so the Render **free-tier instance never idles out** (Render
-sleeps free services after ~15 min idle and pays a multi-second cold start on the
-next request).
+every 10 minutes during waking hours (05:00-23:59 EAT) so the Render
+**free-tier instance doesn't idle out** (Render sleeps free services after ~15
+min idle and pays at least a ~10-60s cold start on the next request — measured
+at ~30s via reproduction, which is what makes `/api/ba/get-session` look "20s
+slow but fast TTFB" when it's really just the instance waking). The workflow
+also runs on every push to main, so each fresh deploy is warmed immediately.
+The window is time-limited because Render's free tier allows only **750
+instance-hours per workspace per month**; a 24/7 keep-alive burns ~744h and
+risks month-end suspension. GitHub schedules can be delayed by up to ~15 min,
+so an external 5-min monitor (e.g. UptimeRobot) is the belt-and-suspenders if
+cold starts ever become unacceptable.
 
 `npm run smoke` is the **live, pre-deploy** check CI deliberately can't do (it
 has no secrets): it boots the real app with your `.env` keys/DB and asserts a
