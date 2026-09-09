@@ -228,10 +228,18 @@ export async function googleAuthAvailable(): Promise<boolean> {
  * Better Auth session exists — magic-link users don't have one.
  */
 export async function syncServerSession(): Promise<void> {
+  // Throttle the underlying GET /api/ba/get-session round-trip: the focus/online
+  // self-heal effect calls this on every window focus / tab re-visibility, and a
+  // burst is pure redundant network (one successful session check is enough).
+  // We only raise the throttle window after a SUCCESSFUL check so a failed one
+  // (e.g. a genuinely new login) is free to retry right away.
+  const now = Date.now();
+  if (now - lastSessionCheck < SESSION_CHECK_THROTTLE_MS) return;
   try {
     const { data } = await authClient.getSession({ query: { disableCookieCache: false, disableRefresh: false } });
     const user = data?.user;
     if (!user?.email) return;
+    lastSessionCheck = Date.now();
     const current = getSession();
     if (current?.email === user.email) return;
     saveSession({
@@ -242,6 +250,9 @@ export async function syncServerSession(): Promise<void> {
     /* offline — leave any existing local hint untouched */
   }
 }
+
+const SESSION_CHECK_THROTTLE_MS = 30_000;
+let lastSessionCheck = 0;
 
 /**
  * Push a workspace to the server. Offline/no-session safe: returns true when

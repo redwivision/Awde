@@ -304,17 +304,23 @@ export default function App() {
         setWorkspaces((prev) => {
           const map = new Map<string, TextbookWorkspace>();
           for (const w of prev) map.set(w.id, w);
+          let changed = false;
           for (const row of serverRows) {
             const id = row.data.id || row.workspaceId;
             // Take the server copy when we've never seen it, or when we don't
             // already know the server is at-or-newer than this row.
             if (!map.has(id)) {
               map.set(id, row.data);
+              changed = true;
             } else if (!isServerSynced(id, row.updatedAt)) {
               map.set(id, row.data);
+              changed = true;
             }
           }
-          return Array.from(map.values());
+          // Only commit a new array when the merge actually changed something —
+          // otherwise returning a fresh reference re-fires the save effect and
+          // schedules a SECOND full push of every workspace on every mount.
+          return changed ? Array.from(map.values()) : prev;
         });
       } catch {
         /* offline/local-mode — keep local copy */
