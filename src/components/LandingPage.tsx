@@ -1,4 +1,5 @@
 import React from 'react';
+import { NavLink, Link } from 'react-router-dom';
 import {
   Network,
   MessageSquare,
@@ -19,7 +20,6 @@ import { DesignAesthetic, LanguageMode } from '../types';
 import { AwdeLogo } from './AwdeLogo';
 import { AestheticsModal } from './AestheticsModal';
 import { PrivacyModal } from './PrivacyModal';
-import { ContactModal } from './ContactModal';
 
 interface LandingPageProps {
   language: LanguageMode;
@@ -78,7 +78,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const isAmharic = language === 'am';
   const [isAestheticsModalOpen, setIsAestheticsModalOpen] = React.useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = React.useState(false);
-  const [isContactOpen, setIsContactOpen] = React.useState(false);
+
+  const siteNav = [
+    { to: '/', label: isAmharic ? 'መነሻ' : 'Home', end: true },
+    { to: '/about', label: isAmharic ? 'ስለ እኛ' : 'About', end: false },
+    { to: '/contact', label: isAmharic ? 'ያግኙን' : 'Contact', end: false }
+  ];
 
   const heroRef = React.useRef<HTMLDivElement>(null);
   const heroScroll = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
@@ -207,6 +212,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="flex items-center justify-between py-6">
           <AwdeLogo size="lg" isAmharic={isAmharic} />
           <div className="flex items-center gap-2">
+            <nav className="hidden sm:flex items-center gap-1.5 mr-2" aria-label="Site navigation">
+              {siteNav.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className="px-3 py-2 rounded-full border text-xs font-semibold transition-all"
+                  style={({ isActive }) => ({
+                    backgroundColor: 'var(--app-surface, #ffffff)',
+                    borderColor: isActive ? 'var(--app-text, #020617)' : 'var(--app-border, #cbd5e1)',
+                    color: 'var(--app-text, #020617)'
+                  })}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
             {sessionEmail && (
               <span
                 style={{
@@ -249,6 +271,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Mobile-first site navigation (top bar pills are hidden on small screens) */}
+        <nav className="sm:hidden flex flex-wrap items-center gap-1.5 -mt-3 pb-3" aria-label="Site navigation">
+          {siteNav.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className="px-3 py-2 rounded-full border text-xs font-semibold"
+              style={({ isActive }) => ({
+                backgroundColor: 'var(--app-surface, #ffffff)',
+                borderColor: isActive ? 'var(--app-text, #020617)' : 'var(--app-border, #cbd5e1)',
+                color: 'var(--app-text, #020617)'
+              })}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
 
         {/* ============ HERO ============ */}
         <motion.section
@@ -515,6 +556,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <InfinityIcon className="w-3.5 h-3.5" />
               {isAmharic ? 'እንግሊዝኛ + አማርኛ' : 'English + Amharic'}
             </span>
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 text-xs font-semibold underline underline-offset-2 transition-opacity hover:opacity-70"
+              style={{ color: 'var(--app-text-muted, #475569)' }}
+            >
+              {isAmharic ? 'መነሻ' : 'Home'}
+            </Link>
+            <Link
+              to="/about"
+              className="flex items-center gap-1.5 text-xs font-semibold underline underline-offset-2 transition-opacity hover:opacity-70"
+              style={{ color: 'var(--app-text-muted, #475569)' }}
+            >
+              {isAmharic ? 'ስለ እኛ' : 'About'}
+            </Link>
             <button
               onClick={() => setIsPrivacyOpen(true)}
               className="flex items-center gap-1.5 text-xs font-semibold underline underline-offset-2 transition-opacity hover:opacity-70"
@@ -523,14 +578,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <BookOpen className="w-3.5 h-3.5" />
               {isAmharic ? 'ግላዊነት እና ደንቦች' : 'Privacy & Terms'}
             </button>
-            <button
-              onClick={() => setIsContactOpen(true)}
+            <Link
+              to="/contact"
               className="flex items-center gap-1.5 text-xs font-semibold underline underline-offset-2 transition-opacity hover:opacity-70"
               style={{ color: 'var(--app-text-muted, #475569)' }}
             >
               <Mail className="w-3.5 h-3.5" />
               {isAmharic ? 'ያግኙን' : 'Contact us'}
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -542,7 +597,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         language={language}
       />
       <PrivacyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} language={language} />
-      <ContactModal isOpen={isContactOpen} onClose={() => setIsContactOpen(false)} language={language} />
     </div>
   );
 };
