@@ -583,7 +583,7 @@ export default function App() {
               </SiteLayout>
             }
           />
-          <Route path="/workspace">
+          <Route path="/workspace" element={
     <div className="flex h-screen w-screen bg-slate-950 text-slate-100 font-sans overflow-hidden select-none">
       {/* Device Offline Banner — network completely unavailable */}
       {!isDeviceOnline && (
@@ -940,7 +940,8 @@ export default function App() {
         }}
       />
     </div>
-          </Route>
+          }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       )}
