@@ -283,15 +283,15 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                   color: 'var(--app-accent-text, #ffffff)'
                 }}
               >
-                DEMO
+                {isAmharic ? 'ማስታወሻ' : 'NOTE'}
               </span>
               <span
                 className="text-sm leading-snug font-semibold"
                 style={{ color: 'var(--app-text, #020617)' }}
               >
                 {isAmharic
-                  ? 'ይህ የተጠናቀቀ ምርት አይደለም — ማሳያ ነው። መረጃዎ በዚህ መሣሪያ ላይ ብቻ ይቀመጣል።'
-                  : 'This is a DEMO, not a finished product. Your data is saved only on this device.'}
+                  ? 'አውደ እውነተኛ ምርት ነው። የጥናት መረጃዎ በዚህ መሣሪያ ይቀመጣል፤ ሲገቡ (sign in) ወደ መለያዎ ይመሳሰላል በማንኛውም መሣሪያ ለመቀጠል።'
+                  : 'Awde is a real product. Your study data saves on this device, and when you sign in it syncs to your account so you can continue on any device.'}
               </span>
             </div>
           )}

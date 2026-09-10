@@ -110,41 +110,37 @@ createRoot(document.getElementById('root')!).render(
 
 ---
 
-## 2. The Two "Screens": Landing vs Workspace
+## 2. The Two "Screens": Landing vs Workspace (React Router)
 
-Open `App.tsx`. The single most important line is near the top:
-
-```tsx
-const [isLandingOpen, setIsLandingOpen] = useState(true);
-```
-
-Then, at the bottom of the component:
+Open `src/main.tsx`. The app is wrapped in `<BrowserRouter>`, and inside
+`App.tsx` a `<Routes>` block maps real URLs to screens:
 
 ```tsx
-return isLandingOpen ? (
-  <LandingPage ... />
-) : (
-  <div className="flex h-screen ..."> ...the workspace... </div>
-);
+<Routes>
+  <Route path="/"        element={<LandingPage ... />} />
+  <Route path="/about"   element={<SiteLayout ...><AboutPage /></SiteLayout>} />
+  <Route path="/contact" element={<SiteLayout ...><ContactPage /></SiteLayout>} />
+  <Route path="/workspace">  <div className="flex h-screen ..."> ...the workspace... </div>
+  <Route path="*"        element={<Navigate to="/" replace />} />
+</Routes>
 ```
 
-**The whole app is "if landing is open, show landing; otherwise show workspace."**
-That's it. There's no router library (`react-router` is *not* a dependency).
-Navigation is just React state — `if` statements, not routes.
-
-> **Why no router?** The app doesn't need URLs that deep link; it's a single big
-> study workspace. Using `useState` for "which screen/tab am I on" is simpler and
-> avoids adding a dependency. You could add a router later, but you don't need one.
+**Site routes** (`/`, `/about`, `/contact`) use a shared `SiteLayout` with
+a top nav and footer. The workspace route mounts the same big dark-blue
+study shell that used to be the second branch. Consent, shared-workspace
+overlay, and global modals/toast are rendered *outside* the router, so they
+work on every route.
 
 Inside the workspace, the "tabs" (Books / Map / Teach / Quiz / Measure / Focus)
-are driven by one piece of state:
+are still driven by one piece of state:
 
 ```tsx
 const [activeTab, setActiveTab] = useState<ActiveTab>('library');
 ```
 
-and several `if (activeTab === 'mindmap')` blocks decide what to render. So
-"navigation" = "which state value is set." Hold that thought; it recurs everywhere.
+`"navigation"` inside the workspace = `"which state value is set."`
+The site-level navigation is URL-based via React Router; workspace
+navigation stays internal state.
 
 ---
 
@@ -992,7 +988,10 @@ A mental checklist before you edit anything:
 | `src/data/themes.ts` | The 5 design palettes |
 | `src/data/curricula.ts` | Seeded legacy curriculum units |
 | `src/data/textbookWorkspaces.ts` | Seeded default books (the "no data yet" start) |
-| `src/components/LandingPage.tsx` | The cinematic entry screen |
+| `src/components/LandingPage.tsx` | The cinematic home page (`/`) |
+| `src/pages/SiteLayout.tsx` | Shared site header (logo, Home/About/Contact nav, language toggle) + footer (privacy modal, contact link) for `/about` and `/contact` |
+| `src/pages/AboutPage.tsx` | Bilingual About page (`/about`) — Awde's meaning, mission, the three "why it exists" gaps, the three movements |
+| `src/pages/ContactPage.tsx` | Bilingual Contact page (`/contact`) — same `POST /api/contact` form as the in-app modal, full-page layout |
 | `src/components/WorkspaceSidebar.tsx` | Left nav (Books/Map/Teach/Quiz/Measure/Focus/Progress/Groups) + unit list. Expanded width auto-widens with the viewport (`w-72 lg:w-[22rem] xl:w-96 2xl:w-[26rem]`); collapsed rail stacks the logo above the expand button (no collision at 64px); the nav caps itself at `48vh` (scrollable) so the Lessons tree below always keeps room |
 | `src/components/ProgressTimeline.tsx` | The **Progress** tab: streak + today + totals + avg score, and the study history grouped by day (merges local log with the server copy; EN/AM) |
 | `src/components/GroupsPanel.tsx` | The **Groups** tab: create/join groups by code, per-group roster (anonymous aggregates) + anonymous curriculum insights; leave-anytime |

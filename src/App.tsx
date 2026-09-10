@@ -12,6 +12,10 @@ import { AESTHETIC_THEMES } from './data/themes';
 import { loadWorkspaces as loadWorkspacesFromStorage } from './data/persistence';
 import { getSession, confirmLogin, extractMagicToken, pushWorkspace, pullWorkspaces, isServerSynced, syncServerSession, recordStudyActivity, readShareParams, SESSION_KEY, SESSION_EVENT, Session } from './lib/sync';
 import { useOnlineStatus } from './lib/api';
+import { Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
+import { SiteLayout } from './pages/SiteLayout';
+import { AboutPage } from './pages/AboutPage';
+import { ContactPage } from './pages/ContactPage';
 import { WorkspaceSidebar } from './components/WorkspaceSidebar';
 import { LandingPage } from './components/LandingPage';
 import { HomePage } from './components/HomePage';
@@ -122,8 +126,10 @@ export default function App() {
     return (saved as DesignAesthetic) || 'nordic-light';
   });
 
-  // Landing page is the entry point on every fresh app load.
-  const [isLandingOpen, setIsLandingOpen] = useState(true);
+  // The router drives the entry point: `/` is the landing/home page and
+  // `/workspace` is the app. `navigate`/`location` come from BrowserRouter.
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Informed-consent gate — shown once before the workspace is usable.
   const [needsConsent, setNeedsConsent] = useState<boolean>(() => !getConsent());
@@ -142,10 +148,10 @@ export default function App() {
   // Open the tour the first time, but only AFTER the workspace content has
   // had a moment to render — otherwise it would point at a blank screen.
   useEffect(() => {
-    if (isLandingOpen || hasSeenTour || tourActive || dismissedTour) return;
+    if (location.pathname !== '/workspace' || hasSeenTour || tourActive || dismissedTour) return;
     const t = window.setTimeout(() => setTourActive(true), 900);
     return () => window.clearTimeout(t);
-  }, [isLandingOpen, hasSeenTour, tourActive, dismissedTour]);
+  }, [location.pathname, hasSeenTour, tourActive, dismissedTour]);
 
   // Live device connectivity. When offline, AI requests short-circuit in
   // lib/api.ts and show a notice instead of hanging.
@@ -546,17 +552,38 @@ export default function App() {
           />
         </React.Suspense>
       ) : (
-      isLandingOpen ? (
-    <LandingPage
-      language={language}
-      onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}
-      onEnterWorkspace={() => setIsLandingOpen(false)}
-      workspacesCount={workspaces.length}
-      currentAesthetic={aesthetic}
-      onSelectAesthetic={setAesthetic}
-      sessionEmail={session?.email}
-    />
-  ) : (
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <LandingPage
+                language={language}
+                onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}
+                onEnterWorkspace={() => navigate('/workspace')}
+                workspacesCount={workspaces.length}
+                currentAesthetic={aesthetic}
+                onSelectAesthetic={setAesthetic}
+                sessionEmail={session?.email}
+              />
+            }
+          />
+          <Route
+            path="/about"
+            element={
+              <SiteLayout language={language} onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}>
+                <AboutPage language={language} />
+              </SiteLayout>
+            }
+          />
+          <Route
+            path="/contact"
+            element={
+              <SiteLayout language={language} onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}>
+                <ContactPage language={language} />
+              </SiteLayout>
+            }
+          />
+          <Route path="/workspace">
     <div className="flex h-screen w-screen bg-slate-950 text-slate-100 font-sans overflow-hidden select-none">
       {/* Device Offline Banner — network completely unavailable */}
       {!isDeviceOnline && (
@@ -615,9 +642,9 @@ export default function App() {
 
 {/* Breadcrumb Hierarchy Navigation */}
               <div className="flex items-center gap-1.5 text-xs text-slate-400 truncate">
-                <span className="hidden sm:inline font-semibold text-slate-300">
+                <Link to="/" className="hidden sm:inline font-semibold text-slate-300 hover:text-white transition-colors">
                   Awde
-                </span>
+                </Link>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-600 hidden sm:inline shrink-0" />
                 {activeWorkspace ? (
                   <>
@@ -913,7 +940,10 @@ export default function App() {
         }}
       />
     </div>
-    ))}
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      )}
     </>
   );
 }
