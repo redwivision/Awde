@@ -418,6 +418,11 @@ links. It stays **opt-in and DB-gated**:
   actually changed something — returning the same array reference otherwise
   stops the save effect from re-firing a second full workspace **push**, halving
   the sign-in workspace-upload burst (2×N PUTs → N).
+  Signed-in state is surfaced prominently, not just in the Network tab: the
+  landing page shows a persistent "Signed in / Signed in as <email>" chip on
+  every screen size (collapsed to a short "Signed in" label on phones), the
+  header account pill swaps to a green check + "Signed in"/email, and the App
+  toast (mobile-friendly `inset-x-4`, 5s) announces the transition.
   The *reverse* direction is handled too: when the server answers any authed call
   with a `401`, the local hint is stale (cookie cleared/expired server-side), so
   the client clears it via `clearSession()` and the UI falls back to the

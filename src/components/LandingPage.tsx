@@ -214,11 +214,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   borderColor: 'var(--app-border, #cbd5e1)',
                   color: 'var(--app-text, #020617)'
                 }}
-                className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-semibold max-w-56"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-semibold max-w-[40vw] sm:max-w-56"
                 title={`Signed in as ${sessionEmail}`}
               >
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
-                <span className="truncate">{sessionEmail}</span>
+                <span className="truncate sm:hidden">{isAmharic ? 'ተገብተዋል' : 'Signed in'}</span>
+                <span className="hidden sm:inline truncate">{sessionEmail}</span>
               </span>
             )}
             <button

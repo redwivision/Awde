@@ -92,7 +92,7 @@ const NoticeToast: React.FC<{ notice: Notice | null }> = ({ notice }) => {
     <div
       role="status"
       aria-live="polite"
-      className={`fixed top-4 right-4 z-[90] flex items-center gap-2 max-w-sm px-4 py-2.5 rounded-xl border text-sm font-semibold shadow-2xl backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-200 ${tone}`}
+      className={`fixed top-4 inset-x-4 sm:inset-x-auto sm:right-4 z-[90] flex items-center gap-2 max-w-sm mx-auto sm:mx-0 px-4 py-2.5 rounded-xl border text-sm font-semibold shadow-2xl backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-200 ${tone}`}
     >
       {notice.kind === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <HelpCircle className="w-4 h-4 shrink-0" />}
       <span className="truncate">{notice.text}</span>
@@ -174,7 +174,7 @@ export default function App() {
   const showNotice = (kind: Notice['kind'], text: string) => {
     setNotice({ kind, text });
     if (noticeTimer.current) window.clearTimeout(noticeTimer.current);
-    noticeTimer.current = window.setTimeout(() => setNotice(null), 4000);
+    noticeTimer.current = window.setTimeout(() => setNotice(null), 5000);
   };
 
   useEffect(() => {
@@ -704,9 +704,14 @@ export default function App() {
               ) : (
                 <UserRound className="w-3.5 h-3.5 text-indigo-400" />
               )}
-              <span className="hidden sm:inline text-xs max-w-36 truncate">
-                {session?.email || (isAmharic ? 'መለያ' : 'Account')}
-              </span>
+              {session ? (
+                <span className="text-xs truncate max-w-28 sm:max-w-36">
+                  <span className="sm:hidden">{isAmharic ? 'ተገብተዋል' : 'Signed in'}</span>
+                  <span className="hidden sm:inline">{session.email}</span>
+                </span>
+              ) : (
+                <span className="text-xs">{isAmharic ? 'መለያ' : 'Account'}</span>
+              )}
             </button>
 
             {/* Bilingual Quick Toggle */}
