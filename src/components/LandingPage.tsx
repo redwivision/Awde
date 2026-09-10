@@ -1,34 +1,26 @@
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Network,
   MessageSquare,
   FlaskConical,
   ArrowRight,
-  Languages,
-  Palette,
   Infinity as InfinityIcon,
   ShieldCheck,
   Wifi,
   ArrowDown,
   BookOpen,
-  CheckCircle2,
   Mail
 } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'motion/react';
-import { DesignAesthetic, LanguageMode } from '../types';
-import { AwdeLogo } from './AwdeLogo';
-import { AestheticsModal } from './AestheticsModal';
+import { LanguageMode } from '../types';
+import { SiteHeader } from './SiteHeader';
 import { PrivacyModal } from './PrivacyModal';
 
 interface LandingPageProps {
   language: LanguageMode;
   onToggleLanguage: () => void;
   onEnterWorkspace: () => void;
-  workspacesCount: number;
-  currentAesthetic: DesignAesthetic;
-  onSelectAesthetic: (aesthetic: DesignAesthetic) => void;
-  sessionEmail?: string;
 }
 
 /* A quiet fade + lift as content scrolls into view. */
@@ -69,21 +61,10 @@ const sectionKicker = "text-[11px] font-semibold uppercase tracking-[0.28em]";
 export const LandingPage: React.FC<LandingPageProps> = ({
   language,
   onToggleLanguage,
-  onEnterWorkspace,
-  workspacesCount,
-  currentAesthetic,
-  onSelectAesthetic,
-  sessionEmail
+  onEnterWorkspace
 }) => {
   const isAmharic = language === 'am';
-  const [isAestheticsModalOpen, setIsAestheticsModalOpen] = React.useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = React.useState(false);
-
-  const siteNav = [
-    { to: '/', label: isAmharic ? 'መነሻ' : 'Home', end: true },
-    { to: '/about', label: isAmharic ? 'ስለ እኛ' : 'About', end: false },
-    { to: '/contact', label: isAmharic ? 'ያግኙን' : 'Contact', end: false }
-  ];
 
   const heroRef = React.useRef<HTMLDivElement>(null);
   const heroScroll = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
@@ -206,90 +187,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       }}
       className="h-screen w-screen overflow-y-auto overflow-x-hidden"
     >
+      <SiteHeader language={language} onToggleLanguage={onToggleLanguage} />
+
       <div className="max-w-5xl mx-auto px-6 sm:px-10">
-
-        {/* ============ TOP BAR ============ */}
-        <div className="flex items-center justify-between py-6">
-          <AwdeLogo size="lg" isAmharic={isAmharic} />
-          <div className="flex items-center gap-2">
-            <nav className="hidden sm:flex items-center gap-1.5 mr-2" aria-label="Site navigation">
-              {siteNav.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.end}
-                  className="px-3 py-2 rounded-full border text-xs font-semibold transition-all"
-                  style={({ isActive }) => ({
-                    backgroundColor: 'var(--app-surface, #ffffff)',
-                    borderColor: isActive ? 'var(--app-text, #020617)' : 'var(--app-border, #cbd5e1)',
-                    color: 'var(--app-text, #020617)'
-                  })}
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
-            {sessionEmail && (
-              <span
-                style={{
-                  backgroundColor: 'var(--app-surface, #ffffff)',
-                  borderColor: 'var(--app-border, #cbd5e1)',
-                  color: 'var(--app-text, #020617)'
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-semibold max-w-[40vw] sm:max-w-56"
-                title={`Signed in as ${sessionEmail}`}
-              >
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
-                <span className="truncate sm:hidden">{isAmharic ? 'ተገብተዋል' : 'Signed in'}</span>
-                <span className="hidden sm:inline truncate">{sessionEmail}</span>
-              </span>
-            )}
-            <button
-              onClick={() => setIsAestheticsModalOpen(true)}
-              style={{
-                backgroundColor: 'var(--app-surface, #ffffff)',
-                borderColor: 'var(--app-border, #cbd5e1)',
-                color: 'var(--app-text, #020617)'
-              }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-semibold hover:shadow-md hover:-translate-y-0.5 transition-all"
-              aria-label={isAmharic ? 'የዲዛይን ገጽታ ይምረጡ' : 'Choose design aesthetic'}
-            >
-              <Palette className="w-4 h-4" style={{ color: 'var(--app-accent, #4f46e5)' }} />
-              {isAmharic ? 'ገጽታ' : 'Theme'}
-            </button>
-            <button
-              onClick={onToggleLanguage}
-              style={{
-                backgroundColor: 'var(--app-surface, #ffffff)',
-                borderColor: 'var(--app-border, #cbd5e1)',
-                color: 'var(--app-text, #020617)'
-              }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-semibold hover:shadow-md hover:-translate-y-0.5 transition-all"
-            >
-              <Languages className="w-4 h-4" style={{ color: 'var(--app-accent, #4f46e5)' }} />
-              {language === 'am' ? 'Switch to English' : 'በአማርኛ ይመልከቱ'}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile-first site navigation (top bar pills are hidden on small screens) */}
-        <nav className="sm:hidden flex flex-wrap items-center gap-1.5 -mt-3 pb-3" aria-label="Site navigation">
-          {siteNav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className="px-3 py-2 rounded-full border text-xs font-semibold"
-              style={({ isActive }) => ({
-                backgroundColor: 'var(--app-surface, #ffffff)',
-                borderColor: isActive ? 'var(--app-text, #020617)' : 'var(--app-border, #cbd5e1)',
-                color: 'var(--app-text, #020617)'
-              })}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
 
         {/* ============ HERO ============ */}
         <motion.section
@@ -589,13 +489,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </div>
       </div>
-      <AestheticsModal
-        isOpen={isAestheticsModalOpen}
-        onClose={() => setIsAestheticsModalOpen(false)}
-        currentAesthetic={currentAesthetic}
-        onSelectAesthetic={onSelectAesthetic}
-        language={language}
-      />
       <PrivacyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} language={language} />
     </div>
   );

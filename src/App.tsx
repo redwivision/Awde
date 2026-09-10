@@ -13,6 +13,7 @@ import { loadWorkspaces as loadWorkspacesFromStorage } from './data/persistence'
 import { getSession, confirmLogin, extractMagicToken, pushWorkspace, pullWorkspaces, isServerSynced, syncServerSession, recordStudyActivity, readShareParams, SESSION_KEY, SESSION_EVENT, Session } from './lib/sync';
 import { useOnlineStatus } from './lib/api';
 import { Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { SiteLayout } from './pages/SiteLayout';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
@@ -83,6 +84,17 @@ const TabSpinner: React.FC = () => (
       style={{ borderColor: 'var(--app-accent-bg, rgba(79,70,229,0.25))', borderTopColor: 'var(--app-accent, #4f46e5)' }}
     />
   </div>
+);
+
+const PageTransition: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -6 }}
+    transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+  >
+    {children}
+  </motion.div>
 );
 
 type Notice = { kind: 'success' | 'error'; text: string };
@@ -552,38 +564,42 @@ export default function App() {
           />
         </React.Suspense>
       ) : (
-        <Routes>
+        <AnimatePresence mode="wait" initial={false}>
+        <Routes key={location.pathname} location={location}>
           <Route
             path="/"
             element={
-              <LandingPage
-                language={language}
-                onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}
-                onEnterWorkspace={() => navigate('/workspace')}
-                workspacesCount={workspaces.length}
-                currentAesthetic={aesthetic}
-                onSelectAesthetic={setAesthetic}
-                sessionEmail={session?.email}
-              />
+              <PageTransition>
+                <LandingPage
+                  language={language}
+                  onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}
+                  onEnterWorkspace={() => navigate('/workspace')}
+                />
+              </PageTransition>
             }
           />
           <Route
             path="/about"
             element={
-              <SiteLayout language={language} onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}>
-                <AboutPage language={language} />
-              </SiteLayout>
+              <PageTransition>
+                <SiteLayout language={language} onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}>
+                  <AboutPage language={language} />
+                </SiteLayout>
+              </PageTransition>
             }
           />
           <Route
             path="/contact"
             element={
-              <SiteLayout language={language} onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}>
-                <ContactPage language={language} />
-              </SiteLayout>
+              <PageTransition>
+                <SiteLayout language={language} onToggleLanguage={() => setLanguage(language === 'am' ? 'en' : 'am')}>
+                  <ContactPage language={language} />
+                </SiteLayout>
+              </PageTransition>
             }
           />
           <Route path="/workspace" element={
+      <PageTransition>
     <div className="flex h-screen w-screen bg-slate-950 text-slate-100 font-sans overflow-hidden select-none">
       {/* Device Offline Banner — network completely unavailable */}
       {!isDeviceOnline && (
@@ -940,10 +956,12 @@ export default function App() {
         }}
       />
     </div>
+      </PageTransition>
           }
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </AnimatePresence>
       )}
     </>
   );
