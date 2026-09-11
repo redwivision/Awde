@@ -131,6 +131,31 @@ study shell that used to be the second branch. Consent, shared-workspace
 overlay, and global modals/toast are rendered *outside* the router, so they
 work on every route.
 
+**Marketing-site identity — "ink on paper, scholarly broadsheet."** The site
+roots (`LandingPage`'s scroller and `SiteLayout`) carry the `.awde-site`
+class. That class re-declares the CSS design tokens to a warm-paper field
+(`--app-bg: #faf7f1`), ink text (`--app-text: #211d16`), and a deep emerald
+accent (`--app-accent: #0d8a63`) that matches the green Awde mark — so the
+logo, buttons, links, borders, and rules are one family (the default `:root`
+tokens stay indigo for the workspace's non-themed surfaces). The same scoped
+rule adds ink `::selection`, a thin paper scrollbar (`-webkit-scrollbar`),
+and a fixed `.grain` overlay (an inline SVG `feTurbulence` data-URI at ~5%,
+`pointer-events-none`, multiply blend) that gives the pages a printed-paper
+texture. Type upgrades: Hero/display headlines and pull quotes use the serif
+stack `--font-display` -> `Newsreader` (variable, incl. italic) + `Noto Serif
+Ethiopic`; the hero puts a giant faded `አውደ`/`Awde` watermark (the brand's
+script) behind the headline, and closes the claim with a serif-italic accent
+word ("is not *understanding*."). `MaskedLine` (in `LandingPage.tsx`) is the
+editorial "ink rising" entrance — each headline line is clipped in an
+overflow-hidden mask and rises out of it (transform-only, GPU-cheap, honors
+the weak-device promise). `SiteHeader` renders a 2px scroll-progress hairline
+(accent-colored, `scaleX` of `useScroll`) against either the passed
+`scrollRef` scroller (marketing pages scroll their own `div`) or the window,
+and draws the logo in `tone="site"` (ink text) instead of the dark-chrome
+`tone="workspace"` default. No Lenis/GSAP in this layer — heavy scroll
+smoothing stays off the low-end device promise; the polish is all typography,
+texture, and transform-only motion.
+
 Inside the workspace, the "tabs" (Books / Map / Teach / Quiz / Measure / Focus)
 are still driven by one piece of state:
 
@@ -987,8 +1012,10 @@ A mental checklist before you edit anything:
 | `src/data/themes.ts` | The 5 design palettes |
 | `src/data/curricula.ts` | Seeded legacy curriculum units |
 | `src/data/textbookWorkspaces.ts` | Seeded default books (the "no data yet" start) |
-| `src/components/LandingPage.tsx` | The cinematic home page (`/`) |
-| `src/pages/SiteLayout.tsx` | Shared site header (logo, Home/About/Contact nav, language toggle) + footer (privacy modal, contact link) for `/about` and `/contact` |
+| `src/components/LandingPage.tsx` | The cinematic home page (`/`) — warm-paper `.awde-site` identity, Ge'ez/Awde hero watermark, editorial `MaskedLine` headline reveals, ambient paper grain, scroll progress via `SiteHeader` |
+| `src/pages/SiteLayout.tsx` | Shared site chrome (logo, Home/About/Contact nav, language toggle, scroll-progress hairline) + footer (privacy modal, contact link) for `/about` and `/contact`; same `.awde-site` paper identity + grain |
+| `src/components/SiteHeader.tsx` | Sticky frosted header: desktop text nav + hamburger mobile menu (EN/AM), language toggle, and a 2px accent scroll-progress hairline driven by `useScroll` (uses the passed `scrollRef`, else window) |
+| `src/components/AwdeLogo.tsx` | The brand mark + wordmark; `tone="site"` draws ink text for warm pages, default `tone="workspace"` keeps light text for dark chrome |
 | `src/pages/AboutPage.tsx` | Bilingual About page (`/about`) — Awde's meaning, mission, the three "why it exists" gaps, the three movements |
 | `src/pages/ContactPage.tsx` | Bilingual Contact page (`/contact`) — same `POST /api/contact` form as the in-app modal, full-page layout |
 | `src/components/WorkspaceSidebar.tsx` | Left nav (Books/Map/Teach/Quiz/Measure/Focus/Progress/Groups) + unit list. Expanded width auto-widens with the viewport (`w-72 lg:w-[22rem] xl:w-96 2xl:w-[26rem]`); collapsed rail stacks the logo above the expand button (no collision at 64px); the nav caps itself at `48vh` (scrollable) so the Lessons tree below always keeps room |

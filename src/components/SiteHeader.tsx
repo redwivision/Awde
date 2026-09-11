@@ -1,18 +1,22 @@
 import React from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { Menu, X, Globe } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useScroll } from 'motion/react';
 import { LanguageMode } from '../types';
 import { AwdeLogo } from './AwdeLogo';
 
 interface SiteHeaderProps {
   language: LanguageMode;
   onToggleLanguage: () => void;
+  /** Scroller to measure scroll progress from. Falls back to window. */
+  scrollRef?: React.RefObject<HTMLElement | null>;
 }
 
-export const SiteHeader: React.FC<SiteHeaderProps> = ({ language, onToggleLanguage }) => {
+export const SiteHeader: React.FC<SiteHeaderProps> = ({ language, onToggleLanguage, scrollRef }) => {
   const isAmharic = language === 'am';
   const [menuOpen, setMenuOpen] = React.useState(false);
+
+  const { scrollYProgress } = scrollRef ? useScroll({ container: scrollRef }) : useScroll();
 
   const nav = [
     { to: '/', label: isAmharic ? 'መነሻ' : 'Home', end: true },
@@ -22,7 +26,7 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({ language, onToggleLangua
 
   return (
     <header
-      className="sticky top-0 z-40"
+      className="sticky top-0 z-40 relative"
       style={{
         backgroundColor: 'color-mix(in srgb, var(--app-bg, #f1f5f9) 82%, transparent)',
         backdropFilter: 'blur(16px) saturate(1.4)',
@@ -30,10 +34,19 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({ language, onToggleLangua
         borderBottom: '1px solid var(--app-border, #cbd5e1)'
       }}
     >
+      {/* Reading progress hairline — the only "logo-perfect" ink line in rule of thirds. */}
+      <motion.div
+        aria-hidden
+        className="absolute inset-x-0 bottom-[-1px] h-[2px] origin-left z-10"
+        style={{
+          scaleX: scrollYProgress,
+          backgroundColor: 'var(--app-accent, #4f46e5)'
+        }}
+      />
       <div className="max-w-5xl mx-auto w-full px-6 sm:px-10">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="shrink-0" aria-label={isAmharic ? 'ወደ መነሻ ገጽ' : 'Awde home'}>
-            <AwdeLogo size="md" isAmharic={isAmharic} />
+            <AwdeLogo size="md" isAmharic={isAmharic} tone="site" />
           </Link>
 
           <nav className="hidden sm:flex items-center gap-6" aria-label="Site navigation">

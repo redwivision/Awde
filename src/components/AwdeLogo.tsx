@@ -4,6 +4,9 @@ interface AwdeLogoProps {
   size?: 'sm' | 'md' | 'lg';
   showText?: boolean;
   isAmharic?: boolean;
+  /** 'workspace' (default) draws the wordmark in light ink for dark chrome;
+      'site' uses the marketing-site text color so it reads on warm paper. */
+  tone?: 'workspace' | 'site';
 }
 
 /**
@@ -18,7 +21,8 @@ interface AwdeLogoProps {
 export const AwdeLogo: React.FC<AwdeLogoProps> = ({
   size = 'md',
   showText = true,
-  isAmharic = false
+  isAmharic = false,
+  tone = 'workspace'
 }) => {
   const sizeMap = {
     sm: { icon: 28, word: 'text-[13px]', sub: 'text-[9px]', amharic: 'text-[10px]' },
@@ -27,6 +31,7 @@ export const AwdeLogo: React.FC<AwdeLogoProps> = ({
   };
 
   const dim = sizeMap[size];
+  const wordColor = tone === 'site' ? 'var(--app-text, #211d16)' : 'var(--app-text, #f8fafc)';
 
   return (
     <div className="flex items-center gap-2.5 select-none group">
@@ -75,7 +80,7 @@ export const AwdeLogo: React.FC<AwdeLogoProps> = ({
           <div className="flex items-baseline gap-1.5">
             <span
               className={`font-black tracking-tight ${dim.word} leading-none`}
-              style={{ color: 'var(--app-text, #f8fafc)' }}
+              style={{ color: wordColor }}
             >
               Awde
             </span>
@@ -90,7 +95,9 @@ export const AwdeLogo: React.FC<AwdeLogoProps> = ({
           </div>
           <p
             className={`font-medium ${dim.sub} mt-0.5 opacity-70`}
-            style={{ color: 'var(--app-text-muted, #94a3b8)' }}
+            style={{
+              color: tone === 'site' ? 'var(--app-text-muted, #6f6757)' : 'var(--app-text-muted, #94a3b8)'
+            }}
           >
             {isAmharic ? 'እወቅ አሳድግ' : 'Know it. Grow it.'}
           </p>

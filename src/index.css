@@ -6,13 +6,73 @@
   calmer, more human, less obviously machine-generated voice.
 */
 @theme {
-  --font-display: ui-serif, Georgia, "Times New Roman", "Nimbus Roman No9 L",
-    "Noto Serif", "Noto Serif Ethiopic", serif;
+  --font-display: "Newsreader", "Noto Serif Ethiopic", ui-serif, Georgia,
+    "Times New Roman", "Nimbus Roman No9 L", "Noto Serif", serif;
 }
 
 /* Plain class fallback so the utility resolves regardless of theme config. */
 .font-display {
   font-family: var(--font-display, ui-serif, Georgia, "Times New Roman", serif);
+}
+
+/*
+  Awde marketing-site identity — "ink on paper, scholarly broadsheet."
+  A warm paper field, ink text, and a deep emerald accent that matches the
+  Awde mark itself, so the header, buttons, rules, and logo are one family
+  instead of a template's indigo-on-grey. Scoped to the marketing roots so
+  the workspace keeps its user-selected aesthetics untouched.
+*/
+.awde-site {
+  --app-bg: #faf7f1;
+  --app-header-bg: #faf7f1;
+  --app-surface: #ffffff;
+  --app-surface-elevated: #f4efe6;
+  --app-surface-subtle: #efe9dd;
+  --app-border: #e5dcc8;
+  --app-border-strong: #cfc2a8;
+  --app-text: #211d16;
+  --app-text-muted: #6f6757;
+  --app-accent: #0d8a63;
+  --app-accent-text: #ffffff;
+  --app-accent-bg: rgba(13, 138, 99, 0.10);
+  --app-accent-hover: #0a6f4f;
+  --app-success: #0b7a46;
+  --app-warning: #a16207;
+  --app-danger: #b91c1c;
+  --app-info: #0e7490;
+}
+
+/* Warm ink selection instead of the default blue. */
+.awde-site ::selection {
+  background: color-mix(in srgb, var(--app-accent, #0d8a63) 24%, transparent);
+}
+
+/* Quiet paper scrollbar for the marketing scroller. */
+.awde-site.site-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--app-border-strong, #cfc2a8) 70%, transparent) transparent;
+}
+.awde-site.site-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.awde-site.site-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.awde-site.site-scroll::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--app-border-strong, #cfc2a8) 72%, transparent);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+/*
+  Subtle manuscript grain — a fixed feTurbulence paper texture laid over the
+  marketing pages at ~5%. Renders as surface, not pattern; costs nothing to
+  paint and gives the hero a printed-page warmth no gradient can fake.
+*/
+.grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
 }
 
 /* 

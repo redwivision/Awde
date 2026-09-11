@@ -14,6 +14,7 @@ interface SiteLayoutProps {
 export const SiteLayout: React.FC<SiteLayoutProps> = ({ language, onToggleLanguage, children }) => {
   const isAmharic = language === 'am';
   const [isPrivacyOpen, setPrivacyOpen] = React.useState(false);
+  const rootRef = React.useRef<HTMLDivElement>(null);
 
   const trustBadges = [
     {
@@ -32,13 +33,17 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ language, onToggleLangua
 
   return (
     <div
+      ref={rootRef}
       style={{
         backgroundColor: 'var(--app-bg, #f1f5f9)',
         color: 'var(--app-text, #020617)'
       }}
-      className="h-screen w-screen overflow-y-auto overflow-x-hidden flex flex-col"
+      className="awde-site site-scroll h-screen w-screen overflow-y-auto overflow-x-hidden flex flex-col"
     >
-      <SiteHeader language={language} onToggleLanguage={onToggleLanguage} />
+      {/* Manuscript grain — same quiet paper texture as the landing page. */}
+      <div aria-hidden className="fixed inset-0 z-[3] pointer-events-none grain opacity-[0.055] mix-blend-multiply" />
+
+      <SiteHeader language={language} onToggleLanguage={onToggleLanguage} scrollRef={rootRef} />
 
       <main className="max-w-5xl mx-auto w-full px-6 sm:px-10 flex-1">{children}</main>
 

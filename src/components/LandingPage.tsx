@@ -42,6 +42,31 @@ const Reveal: React.FC<{
   );
 };
 
+/*
+  MaskedLine — the editorial "ink rising" entrance. The line is clipped inside
+  an overflow-hidden mask, then rises out of it on mount. This is the reveal
+  language Apple-style marketing sites use; unlike fading whole blocks, the
+  mask creates the illusion of words being printed onto the page.
+*/
+const MaskedLine: React.FC<{ children: React.ReactNode; delay?: number; className?: string }> = ({
+  children,
+  delay = 0,
+  className
+}) => {
+  return (
+    <span className={`block overflow-hidden ${className ?? ''}`}>
+      <motion.span
+        className="block will-change-transform"
+        initial={{ y: '118%' }}
+        animate={{ y: '0%' }}
+        transition={{ duration: 0.9, delay, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {children}
+      </motion.span>
+    </span>
+  );
+};
+
 /* Editorial display face — a serif stack gives a human, premium voice
    instead of the generic pixel-sans that reads as machine-made. */
 const display = "font-display antialiased";
@@ -72,7 +97,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   const hero = {
     titleA: isAmharic ? 'ውጤት ማግኘት' : 'Getting the grade',
-    titleB: isAmharic ? 'መረዳት አይደለም።' : 'is not understanding.',
+    /* The closing line breaks into lead + serif-italic accent + tail for the
+       English editorial voice ("is not *understanding*."). Amharic keeps the
+       whole phrase in the serif display face. */
+    titleB: isAmharic
+      ? { lead: 'መረዳት አይደለም።', accent: '', tail: '' }
+      : { lead: 'is not ', accent: 'understanding', tail: '.' },
+    watermark: isAmharic ? 'አውደ' : 'Awde',
     sub: isAmharic
       ? 'አብዛኛው ጊዜ የምናጠናው ፈተናውን ለማለፍ ነው — እውቀቱን ለመቆጣጠር አይደለም። አውደ በውጤት እና በእውነተኛ እውቀት መካከል ያለውን ድልድይ ይገነባል።'
       : 'Most of us study to pass the exam, not to keep what we learn. Awde is the bridge between a grade and real understanding.',
@@ -185,9 +216,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         backgroundColor: 'var(--app-bg, #f1f5f9)',
         color: 'var(--app-text, #020617)'
       }}
-      className="h-screen w-screen overflow-y-auto overflow-x-hidden"
+      className="awde-site site-scroll h-screen w-screen overflow-y-auto overflow-x-hidden"
     >
-      <SiteHeader language={language} onToggleLanguage={onToggleLanguage} />
+      {/* Manuscript grain — a quiet paper texture over everything marketing. */}
+      <div aria-hidden className="fixed inset-0 z-[3] pointer-events-none grain opacity-[0.055] mix-blend-multiply" />
+
+      <SiteHeader language={language} onToggleLanguage={onToggleLanguage} scrollRef={heroRef} />
 
       <div className="max-w-5xl mx-auto px-6 sm:px-10">
 
@@ -196,17 +230,41 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           style={{ opacity: heroOpacity }}
           className="relative min-h-[80vh] pt-10 pb-24 flex flex-col items-center justify-center text-center max-w-3xl mx-auto"
         >
-          <motion.h1
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            className={`${display} text-5xl sm:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.04]`}
-          >
-            {hero.titleA}
-            <span className="block" style={{ color: 'var(--app-accent, #4f46e5)' }}>
-              {hero.titleB}
+          {/* Giant Ge'ez/Awde watermark behind the headline — the brand's script
+              as a faded printed mark, so the identity is in the type itself. */}
+          <div aria-hidden className="pointer-events-none select-none absolute inset-0 overflow-hidden flex items-center justify-center">
+            <span
+              className="font-display leading-none"
+              style={{
+                color: 'var(--app-accent, #4f46e5)',
+                fontSize: 'clamp(11rem, 46vw, 28rem)',
+                opacity: 0.045
+              }}
+            >
+              {hero.watermark}
             </span>
-          </motion.h1>
+          </div>
+
+          <h1 className={`${display} relative text-5xl sm:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.04]`}>
+            <MaskedLine delay={0.05}>{hero.titleA}</MaskedLine>
+            <MaskedLine delay={0.16}>
+              <span className="block" style={{ color: 'var(--app-accent, #4f46e5)' }}>
+                {hero.titleB.accent ? (
+                  <>
+                    {hero.titleB.lead}
+                    <em className="font-display italic pr-1.5">{hero.titleB.accent}</em>
+                    {hero.titleB.tail}
+                  </>
+                ) : (
+                  hero.titleB.lead
+                )}
+              </span>
+            </MaskedLine>
+          </h1>
+          <span
+            className="relative mt-2 block h-[2px] w-16 rounded-full"
+            style={{ backgroundColor: 'var(--app-accent, #4f46e5)', opacity: 0.55 }}
+          />
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -284,7 +342,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* ============ THE GAPS ============ */}
         <section className="py-12 sm:py-16">
           <Reveal className="max-w-2xl mx-auto text-center">
-            <h2 className={`${display} text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight`}>
+            <span className={sectionKicker} style={{ color: 'var(--app-accent, #4f46e5)' }}>
+              {isAmharic ? 'ክፍተቶቹ' : 'The gaps'}
+            </span>
+            <h2 className={`${display} mt-5 text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight`}>
               {gapsTitle}
             </h2>
             <p
@@ -307,7 +368,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   backgroundColor: 'var(--app-surface, #ffffff)',
                   borderColor: 'var(--app-border, #cbd5e1)'
                 }}
-                className="relative p-7 rounded-3xl border"
+                className="relative p-7 rounded-3xl border hover:-translate-y-1 hover:shadow-lg hover:border-[var(--app-border-strong, #cfc2a8)] transition-all"
               >
                 <span
                   className={`${display} text-3xl font-extrabold`}
