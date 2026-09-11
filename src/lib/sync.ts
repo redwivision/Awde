@@ -165,7 +165,8 @@ function clearSyncMeta(): void {
 export async function requestLogin(email: string) {
   const res = await postJson<{ success: boolean; localMode?: boolean; devLink?: string; error?: string }>(
     '/api/auth/login',
-    { email }
+    { email },
+    { timeoutMs: 30000, retries: 2 }
   );
   return res;
 }

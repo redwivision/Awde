@@ -176,7 +176,16 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
       );
     } else {
       setStatus('error');
-      setMessage(res.data?.error || (isAmharic ? 'የተሳሳተ ነገር ተከስቷል።' : 'Something went wrong. Please try again.'));
+      const err = res.data?.error;
+      if (!res.ok && res.status === 0) {
+        setMessage(
+          isAmharic
+            ? 'ሰርቨሩ ላይ መድረስ አልተቻለም። ኢንተርኔትዎን ያረጋግጡ እና እንደገና ይሞክሩ።'
+            : "Couldn't reach the server. Check your connection and try again."
+        );
+      } else {
+        setMessage(err || (isAmharic ? 'የተሳሳተ ነገር ተከስቷል።' : 'Something went wrong. Please try again.'));
+      }
     }
   };
 

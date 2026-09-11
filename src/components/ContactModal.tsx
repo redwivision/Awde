@@ -41,7 +41,8 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose, lan
     setStatusMsg('');
     const res = await postJson<{ ok?: boolean; delivered?: boolean; error?: string; message?: string }>(
       '/api/contact',
-      { name: name.trim(), email: trimmedEmail, message: trimmedMessage }
+      { name: name.trim(), email: trimmedEmail, message: trimmedMessage },
+      { timeoutMs: 30000, retries: 2 }
     );
     const data = res.data as any;
     if (res.ok && data?.ok) {

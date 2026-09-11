@@ -16,6 +16,7 @@ import { motion, useScroll, useTransform } from 'motion/react';
 import { LanguageMode } from '../types';
 import { SiteHeader } from './SiteHeader';
 import { PrivacyModal } from './PrivacyModal';
+import { LenisSmooth } from './LenisSmooth';
 
 interface LandingPageProps {
   language: LanguageMode;
@@ -73,6 +74,43 @@ const display = "font-display antialiased";
 
 const sectionKicker = "text-[11px] font-semibold uppercase tracking-[0.28em]";
 
+/* Subtle 3D tilt on the masthead card — desktop pointer only, and it never
+   fights motion's entrance transform (it lives on a plain wrapper div). */
+function useTilt<T extends HTMLElement>(maxDeg = 4) {
+  const ref = React.useRef<T | null>(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (
+      !el ||
+      (typeof window === 'undefined') ||
+      window.matchMedia?.('(pointer: coarse)').matches ||
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return;
+    }
+    const move = (e: MouseEvent) => {
+      const r = el.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width;
+      const py = (e.clientY - r.top) / r.height;
+      el.style.transform = `perspective(1100px) rotateX(${((0.5 - py) * maxDeg).toFixed(2)}deg) rotateY(${((px - 0.5) * maxDeg).toFixed(2)}deg)`;
+    };
+    const leave = () => {
+      el.style.transition = 'transform 0.5s ease';
+      el.style.transform = '';
+      window.setTimeout(() => {
+        el.style.transition = '';
+      }, 500);
+    };
+    el.addEventListener('mousemove', move);
+    el.addEventListener('mouseleave', leave);
+    return () => {
+      el.removeEventListener('mousemove', move);
+      el.removeEventListener('mouseleave', leave);
+    };
+  }, [maxDeg]);
+  return ref;
+}
+
 /**
  * Awde landing page — a quiet, editorial manifesto.
  *
@@ -91,9 +129,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const isAmharic = language === 'am';
   const [isPrivacyOpen, setIsPrivacyOpen] = React.useState(false);
 
-  const heroRef = React.useRef<HTMLDivElement>(null);
-  const heroScroll = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
+  const heroSectionRef = React.useRef<HTMLElement>(null);
+  const heroScroll = useScroll({ target: heroSectionRef, offset: ['start start', 'end start'] });
   const heroOpacity = useTransform(heroScroll.scrollYProgress, [0, 0.4], [1, 0.06]);
+  const watermarkY = useTransform(heroScroll.scrollYProgress, [0, 1], ['0%', '-34%']);
+  const cardTiltRef = useTilt<HTMLDivElement>(4);
+
+  const marqueeWords = isAmharic
+    ? ['አማርኛ', 'ኬሚስትሪ', 'ባዮሎጂ', 'ፊዚክስ', 'ሂሳብ', 'ታሪክ', 'ጂኦግራፊ']
+    : ['Amharic', 'Chemistry', 'Biology', 'Physics', 'Mathematics', 'History', 'Geography'];
 
   const hero = {
     titleA: isAmharic ? 'ውጤት ማግኘት' : 'Getting the grade',
@@ -211,39 +255,45 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   return (
     <div
-      ref={heroRef}
       style={{
         backgroundColor: 'var(--app-bg, #f1f5f9)',
         color: 'var(--app-text, #020617)'
       }}
-      className="awde-site site-scroll h-screen w-screen overflow-y-auto overflow-x-hidden"
+      className="awde-site min-h-screen w-full"
     >
       {/* Manuscript grain — a quiet paper texture over everything marketing. */}
       <div aria-hidden className="fixed inset-0 z-[3] pointer-events-none grain opacity-[0.055] mix-blend-multiply" />
 
-      <SiteHeader language={language} onToggleLanguage={onToggleLanguage} scrollRef={heroRef} />
+      <LenisSmooth>
+        <SiteHeader language={language} onToggleLanguage={onToggleLanguage} />
 
-      <div className="mx-auto w-full px-6 sm:px-10 lg:px-14 max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
+        <div className="mx-auto w-full px-6 sm:px-10 lg:px-14 max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
 
-        {/* ============ HERO ============ */}
-        <motion.section
-          style={{ opacity: heroOpacity }}
-          className="relative min-h-[88vh] pt-6 pb-28 flex flex-col justify-center overflow-hidden"
-        >
-          {/* Giant Ge'ez/Awde watermark behind the headline — the brand's script
-              as a faded printed mark, so the identity is in the type itself. */}
-          <div aria-hidden className="pointer-events-none select-none absolute inset-0 flex items-center justify-center">
-            <span
-              className="font-display leading-none"
-              style={{
-                color: 'var(--app-accent, #4f46e5)',
-                fontSize: 'clamp(12rem, 48vw, 30rem)',
-                opacity: 0.045
-              }}
+          {/* ============ HERO ============ */}
+          <motion.section
+            ref={heroSectionRef}
+            style={{ opacity: heroOpacity }}
+            className="relative min-h-[88vh] pt-6 pb-28 flex flex-col justify-center overflow-hidden"
+          >
+            {/* Giant Ge'ez/Awde watermark behind the headline — the brand's script
+                as a faded printed mark, so the identity is in the type itself. It
+                drifts slower than the section on scroll, creating parallax depth. */}
+            <motion.div
+              aria-hidden
+              style={{ y: watermarkY }}
+              className="pointer-events-none select-none absolute inset-0 flex items-center justify-center"
             >
-              {hero.watermark}
-            </span>
-          </div>
+              <span
+                className="font-display leading-none"
+                style={{
+                  color: 'var(--app-accent, #4f46e5)',
+                  fontSize: 'clamp(12rem, 48vw, 30rem)',
+                  opacity: 0.045
+                }}
+              >
+                {hero.watermark}
+              </span>
+            </motion.div>
 
           <div className="relative grid grid-cols-1 lg:grid-cols-[7fr_5fr] gap-12 lg:gap-16 items-center">
             {/* Left — editorial headline column */}
@@ -312,12 +362,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
 
             {/* Right — masthead specimen card (desktop) */}
-            <motion.div
-              initial={{ opacity: 0, y: 28 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.4 }}
-              className="relative hidden lg:block"
-            >
+            <div ref={cardTiltRef} className="hidden lg:block [perspective:1100px]">
+              <motion.div
+                initial={{ opacity: 0, y: 28 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, delay: 0.4 }}
+                className="relative"
+              >
               <div
                 className="rounded-3xl border p-9 xl:p-11"
                 style={{
@@ -369,7 +420,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   ))}
                 </div>
               </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </div>
 
           <motion.span
@@ -385,6 +437,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </motion.div>
           </motion.span>
         </motion.section>
+
+        {/* ============ SUBJECT MARQUEE (full-bleed ticker) ============ */}
+        <div
+          className="relative -mx-6 sm:-mx-10 lg:-mx-14 overflow-hidden py-6 sm:py-7 border-y select-none"
+          style={{ borderColor: 'var(--app-border, #cbd5e1)' }}
+          aria-hidden
+        >
+          <div className="flex w-max animate-marquee items-center gap-3">
+            {[...marqueeWords, ...marqueeWords].map((word, i) => (
+              <span
+                key={i}
+                className={`${display} text-2xl sm:text-3xl italic whitespace-nowrap`}
+                style={{ color: 'var(--app-text-muted, #475569)', opacity: 0.3 }}
+              >
+                {word}
+                <span className="mx-6 not-italic" style={{ color: 'var(--app-accent, #4f46e5)', opacity: 0.55 }}>·</span>
+              </span>
+            ))}
+          </div>
+        </div>
 
         {/* ============ THE STORY (manifesto) ============ */}
         <section className="py-24 sm:py-32">
@@ -634,6 +706,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </div>
       </div>
+      </LenisSmooth>
       <PrivacyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} language={language} />
     </div>
   );

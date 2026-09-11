@@ -152,9 +152,19 @@ the weak-device promise). `SiteHeader` renders a 2px scroll-progress hairline
 (accent-colored, `scaleX` of `useScroll`) against either the passed
 `scrollRef` scroller (marketing pages scroll their own `div`) or the window,
 and draws the logo in `tone="site"` (ink text) instead of the dark-chrome
-`tone="workspace"` default. No Lenis/GSAP in this layer — heavy scroll
-smoothing stays off the low-end device promise; the polish is all typography,
-texture, and transform-only motion. The layout breathes on desktop: the site
+`tone="workspace"` default. As of the premium pass the marketing pages scroll
+the **window** (their former `h-screen overflow-y-auto` shells became
+`min-h-screen` flex columns) so that `position: sticky` keeps working, and a
+desktop-only **Lenis** root-mode smooth scroll (`src/components/LenisSmooth.tsx`)
+runs on Safari/Chrome/Edge — guarded by `prefers-reduced-motion`, and touch
+always keeps native bounce (`syncTouch: false`). Beyond smoothing there are
+three signature effects, all transform-only and reduced-motion-safe: (1) the
+giant watermark drifts slower than the hero (`useTransform` of `useScroll`),
+(2) the masthead specimen card tilts toward the cursor via a plain wrapper
+div (`useTilt`, pointer-fine only) so it never fights motion's entrance
+transform, and (3) a full-bleed bilingual subject marquee
+(`animate-marquee` keyframes, `-mx-6 sm:-mx-10 lg:-mx-14` edges) divides the
+hero from the story. The layout breathes on desktop: the site
 container widens from `max-w-6xl` to `max-w-7xl` (and `2xl:max-w-[96rem]`
 ≈ full-width at 1536px) with `lg:px-14` gutters; the hero is a two-column
 editorial masthead (headline + CTA left, a bordered "knowledge node"
@@ -164,6 +174,16 @@ scrolling body column. The AccountModal sign-in card ends in a clean divided
 footer (Privacy & Terms | Contact us as equal split buttons) with the privacy
 blurb restyled as a shield-icon line, replacing the old stack of tiny
 underlined links.
+
+Login/contact POSTs are resilient against waking the server: `requestLogin`
+and the contact form pass `{ timeoutMs: 30000, retries: 2 }` (up from the 8s
+AI-default), so a cold Render instance replying past the old budget no longer
+looks like a "network" error — and when the instance is truly unreachable the
+UI says "Couldn't reach the server" instead of the raw sentinel. Both email
+paths share `server/mail.ts`: on Render `emailConfigured()` is true (the same
+`SMTP_*` vars as `.env`) but Gmail rejects the credentials at send time, so
+both magic-link login and contact return "could not send" until an **App
+Password** is set in Render's env (a plain Google password fails `535`).
 
 Inside the workspace, the "tabs" (Books / Map / Teach / Quiz / Measure / Focus)
 are still driven by one piece of state:

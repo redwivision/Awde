@@ -4,6 +4,7 @@ import { Infinity as InfinityIcon, ShieldCheck, Wifi, BookOpen, Mail } from 'luc
 import { LanguageMode } from '../types';
 import { SiteHeader } from '../components/SiteHeader';
 import { PrivacyModal } from '../components/PrivacyModal';
+import { LenisSmooth } from '../components/LenisSmooth';
 
 interface SiteLayoutProps {
   language: LanguageMode;
@@ -14,7 +15,6 @@ interface SiteLayoutProps {
 export const SiteLayout: React.FC<SiteLayoutProps> = ({ language, onToggleLanguage, children }) => {
   const isAmharic = language === 'am';
   const [isPrivacyOpen, setPrivacyOpen] = React.useState(false);
-  const rootRef = React.useRef<HTMLDivElement>(null);
 
   const trustBadges = [
     {
@@ -33,21 +33,21 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ language, onToggleLangua
 
   return (
     <div
-      ref={rootRef}
       style={{
         backgroundColor: 'var(--app-bg, #f1f5f9)',
         color: 'var(--app-text, #020617)'
       }}
-      className="awde-site site-scroll h-screen w-screen overflow-y-auto overflow-x-hidden flex flex-col"
+      className="awde-site min-h-screen w-full flex flex-col"
     >
       {/* Manuscript grain — same quiet paper texture as the landing page. */}
       <div aria-hidden className="fixed inset-0 z-[3] pointer-events-none grain opacity-[0.055] mix-blend-multiply" />
 
-      <SiteHeader language={language} onToggleLanguage={onToggleLanguage} scrollRef={rootRef} />
+      <LenisSmooth>
+        <SiteHeader language={language} onToggleLanguage={onToggleLanguage} />
 
-      <main className="mx-auto w-full px-6 sm:px-10 lg:px-14 max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem] flex-1">{children}</main>
+        <main className="mx-auto w-full px-6 sm:px-10 lg:px-14 max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem] flex-1">{children}</main>
 
-      <footer className="mx-auto w-full px-6 sm:px-10 lg:px-14 max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem] shrink-0">
+        <footer className="mx-auto w-full px-6 sm:px-10 lg:px-14 max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem] shrink-0">
         <div
           className="pt-8 pb-12 border-t flex flex-col sm:flex-row items-center justify-between gap-4"
           style={{ borderColor: 'var(--app-border, #cbd5e1)' }}
@@ -92,6 +92,7 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ language, onToggleLangua
           </div>
         </div>
       </footer>
+      </LenisSmooth>
 
       <PrivacyModal isOpen={isPrivacyOpen} onClose={() => setPrivacyOpen(false)} language={language} />
     </div>
