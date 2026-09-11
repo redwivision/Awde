@@ -115,10 +115,10 @@ didn't request it, you can safely ignore this email.
  * throws; returns ok=false on any persistent failure so callers can decide the
  * fallback (dev link vs. error).
  */
-export async function sendLoginLinkEmail(to: string, link: string): Promise<{ ok: boolean }> {
+export async function sendLoginLinkEmail(to: string, link: string): Promise<{ ok: boolean; reason?: string }> {
   if (!/^https?:\/\//.test(link)) {
     console.error('[awde:email] refusing to send: invalid link');
-    return { ok: false };
+    return { ok: false, reason: 'Invalid login link.' };
   }
   const email = buildLoginLinkEmail(to, link);
   return sendMail({ to, subject: email.subject, text: email.text, html: email.html });

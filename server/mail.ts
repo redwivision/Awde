@@ -24,6 +24,12 @@ export interface MailMessage {
   html?: string;
 }
 
+export interface MailResult {
+  ok: boolean;
+  /** Human-readable reason for failure (safe to send to the client — no creds). */
+  reason?: string;
+}
+
 export function emailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY) || smtpConfigured();
 }
@@ -54,7 +60,7 @@ export function htmlEscape(value: string): string {
     .replace(/\r?\n/g, '<br>');
 }
 
-async function sendViaResend(msg: MailMessage): Promise<{ ok: boolean; retriable: boolean }> {
+async function sendViaResend(msg: MailMessage): Promise<{ ok: boolean; retriable: boolean; reason?: string }> {
   const apiKey = process.env.RESEND_API_KEY!;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS);
@@ -79,19 +85,23 @@ async function sendViaResend(msg: MailMessage): Promise<{ ok: boolean; retriable
       // 4xx (validation, unauthorized sender, unverified domain) will not fix
       // themselves with a retry — report once, without noise.
       console.error(`[awde:mail] Resend rejected (${res.status}): ${await res.text().catch(() => '')}`);
-      return { ok: false, retriable: false };
+      const reason =
+        res.status === 401 || res.status === 403
+          ? 'Email service rejected the request — check that the Resend API key is valid and a domain is verified in the Resend dashboard.'
+          : `Email service rejected the request (HTTP ${res.status}).`;
+      return { ok: false, retriable: false, reason };
     }
     console.error(`[awde:mail] Resend failed (${res.status}); will retry`);
-    return { ok: false, retriable: true };
+    return { ok: false, retriable: true, reason: `Email service had a server error (HTTP ${res.status}).` };
   } catch (err) {
     console.error('[awde:mail] Resend network/timeout error; will retry:', err);
-    return { ok: false, retriable: true };
+    return { ok: false, retriable: true, reason: 'Email service timed out or was unreachable.' };
   } finally {
     clearTimeout(timer);
   }
 }
 
-async function sendViaSmtp(msg: MailMessage): Promise<{ ok: boolean; retriable: boolean }> {
+async function sendViaSmtp(msg: MailMessage): Promise<{ ok: boolean; retriable: boolean; reason?: string }> {
   try {
     const [{ createTransport }, dns] = await Promise.all([import('nodemailer'), import('node:dns/promises')]);
     const host = process.env.SMTP_HOST || 'smtp.gmail.com';
@@ -123,34 +133,59 @@ async function sendViaSmtp(msg: MailMessage): Promise<{ ok: boolean; retriable: 
     return { ok: true, retriable: false };
   } catch (err) {
     console.error('[awde:mail] SMTP error (will retry):', err);
-    return { ok: false, retriable: true };
+    const code = String((err as any)?.code || (err as any)?.responseCode || '');
+    const msgText = String((err as any)?.response || (err as any)?.message || err || '');
+    let reason = `Email server (${process.env.SMTP_HOST || 'smtp.gmail.com'}) reported an SMTP error.`;
+    if (
+      /535|AUTHENTICATIONFAILED|Invalid login|Authentication failed/i.test(`${code} ${msgText}`)
+    ) {
+      reason =
+        'SMTP authentication failed — use a Gmail App Password (https://myaccount.google.com/apppasswords), not your regular password.';
+    } else if (/ENETUNREACH|ECONNREFUSED|ETIMEDOUT|greeting|connection/i.test(`${code} ${msgText}`)) {
+      reason = `Could not connect to the email server (${process.env.SMTP_HOST || 'smtp.gmail.com'}) — check SMTP_HOST, SMTP_PORT, and network access.`;
+    }
+    return { ok: false, retriable: true, reason };
   }
 }
 
 /**
  * Send one email through the best configured transport. Resend wins when a key
- * exists, otherwise Gmail SMTP. Never throws; done on { ok:false } after one
- * retry of transient failures.
+ * exists, otherwise Gmail SMTP — and if the primary transport persistently
+ * fails, the other one is tried as a fallback. Never throws; every failure
+ * carries a `reason` safe to show users. Done after one retry per transport.
  */
-export async function sendMail(msg: MailMessage): Promise<{ ok: boolean }> {
+export async function sendMail(msg: MailMessage): Promise<MailResult> {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(msg.to)) {
     console.error('[awde:mail] refusing to send: invalid recipient address');
-    return { ok: false };
+    return { ok: false, reason: 'Invalid recipient address.' };
   }
 
   const hasResend = Boolean(process.env.RESEND_API_KEY);
   if (!hasResend && !smtpConfigured()) {
     console.warn('[awde:mail] no transport configured (RESEND_API_KEY or SMTP_*)');
-    return { ok: false };
+    return { ok: false, reason: 'Email is not configured on this server.' };
   }
 
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const result = hasResend ? await sendViaResend(msg) : await sendViaSmtp(msg);
-    if (result.ok) return { ok: true };
-    if (!result.retriable) return { ok: false };
-    if (attempt + 1 < MAX_ATTEMPTS) {
-      console.warn(`[awde:mail] retry ${attempt + 1}/${MAX_ATTEMPTS} for ${msg.to}`);
+  const transports: Array<{ name: string; fn: (m: MailMessage) => Promise<{ ok: boolean; retriable: boolean; reason?: string }> }> =
+    hasResend
+      ? [{ name: 'Resend', fn: sendViaResend }, ...(smtpConfigured() ? [{ name: 'SMTP', fn: sendViaSmtp }] : [])]
+      : [{ name: 'SMTP', fn: sendViaSmtp }];
+
+  let lastReason: string | undefined;
+
+  for (const transport of transports) {
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      const result = await transport.fn(msg);
+      if (result.ok) return { ok: true };
+      if (result.retriable && attempt + 1 < MAX_ATTEMPTS) {
+        console.warn(`[awde:mail] retry ${attempt + 1}/${MAX_ATTEMPTS} for ${msg.to} via ${transport.name}`);
+        continue;
+      }
+      // Persistent failure on this transport: remember why, fall through to the
+      // next transport, and if none remain, report the last reason.
+      lastReason = result.reason || `Email could not be sent (${transport.name} failed).`;
+      break;
     }
   }
-  return { ok: false };
+  return { ok: false, reason: lastReason || 'All email transports failed.' };
 }

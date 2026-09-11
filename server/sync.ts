@@ -85,7 +85,7 @@ export function registerSyncRoutes(app: Router) {
       if (process.env.NODE_ENV === 'production') {
         return res.status(502).json({
           error: emailConfigured()
-            ? 'Could not send the login email right now. Please try again.'
+            ? sent.reason || 'Could not send the login email right now. Please try again.'
             : 'Login emails are not configured on this server yet.'
         });
       }

@@ -184,6 +184,11 @@ paths share `server/mail.ts`: on Render `emailConfigured()` is true (the same
 `SMTP_*` vars as `.env`) but Gmail rejects the credentials at send time, so
 both magic-link login and contact return "could not send" until an **App
 Password** is set in Render's env (a plain Google password fails `535`).
+`sendMail` now also carries a per-failure `reason` through to the API response
+(so the login/contact UI tells you *why* instead of a generic message) and
+falls back Resend → SMTP when a transport persistently fails. SMTP auth
+failures specifically read "SMTP authentication failed — use a Gmail App
+Password...".
 
 Inside the workspace, the "tabs" (Books / Map / Teach / Quiz / Measure / Focus)
 are still driven by one piece of state:

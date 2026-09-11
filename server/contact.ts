@@ -56,7 +56,9 @@ export function registerContactRoutes(app: Router) {
 
     const result = await sendMail({ to: recipient, subject, text, html });
     if (!result.ok) {
-      return res.status(502).json({ error: 'Could not send your message right now. Please try again later.' });
+      return res.status(502).json({
+        error: result.reason || 'Could not send your message right now. Please try again later.'
+      });
     }
     res.json({ ok: true, delivered: true, message: 'Thanks — we got your message and reply within 30 days.' });
   });
