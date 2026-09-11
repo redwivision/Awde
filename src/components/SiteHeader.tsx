@@ -43,7 +43,7 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({ language, onToggleLangua
           backgroundColor: 'var(--app-accent, #4f46e5)'
         }}
       />
-      <div className="max-w-5xl mx-auto w-full px-6 sm:px-10">
+      <div className="mx-auto w-full px-6 sm:px-10 lg:px-14 max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="shrink-0" aria-label={isAmharic ? 'ወደ መነሻ ገጽ' : 'Awde home'}>
             <AwdeLogo size="md" isAmharic={isAmharic} tone="site" />

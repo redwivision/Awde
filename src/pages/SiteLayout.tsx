@@ -45,9 +45,9 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({ language, onToggleLangua
 
       <SiteHeader language={language} onToggleLanguage={onToggleLanguage} scrollRef={rootRef} />
 
-      <main className="max-w-5xl mx-auto w-full px-6 sm:px-10 flex-1">{children}</main>
+      <main className="mx-auto w-full px-6 sm:px-10 lg:px-14 max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem] flex-1">{children}</main>
 
-      <footer className="max-w-5xl mx-auto w-full px-6 sm:px-10 shrink-0">
+      <footer className="mx-auto w-full px-6 sm:px-10 lg:px-14 max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem] shrink-0">
         <div
           className="pt-8 pb-12 border-t flex flex-col sm:flex-row items-center justify-between gap-4"
           style={{ borderColor: 'var(--app-border, #cbd5e1)' }}

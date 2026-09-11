@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, LogIn, LogOut, Mail, CheckCircle2, Loader2, BookOpen, AtSign } from 'lucide-react';
+import { X, LogIn, LogOut, Mail, CheckCircle2, Loader2, BookOpen, AtSign, ShieldCheck } from 'lucide-react';
 import { LanguageMode } from '../types';
 import { getSession, requestLogin, googleAuthAvailable } from '../lib/sync';
 import { googleSignIn } from '../lib/betterAuthClient';
@@ -431,31 +431,39 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
                   </p>
                 )}
 
-                <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted, #475569)' }}>
-                  {isAmharic
-                    ? 'መለያ ለእርስዎ የወደፊት ትምህርት ምዝገባ እድገት ይቆጥባል። የGoogle መግቢያ ስምዎን እና ኢሜይልዎን ብቻ ያጋራል — ሌላ ምንም አይደለም።'
-                    : 'An account saves your progress for your future. Google login shares your Google name and email; email login shares only an address — nothing else.'}
-                </p>
+                <div className="flex items-start gap-2.5 pt-1">
+                  <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--app-accent, #6366f1)' }} />
+                  <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted, #475569)' }}>
+                    {isAmharic
+                      ? 'መለያ ለእርስዎ የወደፊት ትምህርት ምዝገባ እድገት ይቆጥባል። የGoogle መግቢያ ስምዎን እና ኢሜይልዎን ብቻ ያጋራል — ሌላ ምንም አይደለም።'
+                      : 'An account saves your progress for your future. Google login shares your Google name and email; email login shares only an address — nothing else.'}
+                  </p>
+                </div>
               </div>
             )}
           </div>
 
-          <button
-            onClick={() => setIsPrivacyOpen(true)}
-            className="mt-4 w-full flex items-center justify-center gap-1.5 text-[11px] font-semibold underline underline-offset-2 transition-opacity hover:opacity-70"
-            style={{ color: 'var(--app-text-muted, #475569)' }}
+          <div
+            className="mt-6 pt-4 border-t grid grid-cols-2 gap-2"
+            style={{ borderColor: 'var(--app-border, #cbd5e1)' }}
           >
-            <BookOpen className="w-3.5 h-3.5" />
-            {isAmharic ? 'ግላዊነት እና ደንቦች ያንብቡ' : 'Read Privacy & Terms'}
-          </button>
-          <button
-            onClick={() => setIsContactOpen(true)}
-            className="mt-1 w-full flex items-center justify-center gap-1.5 text-[11px] font-semibold underline underline-offset-2 transition-opacity hover:opacity-70"
-            style={{ color: 'var(--app-text-muted, #475569)' }}
-          >
-            <AtSign className="w-3.5 h-3.5" />
-            {isAmharic ? 'አግኙን' : 'Contact us'}
-          </button>
+            <button
+              onClick={() => setIsPrivacyOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors hover:bg-black/5"
+              style={{ color: 'var(--app-text-muted, #475569)' }}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              {isAmharic ? 'ግላዊነት እና ደንቦች' : 'Privacy & Terms'}
+            </button>
+            <button
+              onClick={() => setIsContactOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors hover:bg-black/5"
+              style={{ color: 'var(--app-text-muted, #475569)' }}
+            >
+              <AtSign className="w-3.5 h-3.5" />
+              {isAmharic ? 'አግኙን' : 'Contact us'}
+            </button>
+          </div>
         </motion.div>
       </div>
       <PrivacyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} language={language} />

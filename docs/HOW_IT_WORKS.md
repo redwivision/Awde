@@ -154,7 +154,16 @@ the weak-device promise). `SiteHeader` renders a 2px scroll-progress hairline
 and draws the logo in `tone="site"` (ink text) instead of the dark-chrome
 `tone="workspace"` default. No Lenis/GSAP in this layer — heavy scroll
 smoothing stays off the low-end device promise; the polish is all typography,
-texture, and transform-only motion.
+texture, and transform-only motion. The layout breathes on desktop: the site
+container widens from `max-w-6xl` to `max-w-7xl` (and `2xl:max-w-[96rem]`
+≈ full-width at 1536px) with `lg:px-14` gutters; the hero is a two-column
+editorial masthead (headline + CTA left, a bordered "knowledge node"
+specimen card right with the tagline and the three trust bullets), and the
+manifesto story section pins its title (`lg:sticky lg:top-24`) beside a
+scrolling body column. The AccountModal sign-in card ends in a clean divided
+footer (Privacy & Terms | Contact us as equal split buttons) with the privacy
+blurb restyled as a shield-icon line, replacing the old stack of tiny
+underlined links.
 
 Inside the workspace, the "tabs" (Books / Map / Teach / Quiz / Measure / Focus)
 are still driven by one piece of state:

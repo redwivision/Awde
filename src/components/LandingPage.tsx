@@ -223,21 +223,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       <SiteHeader language={language} onToggleLanguage={onToggleLanguage} scrollRef={heroRef} />
 
-      <div className="max-w-5xl mx-auto px-6 sm:px-10">
+      <div className="mx-auto w-full px-6 sm:px-10 lg:px-14 max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem]">
 
         {/* ============ HERO ============ */}
         <motion.section
           style={{ opacity: heroOpacity }}
-          className="relative min-h-[80vh] pt-10 pb-24 flex flex-col items-center justify-center text-center max-w-3xl mx-auto"
+          className="relative min-h-[88vh] pt-6 pb-28 flex flex-col justify-center overflow-hidden"
         >
           {/* Giant Ge'ez/Awde watermark behind the headline — the brand's script
               as a faded printed mark, so the identity is in the type itself. */}
-          <div aria-hidden className="pointer-events-none select-none absolute inset-0 overflow-hidden flex items-center justify-center">
+          <div aria-hidden className="pointer-events-none select-none absolute inset-0 flex items-center justify-center">
             <span
               className="font-display leading-none"
               style={{
                 color: 'var(--app-accent, #4f46e5)',
-                fontSize: 'clamp(11rem, 46vw, 28rem)',
+                fontSize: 'clamp(12rem, 48vw, 30rem)',
                 opacity: 0.045
               }}
             >
@@ -245,55 +245,132 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </span>
           </div>
 
-          <h1 className={`${display} relative text-5xl sm:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.04]`}>
-            <MaskedLine delay={0.05}>{hero.titleA}</MaskedLine>
-            <MaskedLine delay={0.16}>
-              <span className="block" style={{ color: 'var(--app-accent, #4f46e5)' }}>
-                {hero.titleB.accent ? (
-                  <>
-                    {hero.titleB.lead}
-                    <em className="font-display italic pr-1.5">{hero.titleB.accent}</em>
-                    {hero.titleB.tail}
-                  </>
-                ) : (
-                  hero.titleB.lead
-                )}
+          <div className="relative grid grid-cols-1 lg:grid-cols-[7fr_5fr] gap-12 lg:gap-16 items-center">
+            {/* Left — editorial headline column */}
+            <div>
+              <span
+                className="inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.28em]"
+                style={{ color: 'var(--app-accent, #4f46e5)' }}
+              >
+                <span className="h-px w-10" style={{ backgroundColor: 'var(--app-accent, #4f46e5)' }} />
+                {isAmharic ? 'የኢትዮጵያ ጥናት መሣሪያ' : 'An Ethiopian study tool'}
               </span>
-            </MaskedLine>
-          </h1>
-          <span
-            className="relative mt-2 block h-[2px] w-16 rounded-full"
-            style={{ backgroundColor: 'var(--app-accent, #4f46e5)', opacity: 0.55 }}
-          />
 
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.18 }}
-            style={{ color: 'var(--app-text-muted, #475569)' }}
-            className="mt-8 text-lg sm:text-xl leading-relaxed max-w-xl"
-          >
-            {hero.sub}
-          </motion.p>
+              <h1 className={`${display} mt-6 text-[2.85rem] leading-[1.03] sm:text-6xl lg:text-7xl 2xl:text-8xl font-extrabold tracking-tight`}>
+                <MaskedLine delay={0.05}>{hero.titleA}</MaskedLine>
+                <MaskedLine delay={0.16}>
+                  <span className="block" style={{ color: 'var(--app-accent, #4f46e5)' }}>
+                    {hero.titleB.accent ? (
+                      <>
+                        {hero.titleB.lead}
+                        <em className="font-display italic pr-1.5">{hero.titleB.accent}</em>
+                        {hero.titleB.tail}
+                      </>
+                    ) : (
+                      hero.titleB.lead
+                    )}
+                  </span>
+                </MaskedLine>
+              </h1>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.32 }}
-            className="pt-10"
-          >
-            <button
-              onClick={onEnterWorkspace}
-              style={{
-                backgroundColor: 'var(--app-accent, #4f46e5)',
-                color: 'var(--app-accent-text, #ffffff)'
-              }}
-              className="group inline-flex items-center gap-2.5 px-9 py-4 rounded-full font-bold text-sm sm:text-base shadow-lg hover:opacity-90 hover:scale-[1.03] transition-all"
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, delay: 0.3 }}
+                style={{ color: 'var(--app-text-muted, #475569)' }}
+                className="mt-8 text-base sm:text-lg leading-relaxed max-w-xl"
+              >
+                {hero.sub}
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, delay: 0.44 }}
+                className="mt-9 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6"
+              >
+                <button
+                  onClick={onEnterWorkspace}
+                  style={{
+                    backgroundColor: 'var(--app-accent, #4f46e5)',
+                    color: 'var(--app-accent-text, #ffffff)'
+                  }}
+                  className="group inline-flex items-center gap-2.5 px-9 py-4 rounded-full font-bold text-sm sm:text-base shadow-lg hover:opacity-90 hover:scale-[1.03] transition-all"
+                >
+                  {hero.cta}
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </button>
+                <span
+                  className="inline-flex items-center gap-2 text-xs font-medium"
+                  style={{ color: 'var(--app-text-muted, #475569)' }}
+                >
+                  {isAmharic
+                    ? 'ያለ AI ቁልፍ ይሰራል · አማርኛ + እንግሊዝኛ'
+                    : 'No AI key required · English + Amharic'}
+                </span>
+              </motion.div>
+            </div>
+
+            {/* Right — masthead specimen card (desktop) */}
+            <motion.div
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.4 }}
+              className="relative hidden lg:block"
             >
-              {hero.cta}
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </motion.div>
+              <div
+                className="rounded-3xl border p-9 xl:p-11"
+                style={{
+                  backgroundColor: 'var(--app-surface, #ffffff)',
+                  borderColor: 'var(--app-border, #cbd5e1)'
+                }}
+              >
+                <span
+                  className="text-[11px] font-semibold uppercase tracking-[0.28em]"
+                  style={{ color: 'var(--app-accent, #4f46e5)' }}
+                >
+                  {isAmharic ? 'አውደ — የእውቀት ደብተር' : 'Awde — the knowledge node'}
+                </span>
+                <p
+                  className={`${display} mt-5 text-3xl xl:text-4xl leading-tight italic font-semibold`}
+                  style={{ color: 'var(--app-text, #211d16)' }}
+                >
+                  {isAmharic ? 'እወቅ፣ አሳድግ።' : 'Know it. Grow it.'}
+                </p>
+                <div className="mt-7 pt-7 border-t space-y-5" style={{ borderColor: 'var(--app-border, #cbd5e1)' }}>
+                  {[
+                    {
+                      icon: <Wifi className="w-4 h-4" />,
+                      label: isAmharic ? 'ያለ AI ቁልፍ ይሰራል' : 'Works without an AI key'
+                    },
+                    {
+                      icon: <ShieldCheck className="w-4 h-4" />,
+                      label: isAmharic ? 'መረጃዎ በራስዎ መሳሪያ' : 'Your data stays on your device'
+                    },
+                    {
+                      icon: <InfinityIcon className="w-4 h-4" />,
+                      label: isAmharic ? 'እንግሊዝኛ + አማርኛ' : 'English + Amharic'
+                    }
+                  ].map((row, i) => (
+                    <div key={i} className="flex items-center gap-3.5">
+                      <span
+                        className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center"
+                        style={{
+                          backgroundColor: 'var(--app-accent-bg, rgba(79,70,229,0.10))',
+                          color: 'var(--app-accent, #4f46e5)'
+                        }}
+                      >
+                        {row.icon}
+                      </span>
+                      <span className="text-sm font-medium" style={{ color: 'var(--app-text-muted, #475569)' }}>
+                        {row.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </div>
 
           <motion.span
             initial={{ opacity: 0 }}
@@ -311,52 +388,59 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* ============ THE STORY (manifesto) ============ */}
         <section className="py-24 sm:py-32">
-          <Reveal className="max-w-2xl mx-auto text-center">
-            <span className={sectionKicker} style={{ color: 'var(--app-accent, #4f46e5)' }}>
-              {story.section}
-            </span>
-            <h2 className={`${display} mt-5 text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight`}>
-              {story.title}
-              <span className="block" style={{ color: 'var(--app-accent, #4f46e5)' }}>
-                {story.titleB}
+          <div className="grid grid-cols-1 lg:grid-cols-[5fr_7fr] gap-10 lg:gap-16 items-start">
+            <Reveal className="lg:sticky lg:top-24">
+              <span className={sectionKicker} style={{ color: 'var(--app-accent, #4f46e5)' }}>
+                {story.section}
               </span>
-            </h2>
-            <p
-              className="mt-8 text-base sm:text-lg leading-relaxed"
-              style={{ color: 'var(--app-text-muted, #475569)' }}
-            >
-              {story.body}
-            </p>
-            <p className={`${display} mt-8 text-lg sm:text-xl leading-relaxed italic`} style={{ color: 'var(--app-text, #020617)' }}>
-              {story.pull}
-            </p>
-            <p
-              className="mt-8 pt-6 border-t text-base sm:text-lg font-medium"
-              style={{ color: 'var(--app-accent, #4f46e5)', borderColor: 'var(--app-border, #cbd5e1)' }}
-            >
-              {story.highlight}
-            </p>
-          </Reveal>
+              <h2 className={`${display} mt-5 text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight`}>
+                {story.title}
+                <span className="block" style={{ color: 'var(--app-accent, #4f46e5)' }}>
+                  {story.titleB}
+                </span>
+              </h2>
+            </Reveal>
+            <Reveal className="space-y-8">
+              <p
+                className="text-base sm:text-lg leading-relaxed"
+                style={{ color: 'var(--app-text-muted, #475569)' }}
+              >
+                {story.body}
+              </p>
+              <p
+                className={`${display} text-xl sm:text-2xl leading-relaxed italic`}
+                style={{ color: 'var(--app-text, #211d16)' }}
+              >
+                {story.pull}
+              </p>
+              <p
+                className="pt-6 border-t text-base sm:text-lg font-medium"
+                style={{ color: 'var(--app-accent, #4f46e5)', borderColor: 'var(--app-border, #cbd5e1)' }}
+              >
+                {story.highlight}
+              </p>
+            </Reveal>
+          </div>
         </section>
 
         {/* ============ THE GAPS ============ */}
         <section className="py-12 sm:py-16">
-          <Reveal className="max-w-2xl mx-auto text-center">
+          <Reveal className="max-w-3xl mx-auto text-center">
             <span className={sectionKicker} style={{ color: 'var(--app-accent, #4f46e5)' }}>
               {isAmharic ? 'ክፍተቶቹ' : 'The gaps'}
             </span>
-            <h2 className={`${display} mt-5 text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight`}>
+            <h2 className={`${display} mt-5 text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight`}>
               {gapsTitle}
             </h2>
             <p
-              className="mt-4 text-base sm:text-lg leading-relaxed"
+              className="mx-auto mt-4 text-base sm:text-lg leading-relaxed max-w-2xl"
               style={{ color: 'var(--app-text-muted, #475569)' }}
             >
               {gapsIntro}
             </p>
           </Reveal>
 
-          <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
             {gaps.map((gap, i) => (
               <motion.div
                 key={gap.num}
@@ -368,7 +452,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   backgroundColor: 'var(--app-surface, #ffffff)',
                   borderColor: 'var(--app-border, #cbd5e1)'
                 }}
-                className="relative p-7 rounded-3xl border hover:-translate-y-1 hover:shadow-lg hover:border-[var(--app-border-strong, #cfc2a8)] transition-all"
+                className="relative p-7 md:p-8 xl:p-10 rounded-3xl border hover:-translate-y-1 hover:shadow-lg hover:border-[var(--app-border-strong, #cfc2a8)] transition-all"
               >
                 <span
                   className={`${display} text-3xl font-extrabold`}
@@ -400,15 +484,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 'linear-gradient(180deg, transparent, var(--app-accent-bg, rgba(79,70,229,0.06)), transparent)'
             }}
           />
-          <Reveal className="max-w-2xl mx-auto text-center">
+          <Reveal className="max-w-3xl mx-auto text-center">
             <span className={sectionKicker} style={{ color: 'var(--app-accent, #4f46e5)' }}>
               {bridge.section}
             </span>
-            <h2 className={`${display} mt-5 text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight`}>
+            <h2 className={`${display} mt-5 text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight`}>
               {bridge.title}
             </h2>
             <p
-              className="mt-7 text-base sm:text-lg leading-relaxed"
+              className="mx-auto mt-7 text-base sm:text-lg leading-relaxed max-w-2xl"
               style={{ color: 'var(--app-text-muted, #475569)' }}
             >
               {bridge.body}
@@ -416,7 +500,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </Reveal>
 
           {/* The three movements */}
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
             {movements.map((m, i) => (
               <motion.div
                 key={m.step}
@@ -428,7 +512,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   backgroundColor: 'var(--app-surface, #ffffff)',
                   borderColor: 'var(--app-border, #cbd5e1)'
                 }}
-                className="p-7 rounded-3xl border hover:-translate-y-1 hover:shadow-lg transition-all"
+                className="p-7 md:p-8 rounded-3xl border hover:-translate-y-1 hover:shadow-lg transition-all"
               >
                 <div className="flex items-center justify-between">
                   <div
@@ -461,8 +545,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         {/* ============ CLOSE ============ */}
         <section className="py-20 sm:py-24">
-          <Reveal className="text-center max-w-xl mx-auto">
-            <h2 className={`${display} text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight`}>
+          <Reveal className="text-center max-w-2xl mx-auto">
+            <h2 className={`${display} text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight`}>
               {closeTitle}
             </h2>
             <p
