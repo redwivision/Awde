@@ -718,6 +718,17 @@ registerSyncRoutes(app);
 registerGroupRoutes(app);
 registerContactRoutes(app);
 
+// Multer errors (bad mimetype via fileFilter, or LIMIT_FILE_SIZE) are raised by
+// the upload middleware BEFORE the route handler runs, so the handler's own
+// try/catch never sees them. Route them to a clean 400 (validation failure)
+// instead of Express's default 500. Anything else keeps propagating.
+app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err instanceof multer.MulterError || (err instanceof Error && /Only PDF files are supported/.test(err.message))) {
+    return res.status(400).json({ error: err.message || 'Invalid file upload.' });
+  }
+  next(err);
+});
+
 // Guard: only auto-start when executed directly, not when imported for tests.
 // Works in both the ESM dev path (tsx) and the CJS production bundle.
 const isMain = (() => {

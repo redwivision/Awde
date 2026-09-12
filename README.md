@@ -43,7 +43,7 @@ Students today rely on static textbooks that force rote-reading and memorization
 
 | Feature | Description |
 |---|---|
-| 🧠 **Mind-Map Studio** | Interactive concept graph with typed relationships (`depends_on`, `causes`, `transforms_into`), search, filters, master cards, canvas or grid views. Deterministic layout engine (`computeMapLayout`) arranges nodes into category columns (Foundation → Mechanism → Core Law → Real-World App) with an auto-fit view and orthogonal, rounded-corner edge routing through the gaps — so a unit always reads as a map, never a flat row of cards |
+| 🧠 **Mind-Map Studio** | Interactive concept graph with typed relationships (`depends_on`, `causes`, `transforms_into`), search, filters, master cards, canvas or grid views. Deterministic layout engine (`computeMapLayout` in `src/lib/mapLayout.ts`) arranges nodes into category columns (Foundation → Mechanism → Core Law → Real-World App) with an auto-fit view and orthogonal, rounded-corner edge routing through the gaps — so a unit always reads as a map, never a flat row of cards |
 | 💬 **Feynman Arena (Teach Rooty)** | Real-time Socratic dialogue; Rooty evaluates simplicity, clarity, jargon avoidance, analogy quality & accuracy; voice input + text-to-speech; 3 strictness modes. Growth is measured honestly: it asks your starting confidence ("How confident are you, right now?") before you begin, so the before→after efficacy delta is a real measurement, never a fabricated number |
 | ❓ **Active Recall Quizzes** | Diagnostic MCQs with difficulty filtering, misconception traps, and AI-generated unlimited questions (bilingual) |
 | ⏱️ **Deep Work Suite** | Pomodoro focus timer with ambient noise (incl. traditional Krar drone), distraction parking lot, Blurting Method (3-min active recall sprint with AI grading), Leitner SRS flashcards |
@@ -301,6 +301,7 @@ with `fromCache: true` — instantly and at $0 AI cost.
 |---|---|
 | `POST /api/auth/login` | Request a passwordless magic-link (email delivered via Resend when `RESEND_API_KEY` is set; rate-limited, no account enumeration) |
 | `GET /api/auth/confirm` | Exchange the magic-link for a session token |
+| `POST /api/auth/logout` | Revoke the current session server-side (clears both the Better Auth OAuth cookie and the legacy bearer token) |
 | `GET /api/auth/providers` | Which login methods are available (`{ google, email }` booleans, never secrets) |
 | `GET /api/me` | Current signed-in user |
 | `GET /api/me/workspaces` | Pull this user's server-side workspaces |
@@ -342,7 +343,7 @@ devices — `localStorage` stays as the offline cache.
 - ✅ **Interactive feature set** — all 6 study modes are functional with live client/server wiring
 - ✅ **Enriched concept nodes** — detailed explanations, key takeaways, and related concepts in the node drawer
 - ✅ **Ask Rooty Q&A** — lightweight in-drawer chat for asking questions about any concept
-- ✅ **Test suite** — 146 tests (140 unit/integration/offline + 6 Postgres-backed cache tests that run in a dedicated CI job; the DB ones self-skip without a `DATABASE_URL`)
+- ✅ **Test suite** — 267 tests across 26 files (249 unit/integration/offline + 18 Postgres-backed tests across `bridge`, `cache-db`, and `groups-db`). The DB ones run against a real Postgres (CI's dedicated job runs the cache + groups suites) and self-skip without a `DATABASE_URL`
 - ✅ **Bilingual support** — complete English/Amharic toggle across all UI
 - ✅ **Theme system** — 5 design aesthetics with CSS variable theming
 - ✅ **Accounts & cloud sync** — optional passwordless accounts via Neon/Postgres; local-first (works offline) with cross-device sync when signed in
@@ -373,7 +374,7 @@ devices — `localStorage` stays as the offline cache.
 | Auth / API Keys | None required by default (deterministic fallback generators); optional Google OAuth + magic-link accounts when `DATABASE_URL` is set (magic links emailed via `RESEND_API_KEY`) |
 | Languages | 2 (English + Amharic) |
 | Recall Deltas | Measured per-user in the Method Laboratory (before vs after) |
-| Test Coverage | 146 tests (140 unit/integration/offline based + 6 Postgres-backed cache tests in a dedicated CI job; incl. content-safety, auth/hardening, provider chain, quotas, cache) |
+| Test Coverage | 267 tests across 26 files (249 unit/integration/offline based + 18 Postgres-backed tests across `bridge`, `cache-db`, `groups-db`; CI runs the cache + groups suites against a real Postgres. Covers safety, auth/hardening, provider chain, quotas, cache, textbook PDF ingestion, share links, client sync/session, rate limits, mail config, map layout, production boot) |
 | Persistence | localStorage-first offline cache; optional cloud sync (workspaces + study events) via Neon/Postgres |
 
 ---
