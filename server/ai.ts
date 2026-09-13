@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from '@google/genai';
+import { Type } from '@google/genai';
 import { getSecret } from './secrets';
 
 // All provider keys are read through ./secrets (env-only, never logged). The
@@ -7,34 +7,15 @@ import { getSecret } from './secrets';
 // status.
 
 // --- Gemini (PRIMARY provider) -------------------------------------------
-// Uses Google's OpenAI-compatible endpoint so it shares callOpenAiCompat with
-// the rest of the chain. GEMINI_MODEL defaults to gemini-2.5-flash (fast,
-// generous daily limits, $0 on the AI Studio free tier / cheap on Pro).
+// Caller is providerRouter.callGeminiNative (native SDK). GEMINI_MODEL defaults
+// to gemini-2.5-flash (fast, generous daily limits, $0 on the AI Studio free
+// tier / cheap on Pro).
 export function getGeminiApiKey(): string | null {
   return getSecret('GEMINI_API_KEY');
 }
 
-export const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
-
 export function getGeminiModel(): string {
   return getSecret('GEMINI_MODEL') || 'gemini-2.5-flash';
-}
-
-// Legacy direct-only Gemini client (kept for potential future use outside the
-// router chain; currently unused).
-export function getGeminiClient(): GoogleGenAI | null {
-  const apiKey = getSecret('GEMINI_API_KEY');
-  if (!apiKey) {
-    return null;
-  }
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
-  });
 }
 
 // --- OpenRouter (secondary; one key = 400+ models) -----------------------

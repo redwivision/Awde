@@ -6,11 +6,13 @@
 // tier resilient: one dead/expired key never bricks the app, and any working
 // key still produces a real (non-canned) answer.
 //
-// Gemini (via Google's OpenAI-compatible endpoint) is the PRIMARY provider —
-// fast, generous daily limits, and cheap on the paid tier. OpenRouter is the
-// backup that gives access to 400+ models with one key. Groq/NVIDIA are the
-// resilience layer. Health tracking re-orders which one actually answers at
-// runtime.
+// Gemini (via Google's native SDK) is the PRIMARY provider — fast, generous
+// daily limits, and cheap on the paid tier. It gets an extra reliability edge
+// the others don't: `responseSchema` + `responseMimeType: application/json`
+// makes the model emit schema-conforming JSON directly, instead of hoping a
+// chat-completions prompt is followed. OpenRouter gives 400+ models as backup.
+// Groq/NVIDIA are the resilience layer. Health tracking re-orders which one
+// actually answers at runtime.
 //
 // Provider health is tracked with a tiny circuit breaker: a provider that
 // fails several times in a row is skipped for a cooldown window so we stop
@@ -18,11 +20,13 @@
 //
 // Design notes:
 // - Every provider call is bounded by its own timeout (never block a student).
-// - All four providers speak OpenAI-compatible chat-completions (plain fetch,
-//   no extra SDK); JSON output is extracted from the response text.
+// - OpenRouter/Groq/NVIDIA speak OpenAI-compatible chat-completions (plain
+//   fetch, no extra SDK); Gemini uses its native SDK with response-schema
+//   enforcement. JSON output is extracted from every response the same way.
 // - The caller provides `fallback` — a deterministic offline generator run as
 //   the last resort. The router returns `provider: null` in that case so
 //   routes can report `isFallback: true` and skip caching.
+import { GoogleGenAI } from '@google/genai';
 import {
   getGeminiApiKey,
   getGeminiModel,
@@ -30,7 +34,6 @@ import {
   getOpenRouterModel,
   getGroqApiKey,
   getNvidiaApiKey,
-  GEMINI_BASE_URL,
   OPENROUTER_BASE_URL,
   GROQ_BASE_URL,
   GROQ_TT_MODEL,
@@ -151,7 +154,7 @@ export function extractJson(raw: string): any {
   throw new Error('No JSON found in model output');
 }
 
-// OpenAI-compatible chat-completions call shared by Gemini, OpenRouter, Groq
+// OpenAI-compatible chat-completions call shared by OpenRouter, Groq
 // and NVIDIA NIM. OpenRouter additionally gets attribution headers for its
 // public leaderboard ranking.
 async function callOpenAiCompat(
@@ -199,13 +202,43 @@ async function callOpenAiCompat(
   }
 }
 
+// Native Gemini caller using Google's SDK. Reliability edge over the generic
+// chat-completions path: `responseSchema` + `responseMimeType: 'application/json'`
+// make the model emit schema-conforming JSON directly instead of hoping a
+// prompt is followed, and the client's per-request `timeout` bails a hung call
+// so it can never stall the chain.
+async function callGeminiNative(req: AiRouterRequest, timeoutMs: number): Promise<any> {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) throw new Error('gemini not configured');
+  const client = new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      // Hard per-request HTTP bound (Gaxios aborts past this), measured against
+      // whatever the overall chain budget has left.
+      timeout: Math.max(1, Math.floor(timeoutMs)),
+      headers: { 'User-Agent': 'aistudio-build' }
+    }
+  });
+  const result = await client.models.generateContent({
+    model: getGeminiModel(),
+    contents: [{ role: 'user', parts: [{ text: req.prompt }] }],
+    config: {
+      systemInstruction: { role: 'system', parts: [{ text: req.systemPrompt }] },
+      temperature: 0.4,
+      maxOutputTokens: req.maxTokens ?? 3000,
+      responseMimeType: 'application/json',
+      ...(req.jsonSchema ? { responseSchema: req.jsonSchema } : {})
+    }
+  });
+  const text = result.text;
+  if (!text || !text.trim()) throw new Error('gemini returned no content');
+  return extractJson(text);
+}
+
 async function callProvider(name: AiProviderName, req: AiRouterRequest, timeoutMs: number): Promise<any> {
   switch (name) {
-    case 'gemini': {
-      const apiKey = getGeminiApiKey();
-      if (!apiKey) throw new Error('gemini not configured');
-      return callOpenAiCompat(GEMINI_BASE_URL, getGeminiModel(), apiKey, name, req, timeoutMs);
-    }
+    case 'gemini':
+      return callGeminiNative(req, timeoutMs);
     case 'openrouter': {
       const apiKey = getOpenRouterApiKey();
       if (!apiKey) throw new Error('openrouter not configured');

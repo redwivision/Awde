@@ -1,6 +1,35 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { callAiWithFallback, extractJson, resetProviderHealth } from '../server/providerRouter';
 
+// Gemini uses the native SDK (not fetch), so mock @google/genai: constructing
+// GoogleGenAI returns a fake whose `models.generateContent` we control (a real
+// class, because vi.fn instances can't be invoked with `new`). Also provide the
+// `Type` enum that server/ai.ts re-exports (route schemas use it in server.ts,
+// which these tests don't import).
+const { GoogleGenAI, generateContent } = vi.hoisted(() => {
+  const generateContent = vi.fn();
+  class GoogleGenAI {
+    models: { generateContent: typeof generateContent };
+    constructor(_opts: unknown) {
+      this.models = { generateContent };
+    }
+  }
+  return { GoogleGenAI, generateContent };
+});
+
+vi.mock('@google/genai', () => ({
+  GoogleGenAI,
+  Type: {
+    OBJECT: 'OBJECT',
+    STRING: 'STRING',
+    INTEGER: 'INTEGER',
+    NUMBER: 'NUMBER',
+    BOOLEAN: 'BOOLEAN',
+    ARRAY: 'ARRAY',
+    ENUM: 'ENUM'
+  }
+}));
+
 const baseRequest = {
   label: 'test',
   systemPrompt: 'Output JSON.',
@@ -14,6 +43,7 @@ beforeEach(() => {
   delete process.env.OPENROUTER_API_KEY;
   delete process.env.GROQ_API_KEY;
   delete process.env.NVIDIA_API_KEY;
+  generateContent.mockReset();
   resetProviderHealth();
 });
 
@@ -59,71 +89,41 @@ describe('callAiWithFallback (offline/no-key resolve)', () => {
 
   it('uses Gemini first and parses its JSON when it is configured', async () => {
     process.env.GEMINI_API_KEY = 'test-key';
-    let calledUrl = '';
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation(async (url: string) => {
-        calledUrl = url;
-        return {
-          ok: true,
-          status: 200,
-          text: async () => '',
-          json: async () => ({
-            choices: [{ message: { content: '{"answer":"forty-two"}' } }]
-          })
-        };
-      })
-    );
+    generateContent.mockResolvedValue({ text: '{"answer":"forty-two"}' });
 
     const fallback = vi.fn(() => ({ answer: 'offline' }));
     const result = await callAiWithFallback({ ...baseRequest, fallback });
-    expect(calledUrl).toBe('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions');
+    expect(generateContent).toHaveBeenCalledTimes(1);
     expect(result.provider).toBe('gemini');
     expect(result.data).toEqual({ answer: 'forty-two' });
     expect(fallback).not.toHaveBeenCalled();
   });
 
-  it('renders the Gemini default model (gemini-2.5-flash) into the request body', async () => {
+  it('runs Gemini with the native SDK and JSON schema enforcement', async () => {
     process.env.GEMINI_API_KEY = 'test-key';
-    let body = '';
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation(async (_url: string, init: { body: string }) => {
-        body = init.body;
-        return {
-          ok: true,
-          status: 200,
-          text: async () => '',
-          json: async () => ({ choices: [{ message: { content: '{"answer":"ok"}' } }] })
-        };
-      })
-    );
+    const jsonSchema = { type: 'OBJECT', properties: { answer: { type: 'STRING' } } };
+    generateContent.mockResolvedValue({ text: '{"answer":"ok"}' });
 
     const fallback = () => ({ answer: 'offline' });
-    await callAiWithFallback({ ...baseRequest, fallback });
-    expect(JSON.parse(body).model).toBe('gemini-2.5-flash');
+    await callAiWithFallback({ ...baseRequest, fallback, jsonSchema });
+
+    const params = generateContent.mock.calls[0][0] as any;
+    expect(params.model).toBe('gemini-2.5-flash');
+    expect(params.config.responseMimeType).toBe('application/json');
+    expect(params.config.responseSchema).toEqual(jsonSchema);
+    expect(params.config.systemInstruction.parts[0].text).toBe('Output JSON.');
   });
 
   it('honors the GEMINI_MODEL override', async () => {
     process.env.GEMINI_API_KEY = 'test-key';
     process.env.GEMINI_MODEL = 'gemini-2.5-pro';
-    let body = '';
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation(async (_url: string, init: { body: string }) => {
-        body = init.body;
-        return {
-          ok: true,
-          status: 200,
-          text: async () => '',
-          json: async () => ({ choices: [{ message: { content: '{"answer":"ok"}' } }] })
-        };
-      })
-    );
+    generateContent.mockResolvedValue({ text: '{"answer":"ok"}' });
 
     const fallback = () => ({ answer: 'offline' });
     await callAiWithFallback({ ...baseRequest, fallback });
-    expect(JSON.parse(body).model).toBe('gemini-2.5-pro');
+
+    const params = generateContent.mock.calls[0][0] as any;
+    expect(params.model).toBe('gemini-2.5-pro');
   });
 
   it('uses OpenRouter when only OpenRouter is configured (Gemini skipped)', async () => {
@@ -176,21 +176,17 @@ describe('callAiWithFallback (offline/no-key resolve)', () => {
   it('falls through from Gemini to OpenRouter when Gemini fails', async () => {
     process.env.GEMINI_API_KEY = 'dead-key';
     process.env.OPENROUTER_API_KEY = 'good-key';
+    generateContent.mockRejectedValue(new Error('gemini down'));
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockImplementation(async (url: string) => {
-        if (url.includes('generativelanguage.googleapis.com')) {
-          throw new Error('gemini down');
-        }
-        return {
-          ok: true,
-          status: 200,
-          text: async () => '',
-          json: async () => ({
-            choices: [{ message: { content: '{"answer":"openrouter-saved-it"}' } }]
-          })
-        };
-      })
+      vi.fn().mockImplementation(async () => ({
+        ok: true,
+        status: 200,
+        text: async () => '',
+        json: async () => ({
+          choices: [{ message: { content: '{"answer":"openrouter-saved-it"}' } }]
+        })
+      }))
     );
 
     const fallback = vi.fn(() => ({ answer: 'offline' }));

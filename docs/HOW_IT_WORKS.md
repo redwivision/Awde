@@ -635,16 +635,18 @@ export async function callAiWithFallback(req: AiRouterRequest): Promise<AiRouter
 The four guarantees it gives the product:
 
 1. **Provider order, tried on every request** — **Gemini → OpenRouter → Groq →
-   NVIDIA**. Gemini is primary: it speaks the same OpenAI-compatible protocol via
-   Google's endpoint (`https://generativelanguage.googleapis.com/v1beta/openai`),
-   defaults to `gemini-2.5-flash` (fast + generous limits; pin `GEMINI_MODEL` to
-   override, e.g. `gemini-2.5-pro` on a paid account). OpenRouter is the backup:
-   one key in front of 400+ models, defaulting to `openrouter/free` (the $0
-   auto-router; pin `OPENROUTER_MODEL` to override). Each is tried only if its key
-   is configured, so you can run just Gemini, or add all the fallbacks.
+   NVIDIA**. Gemini is primary: it runs **the native `@google/genai` SDK**
+   (`models.generateContent`) with `responseMimeType: 'application/json'` and
+   `responseSchema` enforcement so the model has to return JSON that matches the
+   route's shape, defaults to `gemini-2.5-flash` (fast + generous limits; pin
+   `GEMINI_MODEL` to override, e.g. `gemini-2.5-pro` on a paid account).
+   OpenRouter is the backup: one key in front of 400+ models, defaulting to
+   `openrouter/free` (the $0 auto-router; pin `OPENROUTER_MODEL` to override).
+   Each is tried only if its key is configured, so you can run just Gemini, or
+   add all the fallbacks.
 2. **Per-provider timeout** — each call is bounded (default `AI_TIMEOUT_MS` =
-   9s). All four providers use `AbortController` on a plain OpenAI-compatible
-   `fetch`.
+   9s). OpenRouter/Groq/NVIDIA use `AbortController` on a plain OpenAI-compatible
+   `fetch`; Gemini uses the SDK with a Gaxios `httpOptions.timeout` per request.
 3. **Circuit breaker** — 3 consecutive failures for one provider skip it for 60s
    (`recordFailure`/`shouldTryProvider`/`healthState`), then it's retried
    automatically. `resetProviderHealth()` re-arms it (used by tests and any
