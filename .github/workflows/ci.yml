@@ -1,12 +1,16 @@
 # Awde CI: lint + test + build on every push/PR, plus a DB-backed job that
-# exercises the content cache against a REAL Postgres.
+# exercises the Postgres-backed suites (content cache, study groups, Better Auth
+# bridge) against a REAL Postgres.
 #
-# The main suite runs WITHOUT a DATABASE_URL on purpose (135 tests cover the
+# The main suite runs WITHOUT a DATABASE_URL on purpose (249 tests cover the
 # local/offline invariant, and the app must keep working with no DB
 # configured). Secrets (OPENROUTER_API_KEY, DATABASE_URL) are never needed here;
 # they belong to the host's secrets manager at deploy time. The DB job starts a
 # throwaway postgres service container (no secrets) purely to exercise
-# migrations + the generated_units cache read/write path.
+# migrations + the cache read/write path + group queries + the auth bridge.
+#
+# The other 18 tests in the suite are DB-backed too (bridge/cache-db/groups-db):
+# they self-skip without a DATABASE_URL, so they never run in the main job.
 
 name: CI
 
@@ -58,8 +62,8 @@ jobs:
           kill $PID || true
           exit 1
 
-  db-cache:
-    name: Content-cache against real Postgres
+  db-tests:
+    name: DB-backed tests against real Postgres
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -91,9 +95,10 @@ jobs:
       - name: Typecheck
         run: npm run lint
 
-      - name: Run DB-gated cache + groups tests
+      - name: Run DB-gated cache + groups + bridge tests
         env:
           DATABASE_URL: postgres://awde:awde@localhost:5432/awdetest
         run: |
           npx vitest run tests/cache-db.test.ts
           npx vitest run tests/groups-db.test.ts
+          npx vitest run tests/bridge.test.ts
