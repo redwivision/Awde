@@ -14,16 +14,16 @@ beforeAll(() => {
 });
 
 describe('auth endpoints (local mode)', () => {
-  it('POST /api/auth/login reports localMode and never errors', async () => {
+  it('POST /api/auth/login is disabled — email sign-in is gone (Google only)', async () => {
     const res = await request(app).post('/api/auth/login').send({ email: 'student@example.com' });
-    expect(res.status).toBe(200);
-    expect(res.body.localMode).toBe(true);
-    expect(res.body.message).toBeTruthy();
+    expect(res.status).toBe(410);
+    expect(res.body.error).toMatch(/disabled/i);
   });
 
-  it('GET /api/auth/confirm without accounts returns a clear message', async () => {
+  it('GET /api/auth/confirm is disabled with the magic-link flow', async () => {
     const res = await request(app).get('/api/auth/confirm?token=anything');
-    expect([200, 400]).toContain(res.status);
+    expect(res.status).toBe(410);
+    expect(res.body.error).toMatch(/disabled/i);
   });
 });
 

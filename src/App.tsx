@@ -10,7 +10,7 @@ import {
 import { DEFAULT_TEXTBOOK_WORKSPACES } from './data/textbookWorkspaces';
 import { AESTHETIC_THEMES } from './data/themes';
 import { loadWorkspaces as loadWorkspacesFromStorage } from './data/persistence';
-import { getSession, confirmLogin, extractMagicToken, pushWorkspace, pullWorkspaces, isServerSynced, syncServerSession, recordStudyActivity, readShareParams, SESSION_KEY, SESSION_EVENT, Session } from './lib/sync';
+import { getSession, pushWorkspace, pullWorkspaces, isServerSynced, syncServerSession, recordStudyActivity, readShareParams, SESSION_KEY, SESSION_EVENT, Session } from './lib/sync';
 import { useOnlineStatus } from './lib/api';
 import { Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -292,10 +292,10 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', aesthetic);
   }, [aesthetic]);
 
-  // Server-side sync on mount: if this is a magic-link return visit, consume the
-  // token and store the session; then pull the user's server workspaces and
-  // merge them in (server wins when its updatedAt is newer). Offline/local-mode
-  // safe — any failure just leaves the local copy untouched.
+  // Server-side sync on mount: adopt an existing Google (Better Auth) session,
+  // then pull the user's server workspaces and merge them in (server wins when
+  // its updatedAt is newer). Offline/local-mode safe — any failure just leaves
+  // the local copy untouched.
   useEffect(() => {
     let cancelled = false;
 
@@ -304,19 +304,6 @@ export default function App() {
         // Adopt an existing Google (Better Auth) session first so the session
         // hint matches the cookie before we pull workspaces below.
         await syncServerSession();
-        const magicToken = getSession() ? null : extractMagicToken(window.location.href);
-        if (magicToken) {
-          const res = await confirmLogin(magicToken);
-          // Don't leave a one-time token sitting in the address bar.
-          window.history.replaceState({}, '', window.location.pathname);
-          if (cancelled) return;
-          if (!res.ok) {
-            // Don't drop the user on a silently-unauthenticated Groups tab —
-            // an expired/already-used link otherwise looks like "I logged in
-            // but groups still say not signed in".
-            showNotice('error', 'This sign-in link is invalid, expired, or already used. Request a new one from the Account menu.');
-          }
-        }
         const serverRows = await pullWorkspaces();
         if (!serverRows || cancelled) return;
         setWorkspaces((prev) => {

@@ -3,12 +3,15 @@ import request from 'supertest';
 import { app } from '../server';
 import { issueShareSig, verifyShareSig, shareSecret } from '../server/share';
 import { workspaces } from '../server/db/schema';
+import { issueMagicToken, consumeMagicToken, getUserFromToken, SESSION_COOKIE } from '../server/auth';
 
 // The share routes were entirely uncovered. Two layers are tested here:
 //   1. The pure HMAC helpers (issueShareSig / verifyShareSig / shareSecret).
 //   2. POST /api/share/create + GET /api/share/read through real HTTP with an
-//      in-memory fake DB (auth enabled, magic-link session), covering ownership
-//      enforcement, signature verification, and tamper/missing-row behavior.
+//      in-memory fake DB (auth enabled), covering ownership enforcement,
+//      signature verification, and tamper/missing-row behavior. Sessions are
+//      minted directly with issueMagicToken/consumeMagicToken because the
+//      magic-link login/confirm routes are disabled (Google-only auth).
 // The local-mode (no DB) responses of both routes live in sync-routes-complete.
 
 vi.mock('../server/db/client', () => {
@@ -259,15 +262,18 @@ describe('share.ts (pure signature helpers)', () => {
 // --- HTTP routes (auth enabled, fake DB) ---
 
 async function signInAgent(email: string) {
-  process.env.ALLOW_DEV_LOGIN_LINK = 'true';
+  // Magic-link login/confirm routes are disabled (Google-only auth), so mint a
+  // server session the same way the old confirm route did and place the
+  // HttpOnly session cookie on a supertest agent.
+  const magicToken = await issueMagicToken(email);
+  const sessionToken = await consumeMagicToken(magicToken);
+  expect(sessionToken).toBeTruthy();
+  const user = await getUserFromToken(sessionToken!);
+  expect(user?.email).toBe(email);
+
   const agent = request.agent(app);
-  const login = await agent.post('/api/auth/login').send({ email });
-  expect(login.body.devLink).toBeTruthy();
-  const token = new URL(login.body.devLink as string, 'http://x').searchParams.get('token');
-  const confirm = await agent.get(`/api/auth/confirm?token=${token}`);
-  expect(confirm.status).toBe(200);
-  expect(confirm.body.user.email).toBe(email);
-  return { agent, userId: confirm.body.user.id as string };
+  agent.jar.setCookie(`${SESSION_COOKIE}=${sessionToken!}; Path=/`);
+  return { agent, userId: user!.id as string };
 }
 
 describe('POST /api/share/create', () => {

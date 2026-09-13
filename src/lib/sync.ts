@@ -1,9 +1,10 @@
 // Frontend server-side sync for Awde accounts.
 //
 // Design:
-// - Authentication uses an HttpOnly cookie set by the server on magic-link
-//   exchange. The token NEVER touches JavaScript (not in localStorage, not in
-//   the fetch response), so an XSS can't steal it.
+// - Authentication uses Google sign-in (Better Auth). The session lives in
+//   Better Auth's HttpOnly cookie, so JavaScript never holds a token (not in
+//   localStorage, not in the fetch response), and an XSS can't steal it. The
+//   old passwordless email/magic-link flow is disabled server-side.
 // - This module keeps only a lightweight, non-secret session hint
 //   ({ email, user }) in localStorage so the UI knows who is logged in without
 //   a network round-trip. API calls send the cookie automatically.
@@ -13,7 +14,7 @@
 // - Workspace sync is "last writer wins" keyed on workspace.id, merging server
 //   rows onto local state when the app starts.
 
-import { postJson, isOnline } from './api';
+import { isOnline } from './api';
 import { authClient } from './betterAuthClient';
 import type { TextbookWorkspace } from '../types';
 
@@ -161,36 +162,6 @@ function clearSyncMeta(): void {
   }
 }
 
-/** Start a passwordless login for an email. */
-export async function requestLogin(email: string) {
-  const res = await postJson<{ success: boolean; localMode?: boolean; devLink?: string; error?: string }>(
-    '/api/auth/login',
-    { email },
-    { timeoutMs: 30000, retries: 2 }
-  );
-  return res;
-}
-
-/** Exchange a magic-link token for a session and store it locally. */
-export async function confirmLogin(token: string): Promise<{ ok: boolean; session?: Session }> {
-  try {
-    // The server sets an HttpOnly cookie; we never see the token itself.
-    const res = await fetch(`/api/auth/confirm?token=${encodeURIComponent(token)}`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    const data = await res.json();
-    if (res.ok && data.success && data.user?.email) {
-      const session: Session = { email: data.user.email, user: data.user };
-      saveSession(session);
-      return { ok: true, session };
-    }
-    return { ok: false };
-  } catch {
-    return { ok: false };
-  }
-}
-
 /** Revoke the session server-side and sign out locally. */
 export async function logout(): Promise<void> {
   try {
@@ -226,7 +197,7 @@ export async function googleAuthAvailable(): Promise<boolean> {
  * Adopt an existing Google (Better Auth) session into the local (non-secret)
  * session hint. Called on app mount so a returning OAuth user is shown as
  * signed in and their workspaces load. Never clears a local session when no
- * Better Auth session exists — magic-link users don't have one.
+ * Better Auth session exists.
  */
 export async function syncServerSession(): Promise<void> {
   // Throttle the underlying GET /api/ba/get-session round-trip: the focus/online
@@ -407,15 +378,6 @@ export function readShareParams(url: string): { user: string; id: string; sig: s
     const sig = params.get('sig') || '';
     if (!user || !id || !sig) return null;
     return { user, id, sig };
-  } catch {
-    return null;
-  }
-}
-
-/** Read a magic-link token out of the URL (?token=...) and consume it. */
-export function extractMagicToken(url: string): string | null {
-  try {
-    return new URL(url).searchParams.get('token');
   } catch {
     return null;
   }

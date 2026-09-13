@@ -53,7 +53,7 @@ Students today rely on static textbooks that force rote-reading and memorization
 | 🎨 **Theming** | Multiple design aesthetics incl. Nordic Minimal, Scholar Parchment, Obsidian Cyber, and the warm "Addis Espresso" heritage theme |
 | 📴 **Single-Server Simplicity** | One Express process serves the React build and all /api endpoints — no separate backend required |
 | 🔑 **Resilient AI (no single point of failure)** | Every AI endpoint runs a provider chain — **OpenRouter → Groq → NVIDIA** → deterministic offline generator — with per-provider timeouts, an overall chain deadline, and a circuit breaker. One dead/expired key never breaks the app; with no keys at all it still works offline |
-| 👤 **Accounts & Cloud Sync** | Optional Google OAuth + passwordless (magic-link) accounts via Neon/Postgres — progress syncs across devices while staying available offline (localStorage-first) |
+| 👤 **Accounts & Cloud Sync** | Optional Google OAuth accounts via Neon/Postgres — progress syncs across devices while staying available offline (localStorage-first). Email/magic-link sign-in is disabled. |
 | 📈 **Progress Timeline** | Every quiz, taught idea, marked-done concept, blurting sprint, and completed focus session lands in a study history (local-first, merged with your account's server log on every device). The Progress tab shows a day-streak, today's activity, totals, and average scores, grouped by day in EN/AM |
 | 🔗 **Read-Only Share Links** | Share any synced book as a signed, read-only preview link (`?share=1&user=&id=&sig=`): the recipient sees the exact same mind-map + concept drawer (no edits, no account, no AI calls) with a "Study it in Awde" call-to-action. Signatures use an HMAC keyed to `SHARE_SECRET` or the auth secret |
 | 👥 **Opt-in Study Groups** | Anyone can create a study group and share a short code; students join with a display name of their choice and see/are seen only by aggregated, anonymous stats (events, quiz avg, mastery, focus minutes, streak). Owners get an anonymous curriculum-insight view to see which concepts a group finds harder — so schools can shape better curricula without ever pinning down an individual. Leaving deletes your membership instantly; your data stops being included. Consent-first, student-first |
@@ -108,27 +108,21 @@ never leave students stranded.
 > **Want accounts + cross-device sync?** Set `DATABASE_URL` to a **Neon/Postgres**
 > connection string. On startup the server creates its tables
 > (users, sessions, workspaces, study events) and syncs your workspaces across
-> devices. Login offers **Google OAuth** (set `GOOGLE_CLIENT_ID` +
-> `GOOGLE_CLIENT_SECRET`) *and* passwordless magic links. Without a DB, Awde runs
-> in **local mode** — everything stays on your device via `localStorage` and no
-> login is shown.
+> devices. Login is **Google OAuth only** (set `GOOGLE_CLIENT_ID` +
+> `GOOGLE_CLIENT_SECRET`; the email/magic-link provider is disabled). Without a
+> DB, Awde runs in **local mode** — everything stays on your device via
+> `localStorage` and no login is shown.
 
-> **How do logins work?** Two providers are offered, both opt-in:
+> **How do logins work?** One provider, opt-in:
 >   - **Google (Better Auth OAuth)** — a one-click "Continue with Google"
 >     button. Requires `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` (Authorized
 >     redirect URI: `{APP_URL}/api/ba/callback/google`) plus `BETTER_AUTH_SECRET`
->     (`openssl rand -base64 32`). When unconfigured the button stays hidden.
->   - **Email magic link** — set `RESEND_API_KEY` (https://resend.com) to email
->     the one-time login links. Login is rate-limited (5 per email / 15 min,
->     40 per IP / 15 min; 60 link-checks/IP on confirm) and never reveals
->     whether an address has an account. If email isn't configured: dev logs the
->     link to the console + a "Dev link" in the UI; **production refuses to
->     send** (502) rather than leak a usable link.
->   Deliverability: `onboarding@resend.dev` (the default from-address) is
->   Resend's **test-only** mailbox — it delivers only to the account owner's own
->   inbox. For real users, verify a domain in the Resend dashboard and set
->   `RESEND_FROM_ADDRESS="Awde <hello@yourdomain.com>"`; until then other
->   recipients receive nothing (Resend 403s, which production surfaces as a 502).
+>     (`openssl rand -base64 32`). When unconfigured the button is hidden and
+>     the app is usable without an account (local mode).
+>   - **Email magic link is disabled** — `POST /api/auth/login` and
+>     `GET /api/auth/confirm` reply `410 Gone`, the client no longer offers an
+>     email form, and `GET /api/auth/providers` reports `email: false`.
+>     (`RESEND_API_KEY`/SMTP still power the contact form's outbound mail.)
 
 > This project also runs on [Google AI Studio](https://ai.studio), which injects `GEMINI_API_KEY` and `APP_URL` from your account secrets automatically (see `metadata.json`).
 
@@ -180,11 +174,10 @@ never leave students stranded.
 - _Optional accounts:_ `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` add a
   "Continue with Google" button (Better Auth OAuth; redirect URI
   `{APP_URL}/api/ba/callback/google`) and `BETTER_AUTH_SECRET` signs its cookies
-  (`openssl rand -base64 32`). You can also keep magic links.
-- `RESEND_API_KEY` — email service key. **Required to actually email magic-link
-  logins.** Without it, dev shows a "Dev link" instead; production refuses to
-  log in via email. Set `RESEND_FROM_ADDRESS` to a verified domain for the
-  sender. Free tier: https://resend.com
+  (`openssl rand -base64 32`).
+- `RESEND_API_KEY` — email service key, used only for the **contact form** outbound
+  mail. The email/magic-link login path is disabled. Set `RESEND_FROM_ADDRESS`
+  to a verified domain for the sender. Free tier: https://resend.com
 - _Optional guards_ (daily AI-spend caps per client): `FREE_TIER_MINDMAPS_PER_DAY`,
   `FREE_TIER_QUIZZES_PER_DAY`, `FREE_TIER_CHAT_RESPONSES_PER_DAY`,
   `FREE_TIER_TEXTBOOK_PROCESSES_PER_DAY`. Sensible defaults are built in.
@@ -233,8 +226,8 @@ curl http://localhost:3000/api/health   # → {"status":"ok"}
 │   ├── quota.ts              # Per-fingerprint daily AI-spend caps (free tier)
 │   ├── auth.ts               # Magic-link auth + requireAuth (tries Better Auth first, then legacy token)
 │   ├── betterAuth.ts         # Better Auth instance (Google OAuth) — null when no DB
-│   ├── email.ts              # Resend login-link transport (dev/prod fallback)
-│   ├── mail.ts               # Shared transport for login links + contact form (Resend / Gmail SMTP)
+│   ├── email.ts              # Login-link email module (unused — magic-link login disabled)
+│   ├── mail.ts               # Shared transport for contact form (Resend / Gmail SMTP)
 │   ├── contact.ts            # In-app contact form → validated + rate-limited email
 │   ├── rateLimit.ts          # Shared in-memory sliding-window rate limiter
 │   ├── safety.ts             # Content-safety filter + AI prompt guard
@@ -268,7 +261,7 @@ curl http://localhost:3000/api/health   # → {"status":"ok"}
 │       ├── StudySuite.tsx    # Pomodoro / Blurting / Spaced repetition
 │       ├── StudyMethodLab.tsx# Efficacy-delta experiment tracking
 │       ├── RootyAvatar.tsx   # Emotion-driven animated SVG student
-│       ├── AccountModal.tsx  # Sign in / sign out (Google + magic link) / delete account
+│       ├── AccountModal.tsx  # Sign in / sign out (Google only) / delete account
 │       ├── WorkspaceSidebar.tsx, NodeMasteryDrawer.tsx,
 │       ├── CommandPalette.tsx, AestheticsModal.tsx, AwdeLogo.tsx
 │       └── … (HomePage / UploadPdfModal / WorkspaceDetail — workspace flow)
@@ -299,10 +292,10 @@ with `fromCache: true` — instantly and at $0 AI cost.
 
 | Endpoint | Purpose |
 |---|---|
-| `POST /api/auth/login` | Request a passwordless magic-link (email delivered via Resend when `RESEND_API_KEY` is set; rate-limited, no account enumeration) |
-| `GET /api/auth/confirm` | Exchange the magic-link for a session token |
-| `POST /api/auth/logout` | Revoke the current session server-side (clears both the Better Auth OAuth cookie and the legacy bearer token) |
-| `GET /api/auth/providers` | Which login methods are available (`{ google, email }` booleans, never secrets) |
+| `POST /api/auth/login` | Disabled — email/magic-link sign-in removed (always `410 Gone`); Google OAuth is the only way in |
+| `GET /api/auth/confirm` | Disabled with the magic-link flow (always `410 Gone`; old links no longer exchange) |
+| `POST /api/auth/logout` | Revoke the current session server-side (clears both the Better Auth OAuth cookie and the legacy session token) |
+| `GET /api/auth/providers` | Which login methods are available (`{ google, email: false }` booleans, never secrets) |
 | `GET /api/me` | Current signed-in user |
 | `GET /api/me/workspaces` | Pull this user's server-side workspaces |
 | `PUT /api/me/workspaces` | Upsert a workspace (last-writer-wins) |
@@ -320,8 +313,8 @@ with `fromCache: true` — instantly and at $0 AI cost.
 
 Google OAuth lives under `/api/ba/*` (Better Auth handler), mounted only when a
 database is configured. A Google sign-in is bridged into the same `users` table
-so workspaces/study events keep working unchanged; a magic-link account signing
-in with the same Google email is merged (its data follows the OAuth id).
+so workspaces/study events keep working unchanged; a legacy email account
+signing in with the same Google email is merged (its data follows the OAuth id).
 
 State is persisted to `localStorage` (`awde_workspaces_v1` primary store, with
 `awde_lang`, `awde_aesthetic`, `awde_experiments_v1`, `awde_landing_dismissed`)
@@ -343,13 +336,13 @@ devices — `localStorage` stays as the offline cache.
 - ✅ **Interactive feature set** — all 6 study modes are functional with live client/server wiring
 - ✅ **Enriched concept nodes** — detailed explanations, key takeaways, and related concepts in the node drawer
 - ✅ **Ask Rooty Q&A** — lightweight in-drawer chat for asking questions about any concept
-- ✅ **Test suite** — 267 tests across 26 files (249 unit/integration/offline + 18 Postgres-backed tests across `bridge`, `cache-db`, and `groups-db`). The DB ones run against a real Postgres (CI's dedicated job runs the cache + groups suites) and self-skip without a `DATABASE_URL`
+- ✅ **Test suite** — 257 tests across 26 files (249 unit/integration/offline + 8 Postgres-backed tests across `bridge`, `cache-db`, and `groups-db`). The DB ones run against a real Postgres (CI's dedicated job runs all three) and self-skip without a `DATABASE_URL`
 - ✅ **Bilingual support** — complete English/Amharic toggle across all UI
 - ✅ **Theme system** — 5 design aesthetics with CSS variable theming
-- ✅ **Accounts & cloud sync** — optional passwordless accounts via Neon/Postgres; local-first (works offline) with cross-device sync when signed in
+- ✅ **Accounts & cloud sync** — optional Google OAuth accounts via Neon/Postgres; local-first (works offline) with cross-device sync when signed in (email/magic-link sign-in disabled)
 - ✅ **Progress timeline + share links** — honest study history (streak, daily totals, averages) merged from device + server, and read-only signed preview links for any synced book (no account, no AI, no writes) with a "Study it in Awde" CTA
 - ✅ **Opt-in study groups** — anonymous, consent-first groups with short-codes, per-member aggregate roster (owner only), and a fully anonymous curriculum-insight view; students leave any time and their data drops out instantly
-- ✅ **Hardened authentication** — Google OAuth (Better Auth) + rate-limited magic links (per-email + per-IP), real email delivery via Resend, no account enumeration, no dev-link leak in production
+- ✅ **Hardened authentication** — Google OAuth (Better Auth) only; the email/magic-link surface is disabled at the route level (`410 Gone`), so there is no dev-link path, no enumeration, and no email-delivery dependency
 - ✅ **Trust & safety** — one-time age-gate consent, in-app Privacy & Terms (footer / Account / gate), no PII by default, AI content-safety filter + model safety instruction, one-tap account/data deletion
 
 ---
@@ -371,10 +364,10 @@ devices — `localStorage` stays as the offline cache.
 | Metric | Value |
 |--------|-------|
 | Device Offline | App shell + saved workspaces/mind-maps readable; live AI generation requires connection |
-| Auth / API Keys | None required by default (deterministic fallback generators); optional Google OAuth + magic-link accounts when `DATABASE_URL` is set (magic links emailed via `RESEND_API_KEY`) |
+| Auth / API Keys | None required by default (deterministic fallback generators); optional Google OAuth accounts when `DATABASE_URL` is set (email sign-in disabled) |
 | Languages | 2 (English + Amharic) |
 | Recall Deltas | Measured per-user in the Method Laboratory (before vs after) |
-| Test Coverage | 267 tests across 26 files (249 unit/integration/offline based + 18 Postgres-backed tests across `bridge`, `cache-db`, `groups-db`; CI runs the cache + groups suites against a real Postgres. Covers safety, auth/hardening, provider chain, quotas, cache, textbook PDF ingestion, share links, client sync/session, rate limits, mail config, map layout, production boot) |
+| Test Coverage | 257 tests across 26 files (249 unit/integration/offline based + 8 Postgres-backed tests across `bridge`, `cache-db`, `groups-db`; CI runs all three against a real Postgres. Covers safety, auth/hardening, provider chain, quotas, cache, textbook PDF ingestion, share links, client sync/session, rate limits, mail config, map layout, production boot) |
 | Persistence | localStorage-first offline cache; optional cloud sync (workspaces + study events) via Neon/Postgres |
 
 ---

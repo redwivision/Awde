@@ -18,10 +18,10 @@ beforeAll(() => {
 });
 
 describe('GET /api/auth/providers (no DB)', () => {
-  it('reports email login plus a disabled Google button when OAuth is unconfigured', async () => {
+  it('reports email sign-in disabled and no Google button when OAuth is unconfigured', async () => {
     const res = await request(app).get('/api/auth/providers');
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ google: false, email: true });
+    expect(res.body).toMatchObject({ google: false, email: false });
   });
 });
 

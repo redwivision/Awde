@@ -1,16 +1,16 @@
 // Auth + server-side sync routes. Registered on the Express app.
 //
 // When no DATABASE_URL is set these endpoints report "local mode" (auth
-// disabled, the app stays localStorage-only). When a DB is present, magic-link
-// auth is enforced for the /api/me/* sync routes.
+// disabled, the app stays localStorage-only). When a DB is present, Google
+// OAuth (Better Auth) is the only way into an account — the passwordless
+// email/magic-link path is disabled (login/confirm reply 410 Gone) and the
+// /api/me/* sync routes require a session.
 import { Router } from 'express';
 import { eq, and, desc } from 'drizzle-orm';
 import { getDb, authEnabled } from './db/client';
 import { workspaces, studyEvents, users } from './db/schema';
 import { User as BaUser } from './db/baSchema';
-import { issueMagicToken, consumeMagicToken, requireAuth, getUserFromToken, revokeSession, loginLinkUrl, sessionCookieOptions, SESSION_COOKIE } from './auth';
-import { sendLoginLinkEmail, emailConfigured } from './email';
-import { makeRateLimiter, rateLimitKey } from './rateLimit';
+import { requireAuth, revokeSession, sessionCookieOptions, SESSION_COOKIE } from './auth';
 import { getAuth, headersFromExpress, isGoogleAuthConfigured } from './betterAuth';
 import { issueShareSig, verifyShareSig } from './share';
 
@@ -27,115 +27,19 @@ function betterAuthCookieOptions(): { httpOnly: boolean; secure: boolean; sameSi
   };
 }
 
-// Auth-gate hardening (milestone 4-adjacent).
-// - Per-email+IP: 5 login links / 15 min stops someone spamming one address.
-// - Per-IP: fewer than a real school NAT's burst, but enough to stop scanners.
-const loginEmailLimiter = makeRateLimiter({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  key: (req) => `${String(req.body?.email || '').trim().toLowerCase()}|${rateLimitKey(req)}`,
-  message: 'Too many login attempts for this email. Please wait a few minutes and try again.'
-});
-
-const loginIpLimiter = makeRateLimiter({
-  windowMs: 15 * 60 * 1000,
-  max: 40,
-  key: (req) => rateLimitKey(req),
-  message: 'Too many login attempts from this network. Please try again later.'
-});
-
-const confirmIpLimiter = makeRateLimiter({
-  windowMs: 15 * 60 * 1000,
-  max: 60,
-  key: (req) => rateLimitKey(req),
-  message: 'Too many login-link checks from this network. Please try again later.'
-});
-
-// Exported so integration tests can clear the buckets between cases.
-export { loginEmailLimiter, loginIpLimiter, confirmIpLimiter };
-
 export function registerSyncRoutes(app: Router) {
-  // POST /api/auth/login — start a passwordless login for an email.
-  app.post('/api/auth/login', loginIpLimiter, loginEmailLimiter, async (req, res) => {
-    if (!authEnabled()) {
-      return res.status(200).json({
-        localMode: true,
-        message: 'Server-side accounts are not configured (no DATABASE_URL). The app runs in local mode.'
-      });
-    }
-    const email = String(req.body?.email || '').trim().toLowerCase();
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ error: 'Please enter a valid email address.' });
-    }
-    // Identical response for existing + new users (no account enumeration).
-    try {
-      const token = await issueMagicToken(email);
-      const link = loginLinkUrl(token);
-      const sent = await sendLoginLinkEmail(email, link);
-
-      if (sent.ok) {
-        res.json({ success: true, emailSent: true, message: 'A login link was emailed to you. Check your inbox.' });
-        return;
-      }
-
-      // Email transport missing or failed.
-      // NEVER return a usable login link in the response body — even in dev —
-      // because a non-production deployment exposed to the internet would allow
-      // complete account takeover. Log the link server-side only.
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(502).json({
-          error: emailConfigured()
-            ? sent.reason || 'Could not send the login email right now. Please try again.'
-            : 'Login emails are not configured on this server yet.'
-        });
-      }
-
-      // Dev-only: log the link so local devs can click it, but do NOT send it
-      // to the client. Use ALLOW_DEV_LOGIN_LINK=true to restore the old
-      // convenience response only in local trusted environments.
-      console.log(`[awde:auth] login link for ${email}: ${link}`);
-      if (process.env.ALLOW_DEV_LOGIN_LINK === 'true') {
-        res.json({
-          success: true,
-          emailSent: false,
-          devLink: link,
-          message: 'Login link ready (email not configured here). Open the Dev link to finish.'
-        });
-      } else {
-        res.json({
-          success: true,
-          emailSent: false,
-          message: 'Login link generated but email is not configured. Check server logs for the link.'
-        });
-      }
-    } catch (err) {
-      console.error('Error issuing magic token:', err);
-      res.status(500).json({ error: 'Could not start login. Please try again.' });
-    }
+  // POST /api/auth/login — passwordless email sign-in is DISABLED. Google OAuth
+  // is the only way into an account. Registered so any lingering client call
+  // gets a clear JSON 410 instead of a generic 404 HTML page (and so the old
+  // dev-link/rate-limit surface can never come back).
+  app.post('/api/auth/login', (_req, res) => {
+    res.status(410).json({ error: 'Email sign-in is disabled. Please sign in with Google.' });
   });
 
-  // GET /api/auth/confirm?token=... — exchange magic token for a session token.
-  // Sets an HttpOnly session cookie and returns the user (never the token).
-  app.get('/api/auth/confirm', confirmIpLimiter, async (req, res) => {
-    if (!authEnabled()) {
-      return res.status(400).json({ error: 'Accounts are not configured on this server.' });
-    }
-    const token = String(req.query.token || '');
-    if (!token) return res.status(400).json({ error: 'Missing token.' });
-    try {
-      const sessionToken = await consumeMagicToken(token);
-      if (!sessionToken) {
-        return res.status(400).json({ error: 'That login link is invalid or has expired.' });
-      }
-      const user = await getUserFromToken(sessionToken);
-      // Issue the session as an HttpOnly cookie — never in the JSON response,
-      // so JavaScript on the page cannot read it (XSS can't steal the token).
-      res.cookie(SESSION_COOKIE, sessionToken, sessionCookieOptions());
-      res.json({ success: true, user });
-    } catch (err) {
-      console.error('Error confirming login:', err);
-      res.status(500).json({ error: 'Could not complete login.' });
-    }
+  // GET /api/auth/confirm — disabled with the magic-link flow above; old links
+  // in someone's inbox simply no longer exchange for a session.
+  app.get('/api/auth/confirm', (_req, res) => {
+    res.status(410).json({ error: 'Email sign-in is disabled. Please sign in with Google.' });
   });
 
   // POST /api/auth/logout — revoke the current session and clear the cookie,
@@ -149,8 +53,8 @@ export function registerSyncRoutes(app: Router) {
         try {
           await ba.api.signOut({ headers: headersFromExpress(req) });
         } catch {
-          // No valid Better Auth session — that's fine, the magic-link path
-          // below still revokes the bearer token if present.
+          // No valid Better Auth session — that's fine, the legacy session
+          // cookie below is still revoked.
         }
       }
       const header = req.headers.authorization || '';
@@ -166,9 +70,9 @@ export function registerSyncRoutes(app: Router) {
 
   // GET /api/auth/providers — which login methods are available? Public, and
   // returns booleans only (never secrets). Lets the client hide the Google
-  // button when OAuth isn't configured.
+  // button when OAuth isn't configured. Email sign-in is always disabled.
   app.get('/api/auth/providers', async (_req, res) => {
-    res.json({ google: isGoogleAuthConfigured(), email: true });
+    res.json({ google: isGoogleAuthConfigured(), email: false });
   });
 
   // GET /api/me — who am I? (auth-gated)

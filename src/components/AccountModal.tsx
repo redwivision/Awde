@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, LogIn, LogOut, Mail, CheckCircle2, Loader2, BookOpen, AtSign, ShieldCheck } from 'lucide-react';
+import { X, LogOut, Mail, CheckCircle2, BookOpen, AtSign, ShieldCheck } from 'lucide-react';
 import { LanguageMode } from '../types';
-import { getSession, requestLogin, googleAuthAvailable } from '../lib/sync';
+import { getSession, googleAuthAvailable } from '../lib/sync';
 import { googleSignIn } from '../lib/betterAuthClient';
 import { PrivacyModal } from './PrivacyModal';
 import { ContactModal } from './ContactModal';
@@ -86,10 +86,6 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
   const isAmharic = language === 'am';
   const session = getSession();
 
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
-  const [message, setMessage] = useState<string>('');
-  const [devLink, setDevLink] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string>('');
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
@@ -113,8 +109,6 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
   }, [isOpen]);
 
   const handleGoogleSignIn = async () => {
-    setMessage('');
-    setStatus('idle');
     setGoogleLoading(true);
     try {
       // If the availability probe is still in flight (or never finished on a
@@ -127,67 +121,12 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
       }
       if (googleReady === 'unavailable') throw new Error('unavailable');
       await googleSignIn(window.location.pathname + window.location.search);
-    } catch (err) {
+    } catch {
       setGoogleLoading(false);
-      setStatus('error');
-      setMessage(
-        err instanceof Error && err.message === 'unavailable'
-          ? isAmharic
-            ? 'በ Google መግባት ለተወሰነ ጊዜ ያልተገኘ አገልግሎት ነው። እባክዎ ኢሜይል ይጠቀሙ።'
-            : 'Google sign-in isn\u2019t available right now. Please use email instead.'
-          : isAmharic
-          ? 'በ Google መግባት አልተሳካም። እባክዎ በኋላ ይሞክሩ።'
-          : 'Google sign-in failed. Please try again.'
-      );
     }
   };
 
   if (!isOpen) return null;
-
-  const submit = async () => {
-    const trimmed = email.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setStatus('error');
-      setMessage(isAmharic ? 'እባክዎ ትክክለኛ ኢሜይል ያስገቡ።' : 'Please enter a valid email address.');
-      return;
-    }
-    setStatus('loading');
-    setMessage('');
-    const res = await requestLogin(trimmed);
-    if (res.ok && res.data?.success) {
-      setStatus('sent');
-      const data = res.data as any;
-      setMessage(
-        data.emailSent
-          ? isAmharic
-            ? 'የመግቢያ ማገናኛ ወደ ኢሜይልዎ ተልኳል። የብልግል (spam) ሳጥንዎንም ያጣሩ።'
-            : 'A login link was emailed to you. Check your inbox (and spam folder).'
-          : isAmharic
-          ? 'የመግቢያ ማገናኛ ተዘጋጅቷል። ከታች ያለውን Dev ማገናኛ ይክፈቱ።'
-          : 'Login link ready. Open the Dev link below to finish.'
-      );
-      setDevLink(data.devLink || null);
-    } else if (res.data?.localMode) {
-      setStatus('sent');
-      setMessage(
-        isAmharic
-          ? 'ይህ ሰርቨር መለያ አልያዘም — ወደ አካባቢያዊ (local) ሁነታ ይቀጥላል።'
-          : 'This server has no accounts configured — staying in local mode.'
-      );
-    } else {
-      setStatus('error');
-      const err = res.data?.error;
-      if (!res.ok && res.status === 0) {
-        setMessage(
-          isAmharic
-            ? 'ሰርቨሩ ላይ መድረስ አልተቻለም። ኢንተርኔትዎን ያረጋግጡ እና እንደገና ይሞክሩ።'
-            : "Couldn't reach the server. Check your connection and try again."
-        );
-      } else {
-        setMessage(err || (isAmharic ? 'የተሳሳተ ነገር ተከስቷል።' : 'Something went wrong. Please try again.'));
-      }
-    }
-  };
 
   return (
     <AnimatePresence>
@@ -357,86 +296,12 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
                     </>
                   )}
                 </button>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px" style={{ backgroundColor: 'var(--app-border, #cbd5e1)' }} />
-                  <span className="text-[11px] font-medium" style={{ color: 'var(--app-text-muted, #475569)' }}>
-                    {isAmharic ? 'ወይም' : 'or'}
-                  </span>
-                  <div className="flex-1 h-px" style={{ backgroundColor: 'var(--app-border, #cbd5e1)' }} />
-                </div>
-                <label className="block text-xs font-semibold" style={{ color: 'var(--app-text-muted, #475569)' }}>
-                  {isAmharic ? 'ኢሜይል' : 'Email'}
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setStatus('idle');
-                    setMessage('');
-                  }}
-                  placeholder={isAmharic ? 'you@example.com' : 'you@example.com'}
-                  disabled={status === 'loading'}
-                  className="w-full px-4 py-2.5 rounded-xl text-sm outline-none focus:ring-2 border"
-                  style={{
-                    backgroundColor: 'var(--app-surface-elevated, #f8fafc)',
-                    borderColor: 'var(--app-border, #cbd5e1)',
-                    color: 'var(--app-text, #020617)'
-                  }}
-                />
 
-                <button
-                  onClick={submit}
-                  disabled={status === 'loading'}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-opacity disabled:opacity-60"
-                  style={{ backgroundColor: 'var(--app-accent, #6366f1)', color: '#ffffff' }}
-                >
-                  {status === 'loading' ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <LogIn className="w-4 h-4" />
-                  )}
-                  {isAmharic ? 'የመግቢያ አገናኝ ይላክ' : 'Email me a login link'}
-                </button>
-
-                {message && (
-                  <p
-                    className="text-xs leading-relaxed flex items-start gap-2"
-                    style={{ color: status === 'error' ? '#dc2626' : 'var(--app-text-muted, #475569)' }}
-                  >
-                    <span className="mt-0.5 shrink-0">
-                      {status === 'error' ? (
-                        <LogIn className="w-3.5 h-3.5" />
-                      ) : (
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                      )}
-                    </span>
-                    {message}
-                  </p>
-                )}
-
-                {devLink && status === 'sent' && !message.includes('local mode') && (
-                  <div
-                    className="text-xs flex items-center gap-2 px-3 py-2 rounded-lg break-all"
-                    style={{
-                      backgroundColor: 'var(--app-accent-bg, rgba(99,102,241,0.12))',
-                      color: 'var(--app-accent, #6366f1)'
-                    }}
-                  >
-                    <span className="shrink-0 font-bold">
-                      {isAmharic ? 'ገንቢ ማገናኛ፡ ' : 'Dev link: '}
-                    </span>
-                    <a href={devLink} className="underline underline-offset-2">
-                      {devLink}
-                    </a>
-                  </div>
-                )}
-
-                {devLink && status === 'sent' && !message.includes('local mode') && (
-                  <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted, #475569)' }}>
+                {googleReady === 'unavailable' && (
+                  <p className="text-xs leading-relaxed" style={{ color: 'var(--app-text-muted, #475569)' }}>
                     {isAmharic
-                      ? 'ይህ የገንቢ (dev) ሰርቨር ነው — ኢሜይል አይልክም። ማገናኛውን ከፍተው ወደዚህ ትር ይመለሱ።'
-                      : 'Dev mode: this server does not send email, so the link appears here instead of your inbox. Open it in a new tab, then come back here.'}
+                      ? 'በGoogle መግባት በዚህ ሰርቨር ላይ ገና አልተዋቀረም። ያለ መለያም መጠቀም ይችላሉ።'
+                      : 'Google sign-in isn\u2019t configured on this server yet. You can still use the app without an account.'}
                   </p>
                 )}
 
@@ -445,7 +310,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, lan
                   <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text-muted, #475569)' }}>
                     {isAmharic
                       ? 'መለያ ለእርስዎ የወደፊት ትምህርት ምዝገባ እድገት ይቆጥባል። የGoogle መግቢያ ስምዎን እና ኢሜይልዎን ብቻ ያጋራል — ሌላ ምንም አይደለም።'
-                      : 'An account saves your progress for your future. Google login shares your Google name and email; email login shares only an address — nothing else.'}
+                      : 'An account saves your progress for your future. Google login shares your Google name and email — nothing else.'}
                   </p>
                 </div>
               </div>

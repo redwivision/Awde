@@ -1,13 +1,18 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import { app } from '../server';
-import { loginEmailLimiter, loginIpLimiter, confirmIpLimiter } from '../server/sync';
 import { sendLoginLinkEmail, buildLoginLinkEmail } from '../server/email';
 
-// This file tests the SECURED auth paths (DB present, auth enabled) without a
-// real database. The db/client module is replaced with a tiny in-memory fake
-// that satisfies the exact query shapes auth.ts / sync.ts use (select/insert/
-// delete builders keyed by the table object identity). Each test resets it.
+// This file tests the SECURED paths (DB present, auth enabled) without a real
+// database. The db/client module is replaced with a tiny in-memory fake that
+// satisfies the exact query shapes auth.ts / sync.ts use (select/insert/delete
+// builders keyed by the table object identity). Each test resets it.
+//
+// Since the passwordless email/magic-link login is DISABLED (Google OAuth is
+// the only way in), the HTTP-level login/confirm suites are gone too — the
+// endpoint tests below pin that the disabled contract holds (410, no email
+// calls, no leaked links) while the email-module tests still cover the shared
+// transport wrapper in isolation.
 
 // A table-object-keyed store means we never need table names — auth.ts passes
 // the real users/loginTokens/sessions objects as keys. Rows are stored with the
@@ -93,9 +98,6 @@ beforeAll(() => {
 
 beforeEach(() => {
   resetDb();
-  loginEmailLimiter.clear();
-  loginIpLimiter.clear();
-  confirmIpLimiter.clear();
   delete process.env.RESEND_API_KEY;
   delete process.env.NODE_ENV;
   delete process.env.ALLOW_DEV_LOGIN_LINK;
@@ -204,104 +206,34 @@ describe('login-link email content', () => {
   });
 });
 
-describe('POST /api/auth/login (auth enabled)', () => {
-  it('emails the link when Resend is configured — no dev link leaked', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, text: async () => '' }));
+describe('magic-link endpoints are disabled (Google-only auth)', () => {
+  it('POST /api/auth/login replies 410 and never touches the email transport', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
     process.env.RESEND_API_KEY = 're_test';
+    process.env.ALLOW_DEV_LOGIN_LINK = 'true';
 
     const res = await request(app).post('/api/auth/login').send({ email: 'student@example.com' });
+    expect(res.status).toBe(410);
+    expect(res.body.error).toMatch(/disabled/i);
+    // No link, no rate-limit path, no email send attempt — the whole surface is
+    // unreachable even with email + dev-link env configured.
+    expect(res.body.devLink).toBeUndefined();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('GET /api/auth/confirm replies 410 and issues no session cookie', async () => {
+    const res = await request(app).get('/api/auth/confirm?token=whatever');
+    expect(res.status).toBe(410);
+    expect(res.body.error).toMatch(/disabled/i);
+    const setCookie = res.headers['set-cookie'] as unknown as string[] | undefined;
+    expect(setCookie).toBeUndefined();
+  });
+
+  it('GET /api/auth/providers reports email:false and a boolean google', async () => {
+    const res = await request(app).get('/api/auth/providers');
     expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.emailSent).toBe(true);
-    expect(res.body.devLink).toBeUndefined();
-  });
-
-  it('refuses to return a login link in the response when email is not configured (logs it instead)', async () => {
-    const res = await request(app).post('/api/auth/login').send({ email: 'devstudent@example.com' });
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.emailSent).toBe(false);
-    expect(res.body.devLink).toBeUndefined();
-  });
-
-  it('only returns a Dev link when ALLOW_DEV_LOGIN_LINK=true (opt-in dev convenience)', async () => {
-    process.env.ALLOW_DEV_LOGIN_LINK = 'true';
-    const res = await request(app).post('/api/auth/login').send({ email: 'devstudent2@example.com' });
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.emailSent).toBe(false);
-    expect(res.body.devLink).toContain('/?token=');
-    expect(res.body.devLink).not.toContain('/api/auth/confirm');
-    delete process.env.ALLOW_DEV_LOGIN_LINK;
-  });
-
-  it('refuses to leak a login link in production when email is not configured', async () => {
-    process.env.NODE_ENV = 'production';
-    const res = await request(app).post('/api/auth/login').send({ email: 'prodstudent@example.com' });
-    expect(res.status).toBe(502);
-    expect(res.body.devLink).toBeUndefined();
-    expect(res.body.error).toContain('not configured');
-  });
-
-  it('refuses to leak a login link in production when email delivery fails', async () => {
-    process.env.NODE_ENV = 'production';
-    process.env.RESEND_API_KEY = 're_boom';
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500, text: async () => 'err' }));
-
-    const res = await request(app).post('/api/auth/login').send({ email: 'prodnet@example.com' });
-    expect(res.status).toBe(502);
-    expect(res.body.devLink).toBeUndefined();
-  });
-
-  it('returns an identical response for a brand-new address and an existing one (no enumeration)', async () => {
-    const first = await request(app).post('/api/auth/login').send({ email: 'anon@example.com' });
-    const second = await request(app).post('/api/auth/login').send({ email: 'anon@example.com' });
-    expect(first.status).toBe(200);
-    expect(second.status).toBe(200);
-    expect(first.body.success).toBe(second.body.success);
-    expect(first.body.emailSent).toBe(second.body.emailSent);
-    expect(Boolean(first.body.devLink)).toBe(Boolean(second.body.devLink));
-  });
-
-  it('429s after 5 login attempts for the same address in 15 minutes', async () => {
-    const email = 'spam@example.com';
-    for (let i = 0; i < 5; i++) {
-      const res = await request(app).post('/api/auth/login').send({ email });
-      expect(res.status).toBe(200);
-    }
-    const sixth = await request(app).post('/api/auth/login').send({ email });
-    expect(sixth.status).toBe(429);
-  });
-
-  it('429s a flood of distinct addresses from one IP', async () => {
-    for (let i = 0; i < 40; i++) {
-      const res = await request(app).post('/api/auth/login').send({ email: `ip${i}@example.com` });
-      expect(res.status).toBe(200);
-    }
-    const over = await request(app).post('/api/auth/login').send({ email: 'ip-over@example.com' });
-    expect(over.status).toBe(429);
-  });
-});
-
-describe('GET /api/auth/confirm (magic-link exchange)', () => {
-  it('exchanges a fresh token for an HttpOnly session, then invalidates it (single-use)', async () => {
-    process.env.ALLOW_DEV_LOGIN_LINK = 'true';
-    const login = await request(app).post('/api/auth/login').send({ email: 'confirm@example.com' });
-    const link = login.body.devLink as string;
-    const token = new URL(link, 'http://x').searchParams.get('token');
-
-    const confirmed = await request(app).get(`/api/auth/confirm?token=${token}`);
-    expect(confirmed.status).toBe(200);
-    expect(confirmed.body.success).toBe(true);
-    // The secret lives only in an HttpOnly cookie — never in the JSON body.
-    expect(confirmed.body.token).toBeUndefined();
-    expect(confirmed.body.user.email).toBe('confirm@example.com');
-    const setCookie = confirmed.headers['set-cookie'] as unknown as string[] | undefined;
-    expect(setCookie?.some((c) => c.includes('awde_session_token'))).toBe(true);
-    expect(setCookie?.some((c) => /HttpOnly/i.test(c))).toBe(true);
-
-    const replay = await request(app).get(`/api/auth/confirm?token=${token}`);
-    expect(replay.status).toBe(400);
-    delete process.env.ALLOW_DEV_LOGIN_LINK;
+    expect(res.body.email).toBe(false);
+    expect(typeof res.body.google).toBe('boolean');
   });
 });

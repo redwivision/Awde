@@ -42,13 +42,10 @@ import {
   noteServerSync,
   isServerSynced,
   readShareParams,
-  extractMagicToken,
   recordStudyActivity,
   getStudyActivities,
   deleteAccount,
   logout,
-  confirmLogin,
-  requestLogin,
   pushWorkspace,
   pullWorkspaces,
   googleAuthAvailable
@@ -103,17 +100,6 @@ describe('readShareParams', () => {
 
   it('is null-safe on a malformed URL', () => {
     expect(readShareParams('not a url')).toBeNull();
-  });
-});
-
-describe('extractMagicToken', () => {
-  it('pulls the token out of the app URL', () => {
-    expect(extractMagicToken('http://localhost:3000/?token=sekrit')).toBe('sekrit');
-  });
-
-  it('returns null when absent or unparsable', () => {
-    expect(extractMagicToken('http://localhost:3000/?x=1')).toBeNull();
-    expect(extractMagicToken('::::not-url::::')).toBeNull();
   });
 });
 
@@ -183,30 +169,6 @@ describe('account deletion', () => {
     saveSession({ email: 'a@b.com' });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ localMode: true, ok: true }) }));
     expect(await deleteAccount()).toEqual({ ok: true, localMode: true });
-  });
-});
-
-describe('login helpers', () => {
-  it('requestLogin posts to /api/auth/login and returns the result', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ success: true, emailSent: true }) }));
-    const r = await requestLogin('a@b.com');
-    expect(r.ok).toBe(true);
-    expect(r.data).toMatchObject({ success: true, emailSent: true });
-  });
-
-  it('confirmLogin stores a session on success and stays clean on failure', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ success: true, user: { id: 'u1', email: 'a@b.com' } })
-    }));
-    const r = await confirmLogin('tok');
-    expect(r.ok).toBe(true);
-    expect(getSession()?.email).toBe('a@b.com');
-
-    storage.clear();
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: 'expired' }) }));
-    expect((await confirmLogin('bad')).ok).toBe(false);
-    expect(getSession()).toBeNull();
   });
 });
 

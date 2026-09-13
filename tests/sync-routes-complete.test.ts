@@ -28,15 +28,16 @@ describe('auth + sync routes under local mode (no DB)', () => {
     expect(res.body).toMatchObject({ localMode: true, ok: true });
   });
 
-  it('POST /api/auth/login reports localMode', async () => {
+  it('POST /api/auth/login is disabled — email sign-in is gone (Google only)', async () => {
     const res = await request(app).post('/api/auth/login').send({ email: 'local@example.com' });
-    expect(res.body.localMode).toBe(true);
+    expect(res.status).toBe(410);
+    expect(res.body.error).toMatch(/disabled/i);
   });
 
-  it('GET /api/auth/confirm is refused when accounts are not configured', async () => {
+  it('GET /api/auth/confirm is disabled with the magic-link flow', async () => {
     const res = await request(app).get('/api/auth/confirm?token=whatever');
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/not configured/);
+    expect(res.status).toBe(410);
+    expect(res.body.error).toMatch(/disabled/i);
   });
 
   it('GET /api/me resolves to an anonymous (empty) user in local mode', async () => {

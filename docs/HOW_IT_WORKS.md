@@ -29,7 +29,7 @@ What's in it:
 | AI secret handling | `server/secrets.ts` | Env-only key access; logs provider names only (never keys) |
 | Content cache | `server/unitCache.ts` | Content-addressed cache of generated units/quizzes (Postgres, shape-validated) |
 | Free-tier quotas | `server/quota.ts` | Per-fingerprint daily caps on AI generation spend |
-| Accounts + sync routes | `server/auth.ts`, `server/betterAuth.ts`, `server/sync.ts` | Google OAuth (Better Auth) + passwordless login, `/api/me/*` sync (only active with a DB) |
+| Accounts + sync routes | `server/auth.ts`, `server/betterAuth.ts`, `server/sync.ts` | Google OAuth (Better Auth) only — `email`/magic-link routes disabled (`410`), `/api/me/*` sync (only active with a DB) |
 | Database layer | `server/db/` | Drizzle schema + client + migrations (only active with a DB) |
 | PDF pipeline | `server/textbook.ts` | Textbook → AI → workspace |
 | App state + persistence | `src/App.tsx`, `src/data/persistence.ts` | Holds data, saves to `localStorage` |
@@ -175,20 +175,20 @@ footer (Privacy & Terms | Contact us as equal split buttons) with the privacy
 blurb restyled as a shield-icon line, replacing the old stack of tiny
 underlined links.
 
-Login/contact POSTs are resilient against waking the server: `requestLogin`
-and the contact form pass `{ timeoutMs: 30000, retries: 2 }` (up from the 8s
-AI-default), so a cold Render instance replying past the old budget no longer
-looks like a "network" error — and when the instance is truly unreachable the
-UI says "Couldn't reach the server" instead of the raw sentinel. Both email
-paths share `server/mail.ts`: on Render `emailConfigured()` is true (the same
+Login (Google OAuth) and the contact form's POSTs are resilient against waking
+the server: the sign-in button and the contact form pass long timeouts, so a
+cold Render instance replying past the old budget no longer looks like a
+"network" error — and when the instance is truly unreachable the UI says
+"Couldn't reach the server" instead of the raw sentinel. The contact form
+shares `server/mail.ts`: on Render `emailConfigured()` is true (the same
 `SMTP_*` vars as `.env`) but Gmail rejects the credentials at send time, so
-both magic-link login and contact return "could not send" until an **App
-Password** is set in Render's env (a plain Google password fails `535`).
-`sendMail` now also carries a per-failure `reason` through to the API response
-(so the login/contact UI tells you *why* instead of a generic message) and
-falls back Resend → SMTP when a transport persistently fails. SMTP auth
-failures specifically read "SMTP authentication failed — use a Gmail App
-Password...".
+contact returns "could not send" until an **App Password** is set in Render's
+env (a plain Google password fails `535`). `sendMail` carries a per-failure
+`reason` through to the API response and falls back Resend → SMTP when a
+transport persistently fails. SMTP auth failures specifically read "SMTP
+authentication failed — use a Gmail App Password...". (Note email sign-in
+itself is disabled — magic links are gone; mail is used only for the contact
+form.)
 
 Inside the workspace, the "tabs" (Books / Map / Teach / Quiz / Measure / Focus)
 are still driven by one piece of state:
@@ -300,8 +300,8 @@ When the user signs in, the browser stores a **session** (token + email) in
 
 - **On save** (`App.tsx` effect above), after writing `localStorage` the app
   also `PUT`s each workspace to `/api/me/workspaces` (debounced, fire-and-forget).
-- **On load**, an effect in `App.tsx` checks for a `?token=` magic-link in the
-  URL, confirms it into a session, then pulls the user's server workspaces via
+- **On load**, an effect in `App.tsx` adopts an existing Google (Better Auth)
+  session via `syncServerSession()`, then pulls the user's server workspaces via
   `GET /api/me/workspaces` and **merges** them into local state.
 - **Conflict rule (v1): last-writer-wins.** The client keeps a small
   per-workspace ledger in `localStorage` (`awde_sync_meta`) recording the latest
@@ -374,84 +374,62 @@ a Postgres URL is configured.
 
 | Table | What it stores |
 |---|---|
-| `users` | An account per email (`id`, `email`, `role`) — the shared identity row for BOTH login methods |
-| `login_tokens` | One-time magic-link tokens — only their **SHA-256 hashes** are stored |
-| `sessions` | Bearer session tokens issued after a successful login |
+| `users` | An account per email (`id`, `email`, `role`) — the shared identity row for Google sign-ins |
+| `login_tokens` | One-time magic-link tokens — SHA-256 hashes only. **Unused:** the magic-link routes are disabled (Google-only), so nothing issues or reads these anymore |
+| `sessions` | Legacy bearer session tokens (kept so `requireAuth` still resolves them); Google sessions use Better Auth's own tables |
 | `workspaces` | One row per `user_id` + `workspace_id`; the whole workspace shape lives in a `data` **JSONB** column (same single-source-of-truth model as localStorage) |
 | `study_events` | An append-only log of study activity (quiz, mastery, feynman…) for progress-over-time |
 | `study_groups` | Opt-in study groups (`id`, `name`, join `code`, `owner_id`) — the consent boundary around teacher/community dashboards |
 | `study_group_members` | A membership row linking a user to a group with the **display name they chose**; PK `(group_id, user_id)`. Deleting this row is the "leave" action and instantly excludes that user's events from the group |
 | `generated_units` | Content-addressed cache of AI-generated mind-maps/quizzes (keyed by input hash) so repeat generations cost $0 |
-| `user`, `session`, `account`, `verification` | **Better Auth core tables** (`server/db/baSchema.ts`) backing Google OAuth — separate from the legacy magic-link tables so the two auth systems coexist |
+| `user`, `session`, `account`, `verification` | **Better Auth core tables** (`server/db/baSchema.ts`) backing Google OAuth |
 
 Note the **JSONB workspace**: we deliberately don't normalize the concept graph
 into dozens of relational tables. The app already owns schema evolution via
 `SCHEMA_VERSION` in `persistence.ts`, so storing the whole workspace as JSON is
 simpler and keeps changes localized. Two indexes keep lookups fast.
 
-### The magic-link flow (`server/auth.ts` + `server/email.ts`)
+### Auth: Google-only (magic links disabled)
 
-1. `POST /api/auth/login { email }` → finds-or-creates the user, stores a
-   15-minute token (only its SHA-256 hash goes in the DB), and returns a link
-   pointing at the app root with `?token=…` — **not** the raw `/api/auth/confirm`
-   JSON endpoint, so clicking it always lands in the SPA. Delivery is handled by
-   the **shared mail transport** (`server/mail.ts`), used by both login links and
-   the contact form:
-   - **Resend** wins when `RESEND_API_KEY` is set (REST API via direct `fetch`,
-     8s timeout, one retry on transient 5xx/network failures; only 4xx
-     validation/sender errors fail immediately).
-   - **Gmail SMTP** (`SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS`/`SMTP_FROM`
-     via `nodemailer`, dynamic import) is the no-cost alternative that works for
-     *any* recipient — no verified domain needed. It's used automatically when
-     `RESEND_API_KEY` is absent and `SMTP_USER`/`SMTP_PASS` are set.
-   - With **neither** configured: dev logs the link + shows a "Dev link" in the
-     UI; **production returns 502 instead of leaking a usable link**.
-   - **Deliverability gotcha:** the fallback from-address
-     `onboarding@resend.dev` is Resend's *test-only* mailbox and delivers **only
-     to the account owner's own inbox**; any other recipient makes Resend return
-     403 (→ dev Dev-link fallback, or 502 in production). For real users, either
-     verify a domain in the Resend dashboard (then set `RESEND_FROM_ADDRESS` to
-     an address on it) **or** use the free Gmail SMTP transport above. The email
-     body is built by `buildLoginLinkEmail()` — an HTML + plain
-     text template that states the true 15-minute expiry, HTML-escapes the
-     recipient and link, and includes a tap-target CTA with a copy-paste
-     fallback link.
-2. The SPA loads with `?token=…`; `App.tsx` reads it, calls
-   `GET /api/auth/confirm?token=…` (a plain JSON fetch) which consumes the token
-   (single-use) and returns a fresh **30-day bearer session** token, then strips
-   the token from the address bar with `history.replaceState`. If the token was
-   already used, expired, or the exchange failed, the app now shows an explicit
-   error toast ("invalid, expired, or already used – request a new one") instead
-   of silently dropping the user into a "not signed in" state.
-3. The frontend stores the session in `localStorage` (`awde_session`) and sends
-   it as `Authorization: Bearer <token>` on `/api/me/*` calls.
-4. `DELETE /api/me` → erases the account and everything tied to it. Sessions,
-   workspaces, and study events all cascade to the user via FK `ON DELETE
-   CASCADE`, so one delete is a full data-deletion path (see `docs/PRIVACY.md`).
-   The response also clears **both** the legacy bearer cookie and every Better
-   Auth cookie (`awde.session_token` and friends), and the client calls
-   `authClient.signOut({})`, so a refresh can never resurrect the just-deleted
-   account. The Account modal surfaces this as "Delete my account and data".
+The passwordless email flow is gone from the product surface:
+
+- `POST /api/auth/login` and `GET /api/auth/confirm` are registered but always
+  reply **`410 Gone`** ("Email sign-in is disabled"), so no client can start a
+  login, leak a dev link, or exchange a stale link. The old per-email/per-IP
+  login rate limiters were removed with them.
+- `GET /api/auth/providers` → `{ google, email: false }`.
+- The legacy token machinery (`server/auth.ts`, `server/email.ts`) still exists:
+  `sessions` rows are checked by `requireAuth` as a fallback so anyone who
+  signed in before the change keeps working until they sign out, and the
+  email-module tests still pin its behavior in isolation. Nothing issues new
+  magic tokens.
+- `DELETE /api/me` → erases the account and everything tied to it. Sessions,
+  workspaces, and study events all cascade to the user via FK `ON DELETE
+  CASCADE`, so one delete is a full data-deletion path (see `docs/PRIVACY.md`).
+  The response also clears **both** the legacy session cookie and every Better
+  Auth cookie (`awde.session_token` and friends), and the client calls
+  `authClient.signOut({})`, so a refresh can never resurrect the just-deleted
+  account. The Account modal surfaces this as "Delete my account and data".
 
 ### Google OAuth with Better Auth (`server/betterAuth.ts`)
 
-Better Auth adds the standard "Continue with Google" button on top of magic
-links. It stays **opt-in and DB-gated**:
+Google is now the **only** way into an account. It stays **opt-in and DB-gated**:
 
 - The instance is built only when `DATABASE_URL` is set (`authEnabled()`); in
   local mode/CI `auth` is `null` and the `/api/ba/*` mount in `server.ts` +
   every Better Auth code path is skipped.
 - The Google social provider is attached only when both
   `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are present (`getSecret`).
-  `GET /api/auth/providers` → `{ google, email }` (booleans only) lets the UI
-  hide the button when unconfigured. The OAuth redirect target is
+  `GET /api/auth/providers` → `{ google, email: false }` (booleans only) lets the
+  UI hide the button when unconfigured. The OAuth redirect target is
   `{APP_URL}/api/ba/callback/google`; `BETTER_AUTH_SECRET` signs the session
-  cookie (in dev it's derived from `APP_URL`).
+  cookie (in dev it's derived from `APP_URL`). Without these keys the app stays
+  usable but sign-in is unavailable (local mode).
 - `requireAuth` starts with Better Auth: `auth.api.getSession` reads the
   `awde.session_token` OAuth cookie (Express headers bridged to fetch `Headers`)
   and, on success, `bridgeBetterAuthUser()` writes/updates the **legacy `users`
   row** so all FK'd data (workspaces, study events, study groups) works unchanged. If the
-  Google email matches an existing magic-link account, every child table is
+  Google email matches an existing legacy (email-era) account, every child table is
   re-keyed onto the Google id inside a transaction (a temp users row is inserted
   first so the FKs point at a valid id), the ghost legacy row is dropped, then
   the real email is restored — all atomically. Legacy sessions/tokens are revoked
@@ -462,7 +440,7 @@ links. It stays **opt-in and DB-gated**:
 - The client (`src/lib/betterAuthClient.ts` + `syncServerSession()` in
   `src/lib/sync.ts`) calls `authClient.signIn.social({ provider: 'google' })`,
   then adopts the OAuth session into the local session hint so the UI and
-  `/api/me/*` pulls work identically for both login methods. The hint is only a
+  `/api/me/*` pulls work. The hint is only a
   mirror of the real cookie, so App re-runs `syncServerSession()` on window
   focus, on returning online, and whenever the **Groups** tab is opened — that
   self-heal is what stops the header/Groups from showing "not signed in" after a
@@ -486,16 +464,19 @@ links. It stays **opt-in and DB-gated**:
   token; `DELETE /api/me` deletes the Better Auth user row (cascades its
   session/account rows) plus the legacy `users` row (cascades workspaces/events).
 
-### Auth hardening (`server/rateLimit.ts`)
+### Auth hardening
 
-- **Login rate limits** (`server/sync.ts`): 5 login links per email+IP in 15
-  minutes, 40 per-IP in 15 minutes, 60 link-checks per IP on `/api/auth/confirm`
-  — a shared in-memory sliding-window limiter. Good for a single Node process
-  (Render free tier, dev); swap for Redis if it scales past one instance.
-- **No account enumeration**: the login response is byte-identical whether the
-  email exists or not (and `issueMagicToken` no longer returns a user-exists
-  flag).
-- **No dev-link in production**: the `devLink` fallback is dev/CI only.
+With email/magic-link sign-in removed, the login surface is just the Google
+provider:
+
+- **No email endpoint surface**: `POST /api/auth/login` and
+  `GET /api/auth/confirm` always reply `410 Gone`, so there is no login-link
+  rate limiter to bypass, no dev-link fallback, and nothing to enumerate.
+- **No account enumeration on the remaining path**: Google OAuth tells the
+  user whether their Google account already exists, but no address can be
+  probed directly.
+- `requireAuth` resolves real sessions only (`awde.session_token` OAuth cookie
+  via Better Auth, or the legacy `sessions` row) and 401s anything else.
 
 ### Trust & safety (`server/safety.ts` + `src/components/ConsentGate.tsx` + `src/components/PrivacyModal.tsx`)
 
@@ -522,7 +503,8 @@ links. It stays **opt-in and DB-gated**:
   adapt the app to each student's learning spot. No PII beyond the login email;
   no learning data is collected at all without an account.
 - **No PII by default**: nothing is collected unless the user creates an
-  account, and an account only needs an email.
+  account, and an account exists only through Google OAuth (email is picked up
+  from the Google profile).
 - **AI input filter**: every free-text field that reaches the AI (topics,
   questions, Feynman explanations, blurts) goes through `blockedReason()` in
   `server/safety.ts` first. Blocked input gets a `400 { blocked: true }` and
@@ -538,10 +520,12 @@ links. It stays **opt-in and DB-gated**:
   flattened from the stored `payload` so the Progress tab gets the same shape it
   wrote offline.
 - `POST /api/auth/logout` — revoke the current session server-side: signs out of
-  Better Auth (clears the OAuth cookie) *and* revokes the legacy magic-link
-  bearer token; local mode answers `{ localMode: true, ok: true }`.
-- `GET /api/auth/providers` — which login methods exist (`{ google, email }`,
-  no credentials leaked) so the client can enable/disable the Google button.
+  Better Auth (clears the OAuth cookie) *and* revokes any legacy session token;
+  local mode answers `{ localMode: true, ok: true }`.
+- `GET /api/auth/providers` — which login methods exist (`{ google, email: false }`,
+  no credentials leaked) so the client can show/hide the Google button.
+- `POST /api/auth/login` / `GET /api/auth/confirm` — **disabled** (`410 Gone`);
+  email sign-in is gone, Google OAuth is the only way in.
 - `GET /api/me` — who am I? (auth-gated)
 - `GET /api/me/workspaces` — pull server workspaces.
 - `PUT /api/me/workspaces` — upsert one workspace (`onConflictDoUpdate` keys on
@@ -929,10 +913,10 @@ scroll" + "radial gradient, not solid dim."
 
 ## 11. Tests: what they protect
 
-`tests/` uses **Vitest** + **supertest**. The suite (267 tests across 26 files;
+`tests/` uses **Vitest** + **supertest**. The suite (257 tests across 26 files;
 the DB-backed ones in `bridge.test.ts`, `cache-db.test.ts`, and
 `groups-db.test.ts` self-skip without a `DATABASE_URL`, and CI's dedicated job
-runs `cache-db` + `groups-db` against a throwaway Postgres) clusters around
+runs all three against a throwaway Postgres) clusters around
 the most failure-prone, most important logic:
 
 - `persistence.test.ts` — the migration / single-source-of-truth invariants.
@@ -951,11 +935,13 @@ the most failure-prone, most important logic:
 - `api.integration.test.ts` + `api-helper.test.ts` — hit the Express routes via
   supertest (no port) and check the `isFallback`/error behavior.
 - `auth-sync.test.ts` — the auth + sync endpoints in **local mode** (no
-  `DATABASE_URL`), proving accounts don't break the offline/local experience.
+  `DATABASE_URL`), proving accounts don't break the offline/local experience
+  (providers `{ google, email: false }`, disabled email sign-in, login/
+  confirm → 410).
 - `auth-hardening.test.ts` — the secured auth paths with an in-memory fake DB:
-  email transport (mocked fetch), rate limits (5/email, 40/IP), no
-  account enumeration, single-use tokens, and **no dev-link leak in
-  production**.
+  the disabled magic-link endpoints always return 410 (fetch is never even
+  called, no cookie is set), providers hides `email`, and the email transport
+  still works in isolation.
 - `contact.test.ts` — `/api/contact` validation, HTML escaping, the honest
   `delivered:false` no-transport path, 502 on transport failure, and the
   10/hour per-IP rate limit.
@@ -966,7 +952,7 @@ the most failure-prone, most important logic:
   store→read round-trip, cross-kind isolation, hit-count bumping, poisoned and
   oversized payloads refused. Skipped automatically without a `DATABASE_URL`;
   CI runs it in a dedicated job backed by a throwaway Postgres container.
-- `bridge.test.ts` — **Better Auth user bridge**: a magic-link account that
+- `bridge.test.ts` — **Better Auth user bridge**: a pre-existing legacy (email-era) account that
   signs in with Google must adopt the Google id without tripping over FKs
   (including study groups). Verifies the transactional re-key, data integrity,
   and idempotency.
@@ -991,8 +977,9 @@ the most failure-prone, most important logic:
   small in-memory Drizzle query evaluator (valid link, forged signature, missing
   params, and a vanished workspace → 404).
 - `sync-routes-complete.test.ts` — the **local-mode auth + sync contracts** (no
-  DB): login/logout/confirm, `GET /api/me`, workspaces reads + upserts, study
-  events append + pull, and the local-mode responses of the share routes.
+  DB): logout, the disabled magic-link endpoints, `GET /api/me`, workspaces
+  reads + upserts, study events append + pull, and the local-mode responses of
+  the share routes.
 - `rate-limit.test.ts` — the **shared sliding-window limiter** in isolation:
   window expiry, per-key buckets, and the custom 429 message path.
 - `mail-config.test.ts` — **`emailConfigured()`/transport detection** from
@@ -1002,8 +989,8 @@ the most failure-prone, most important logic:
   threading (all with the network mocked out).
 - `secrets.test.ts` — **`getSecret` behavior**: fallback ordering, blank-vs-
   missing treated as "not configured", and the provider-key accessor chain.
-- `client-sync.test.ts` — **`src/lib/sync.ts`**: session persistence,
-  magic-link confirm, `requestLogin`, workspace push/pull + last-writer-wins
+- `client-sync.test.ts` — **`src/lib/sync.ts`**: session persistence, Google
+  session bootstrap, workspace push/pull + last-writer-wins
   ledger, the local-first study-activity log (capped, server-pushed when signed
   in), delete-account, and offline/local-mode no-ops (no server calls).
 - `map-layout.test.ts` — **`computeMapLayout`**: category columns compress to
@@ -1082,12 +1069,12 @@ A mental checklist before you edit anything:
 | `server/textbook.ts` | PDF upload → text → AI workspace (+ fallback builder) |
 | `server/auth.ts` | Magic-link issue/consume, bearer sessions, `requireAuth` (Better Auth first, then legacy token; no-op in local mode), `bridgeBetterAuthUser` |
 | `server/betterAuth.ts` | Better Auth instance (Google OAuth, `/api/ba` basePath, Drizzle adapter) — built only when a DB exists; `headersFromExpress`, `isGoogleAuthConfigured` |
-| `server/email.ts` | Login-link email message: `buildLoginLinkEmail` HTML+text template (true 15-min expiry, escaped recipient+link, CTA+fallback), `sendLoginLinkEmail` wrapper, dev/prod fallback |
-| `server/mail.ts` | **Shared transport** for login links + contact form: Resend REST API (8s timeout, one transient retry, 4xx fail-fast) or Gmail SMTP via `nodemailer` (when `RESEND_API_KEY` absent); `sendMail`, `emailConfigured`, `contactRecipient`, `htmlEscape` |
+| `server/email.ts` | Magic-link email module, kept because tests pin it in isolation. **Not wired to any route anymore** — email sign-in is disabled (`410`) |
+| `server/mail.ts` | Shared transport for the **contact form** (magic-link login was removed): Resend REST API (8s timeout, one transient retry, 4xx fail-fast) or Gmail SMTP via `nodemailer`; `sendMail`, `emailConfigured`, `contactRecipient`, `htmlEscape` |
 | `server/contact.ts` | `POST /api/contact`: in-app contact form → validated + HTML-escaped + rate-limited (10/hr/IP) email to `contactRecipient()`; honest `delivered:false` when no transport |
 | `server/rateLimit.ts` | Shared in-memory sliding-window limiter (`makeRateLimiter`) |
 | `server/share.ts` | HMAC signing/verify for **read-only share links** (secret = `SHARE_SECRET` → `BETTER_AUTH_SECRET` → dev default) |
-| `server/sync.ts` | `registerSyncRoutes`: login/**logout**/confirm (rate-limited) + me/workspaces/study-events (GET+POST) + share create/read + account deletion |
+| `server/sync.ts` | `registerSyncRoutes`: logout + providers (isGoogleAuthConfigured) + **disabled** login/confirm (`410`) + me/workspaces/study-events (GET+POST) + share create/read + account deletion |
 | `server/groups.ts` | `registerGroupRoutes`: create/list/join groups by code, owner-only roster (anonymous per-member aggregates), owner-only anonymous curriculum insights, leave/delete |
 | `server/safety.ts` | `blockedReason`/`checkInputs` filter + `withSafetyInstruction` AI prompt guard |
 | `server/db/schema.ts` | Drizzle tables: users, sessions, workspaces (JSONB), study_events, generated_units, study_groups, study_group_members |
@@ -1096,7 +1083,7 @@ A mental checklist before you edit anything:
 | `server/db/migrate.ts` | Runs Drizzle migrations from `drizzle/` at startup |
 | `src/lib/api.ts` | Weak-wifi-safe `postJson`/`postFormData` + `useOnlineStatus` |
 | `src/lib/mapLayout.ts` | Deterministic mind-map layout engine: exported `computeMapLayout` + `CATEGORY_ORDER`/`COL_STEP_X`/`ROW_STEP_Y` (category columns, depth sort, vertical centering, filter-aware) |
-| `src/lib/sync.ts` | Session storage, magic-link confirm, workspace push/pull, study-activity log (local-first + server push), sync-meta ledger, share-link client helpers, Google session bootstrap (`syncServerSession`), provider detection |
+| `src/lib/sync.ts` | Session storage, Google session bootstrap (`syncServerSession`), provider detection, workspace push/pull, study-activity log (local-first + server push), sync-meta ledger, share-link client helpers |
 | `src/lib/groups.ts` | Offline-safe client helpers for study groups: create/list/join/roster/insights/leave (mirrors `sync.ts`'s `authedJson`) |
 | `src/lib/betterAuthClient.ts` | Better Auth client (`createAuthClient`, `googleSignIn`) over `/api/ba` |
 | `src/components/ConsentGate.tsx` | One-time age-gate + privacy consent before the workspace |
@@ -1145,5 +1132,5 @@ tab, and signed read-only share links). When things change, the architecture
 (one server, local state, props-down data flow, AI via a multi-provider
 fallback chain with guaranteed resolution, daily spend quotas,
 content-addressed generation cache, localStorage-first with optional account
-sync, and rate-limited passwordless email auth) is the stable part — that's the
+sync, and Google OAuth as the only login) is the stable part — that's the
 part to internalize.*
