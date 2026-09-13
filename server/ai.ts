@@ -2,10 +2,26 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { getSecret } from './secrets';
 
 // All provider keys are read through ./secrets (env-only, never logged). The
-// router chain is OpenRouter → Groq → NVIDIA, so these getters are the single
-// source of truth shared by the router, textbook pipeline, and ops status.
+// router chain is Gemini → OpenRouter → Groq → NVIDIA, so these getters are
+// the single source of truth shared by the router, textbook pipeline, and ops
+// status.
 
-// Optional direct-only Gemini client (kept for legacy calls; not in the chain).
+// --- Gemini (PRIMARY provider) -------------------------------------------
+// Uses Google's OpenAI-compatible endpoint so it shares callOpenAiCompat with
+// the rest of the chain. GEMINI_MODEL defaults to gemini-2.5-flash (fast,
+// generous daily limits, $0 on the AI Studio free tier / cheap on Pro).
+export function getGeminiApiKey(): string | null {
+  return getSecret('GEMINI_API_KEY');
+}
+
+export const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
+
+export function getGeminiModel(): string {
+  return getSecret('GEMINI_MODEL') || 'gemini-2.5-flash';
+}
+
+// Legacy direct-only Gemini client (kept for potential future use outside the
+// router chain; currently unused).
 export function getGeminiClient(): GoogleGenAI | null {
   const apiKey = getSecret('GEMINI_API_KEY');
   if (!apiKey) {
@@ -21,9 +37,7 @@ export function getGeminiClient(): GoogleGenAI | null {
   });
 }
 
-// OpenRouter is the PRIMARY provider: one key in front of 400+ models,
-// including `openrouter/free` which costs $0. A single key replaces per-vendor
-// dashboards, so key rotation is one dashboard instead of three.
+// --- OpenRouter (secondary; one key = 400+ models) -----------------------
 export function getOpenRouterApiKey(): string | null {
   return getSecret('OPENROUTER_API_KEY');
 }
@@ -38,9 +52,9 @@ export function getOpenRouterModel(): string {
   return getSecret('OPENROUTER_MODEL') || 'openrouter/free';
 }
 
-// Groq (OpenAI-compatible, fast LPU inference): first fallback when OpenRouter
-// is unavailable or overloaded. Optional via GROQ_API_KEY; null when unset so
-// the chain skips straight to the next provider.
+// --- Groq (resilience layer; LPU inference) ------------------------------
+// Optional via GROQ_API_KEY; null when unset so the chain skips straight to
+// the next provider.
 export function getGroqApiKey(): string | null {
   return getSecret('GROQ_API_KEY');
 }

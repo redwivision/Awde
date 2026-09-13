@@ -5,10 +5,11 @@
 # serverless/static hosting (Vercel static has no backend). See README ->
 # Deployment for the full instructions.
 #
-# Set the OPENROUTER_API_KEY (and optional GROQ_API_KEY / NVIDIA_API_KEY) in
-# Render's service environment when you create the service, or via this
-# blueprint. Keys use `sync: false` so they stay out of source control; rotate
-# them from the provider dashboard + here, then the service restarts.
+# Set the GEMINI_API_KEY (and optional OPENROUTER_API_KEY / GROQ_API_KEY /
+# NVIDIA_API_KEY) in Render's service environment when you create the service,
+# or via this blueprint. Keys use `sync: false` so they stay out of source
+# control; rotate them from the provider dashboard + here, then the service
+# restarts.
 services:
   - type: web
     name: awde
@@ -20,14 +21,18 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: GEMINI_API_KEY
+        sync: false # PRIMARY AI provider (Google AI Studio; free tier ~1000+ generations/day). Set in the Render dashboard; never in source control.
+      # - key: GEMINI_MODEL
+      #   value: gemini-2.5-flash # optional pin; defaults to gemini-2.5-flash
       - key: OPENROUTER_API_KEY
-        sync: false # PRIMARY AI provider (one key = every model). Set in the Render dashboard; never in source control.
+        sync: false # backup AI provider (one key = every model). Set in the Render dashboard; never in source control.
       # - key: OPENROUTER_MODEL
       #   value: openrouter/free # optional pin; defaults to the $0 auto-router
       # - key: GROQ_API_KEY
-      #   sync: false # optional fallback provider 1
-      # - key: NVIDIA_API_KEY
       #   sync: false # optional fallback provider 2
+      # - key: NVIDIA_API_KEY
+      #   sync: false # optional fallback provider 3
       - key: DATABASE_URL
         sync: false # Neon/Postgres connection string; enables accounts + sync.
       # Google OAuth (Better Auth) — enables the "Continue with Google" button.
@@ -39,7 +44,7 @@ services:
       # - key: BETTER_AUTH_SECRET
       #   sync: false # `openssl rand -base64 32`; signs OAuth cookies
       - key: RESEND_API_KEY
-        sync: false # enables emailing magic-link logins (set in the dashboard)
+        sync: false # enables emailing the contact form (magic-link logins are disabled)
       - key: RESEND_FROM_ADDRESS
         sync: false # verified sender domain, e.g. Awde <no-reply@yourdomain.com>
       # Free Gmail SMTP transport (alternative to verifying a Resend domain):

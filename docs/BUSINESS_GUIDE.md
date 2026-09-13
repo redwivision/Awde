@@ -15,7 +15,7 @@ Awde is a working product with no revenue yet:
   ("Rooty"), concept cards, quizzes, workspace sync.
 - Accounts work (Better Auth: Google OAuth + email magic-link), progress syncs
   cross-device, SMTP live.
-- AI stack falls back OpenRouter → Groq → NVIDIA → offline templates, so it
+- AI stack falls back Gemini → OpenRouter → Groq → NVIDIA → offline templates, so it
   never hard-fails — but **every chat call costs real money** on the live
   providers.
 - Hosted free-tier on Render. All code is closed, in one repo, owned by you.

@@ -13,6 +13,7 @@
 //   provider and the circuit breaker skips the dead key until re-armed.
 
 const PROVIDER_REGISTRY: ReadonlyArray<{ name: string; envVar: string }> = [
+  { name: 'gemini', envVar: 'GEMINI_API_KEY' },
   { name: 'openrouter', envVar: 'OPENROUTER_API_KEY' },
   { name: 'groq', envVar: 'GROQ_API_KEY' },
   { name: 'nvidia', envVar: 'NVIDIA_API_KEY' }
@@ -40,7 +41,7 @@ export function logProviderStatus(): void {
   const configured = listConfiguredProviders();
   if (configured.length === 0) {
     console.warn(
-      '[awde:ai] NO AI provider keys configured — every AI feature will use the offline deterministic generator until OPENROUTER_API_KEY (and/or GROQ_API_KEY, NVIDIA_API_KEY) is set.'
+      '[awde:ai] NO AI provider keys configured — every AI feature will use the offline deterministic generator until GEMINI_API_KEY (or OPENROUTER_API_KEY / GROQ_API_KEY / NVIDIA_API_KEY) is set.'
     );
     return;
   }

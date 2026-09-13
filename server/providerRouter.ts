@@ -1,10 +1,16 @@
 // Shared multi-provider AI router.
 //
 // Every AI endpoint routes through this one function so a request tries ALL
-// configured providers (OpenRouter → Groq → NVIDIA) before giving up and
-// running the deterministic offline fallback. This is what makes the free tier
-// resilient: one dead/expired key never bricks the app, and any working key
-// still produces a real (non-canned) answer.
+// configured providers (Gemini → OpenRouter → Groq → NVIDIA) before giving up
+// and running the deterministic offline fallback. This is what makes the free
+// tier resilient: one dead/expired key never bricks the app, and any working
+// key still produces a real (non-canned) answer.
+//
+// Gemini (via Google's OpenAI-compatible endpoint) is the PRIMARY provider —
+// fast, generous daily limits, and cheap on the paid tier. OpenRouter is the
+// backup that gives access to 400+ models with one key. Groq/NVIDIA are the
+// resilience layer. Health tracking re-orders which one actually answers at
+// runtime.
 //
 // Provider health is tracked with a tiny circuit breaker: a provider that
 // fails several times in a row is skipped for a cooldown window so we stop
@@ -12,16 +18,19 @@
 //
 // Design notes:
 // - Every provider call is bounded by its own timeout (never block a student).
-// - All three providers speak OpenAI-compatible chat-completions (plain fetch,
+// - All four providers speak OpenAI-compatible chat-completions (plain fetch,
 //   no extra SDK); JSON output is extracted from the response text.
 // - The caller provides `fallback` — a deterministic offline generator run as
 //   the last resort. The router returns `provider: null` in that case so
 //   routes can report `isFallback: true` and skip caching.
 import {
+  getGeminiApiKey,
+  getGeminiModel,
   getOpenRouterApiKey,
   getOpenRouterModel,
   getGroqApiKey,
   getNvidiaApiKey,
+  GEMINI_BASE_URL,
   OPENROUTER_BASE_URL,
   GROQ_BASE_URL,
   GROQ_TT_MODEL,
@@ -30,7 +39,7 @@ import {
   AI_TIMEOUT_MS
 } from './ai';
 
-export type AiProviderName = 'openrouter' | 'groq' | 'nvidia';
+export type AiProviderName = 'gemini' | 'openrouter' | 'groq' | 'nvidia';
 
 export interface AiRouterRequest {
   // Logging label for the kind of generation (e.g. 'mindmap', 'quiz').
@@ -44,7 +53,7 @@ export interface AiRouterRequest {
   maxTokens?: number;
   // Per-provider deadline; defaults to the shared AI_TIMEOUT_MS.
   timeoutMs?: number;
-  // Hard cap on the WHOLE provider chain. Without it, three hung providers
+  // Hard cap on the WHOLE provider chain. Without it, four hung providers
   // would each burn their per-call timeout before the offline fallback runs.
   // Defaults to OVERALL_CHAIN_TIMEOUT_MS.
   overallTimeoutMs?: number;
@@ -58,14 +67,14 @@ export interface AiRouterResult {
 }
 
 // Cap on the entire fallback chain (all providers combined). Kept above a
-// single provider's timeout so one normal attempt fits, but below 3x so a
+// single provider's timeout so one normal attempt fits, but below 4x so a
 // slow/derped provider can't make a student wait half a minute.
-export const OVERALL_CHAIN_TIMEOUT_MS = 12_000;
+export const OVERALL_CHAIN_TIMEOUT_MS = 14_000;
 
-// Provider fail-fast order. OpenRouter is primary (one key = every model);
-// Groq/NVIDIA are the resilience layer. Health tracking re-orders which one
-// actually answers at runtime.
-const PROVIDER_ORDER: AiProviderName[] = ['openrouter', 'groq', 'nvidia'];
+// Provider fail-fast order. Gemini is primary (fast, generous limits);
+// OpenRouter gives 400+ models as backup; Groq/NVIDIA are the resilience
+// layer. Health tracking re-orders which one actually answers at runtime.
+const PROVIDER_ORDER: AiProviderName[] = ['gemini', 'openrouter', 'groq', 'nvidia'];
 
 // Circuit-breaker tuning: 3 consecutive failures triples the breaker for
 // CIRCUIT_COOLDOWN_MS, then it re-arms automatically.
@@ -78,6 +87,7 @@ interface ProviderHealth {
 }
 
 const healthState: Record<AiProviderName, ProviderHealth> = {
+  gemini: { failures: 0, retryAt: 0 },
   openrouter: { failures: 0, retryAt: 0 },
   groq: { failures: 0, retryAt: 0 },
   nvidia: { failures: 0, retryAt: 0 }
@@ -110,6 +120,8 @@ export function resetProviderHealth(): void {
 
 function providerConfigured(name: AiProviderName): boolean {
   switch (name) {
+    case 'gemini':
+      return getGeminiApiKey() !== null;
     case 'openrouter':
       return getOpenRouterApiKey() !== null;
     case 'groq':
@@ -139,9 +151,9 @@ export function extractJson(raw: string): any {
   throw new Error('No JSON found in model output');
 }
 
-// OpenAI-compatible chat-completions call shared by OpenRouter, Groq and
-// NVIDIA NIM. OpenRouter additionally gets attribution headers for its public
-// leaderboard ranking.
+// OpenAI-compatible chat-completions call shared by Gemini, OpenRouter, Groq
+// and NVIDIA NIM. OpenRouter additionally gets attribution headers for its
+// public leaderboard ranking.
 async function callOpenAiCompat(
   baseUrl: string,
   model: string,
@@ -189,6 +201,11 @@ async function callOpenAiCompat(
 
 async function callProvider(name: AiProviderName, req: AiRouterRequest, timeoutMs: number): Promise<any> {
   switch (name) {
+    case 'gemini': {
+      const apiKey = getGeminiApiKey();
+      if (!apiKey) throw new Error('gemini not configured');
+      return callOpenAiCompat(GEMINI_BASE_URL, getGeminiModel(), apiKey, name, req, timeoutMs);
+    }
     case 'openrouter': {
       const apiKey = getOpenRouterApiKey();
       if (!apiKey) throw new Error('openrouter not configured');

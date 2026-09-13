@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getSecret, listConfiguredProviders, logProviderStatus } from '../server/secrets';
 
-const AI_KEYS = ['OPENROUTER_API_KEY', 'GROQ_API_KEY', 'NVIDIA_API_KEY'];
+const AI_KEYS = ['GEMINI_API_KEY', 'OPENROUTER_API_KEY', 'GROQ_API_KEY', 'NVIDIA_API_KEY'];
 
 beforeEach(() => {
   for (const k of AI_KEYS) delete process.env[k];

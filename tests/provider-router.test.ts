@@ -9,6 +9,8 @@ const baseRequest = {
 };
 
 beforeEach(() => {
+  delete process.env.GEMINI_API_KEY;
+  delete process.env.GEMINI_MODEL;
   delete process.env.OPENROUTER_API_KEY;
   delete process.env.GROQ_API_KEY;
   delete process.env.NVIDIA_API_KEY;
@@ -16,6 +18,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  delete process.env.GEMINI_API_KEY;
+  delete process.env.GEMINI_MODEL;
   delete process.env.OPENROUTER_API_KEY;
   delete process.env.GROQ_API_KEY;
   delete process.env.NVIDIA_API_KEY;
@@ -53,7 +57,76 @@ describe('callAiWithFallback (offline/no-key resolve)', () => {
     expect(fallback).toHaveBeenCalledTimes(1);
   });
 
-  it('uses OpenRouter first and parses its JSON when it is configured', async () => {
+  it('uses Gemini first and parses its JSON when it is configured', async () => {
+    process.env.GEMINI_API_KEY = 'test-key';
+    let calledUrl = '';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        calledUrl = url;
+        return {
+          ok: true,
+          status: 200,
+          text: async () => '',
+          json: async () => ({
+            choices: [{ message: { content: '{"answer":"forty-two"}' } }]
+          })
+        };
+      })
+    );
+
+    const fallback = vi.fn(() => ({ answer: 'offline' }));
+    const result = await callAiWithFallback({ ...baseRequest, fallback });
+    expect(calledUrl).toBe('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions');
+    expect(result.provider).toBe('gemini');
+    expect(result.data).toEqual({ answer: 'forty-two' });
+    expect(fallback).not.toHaveBeenCalled();
+  });
+
+  it('renders the Gemini default model (gemini-2.5-flash) into the request body', async () => {
+    process.env.GEMINI_API_KEY = 'test-key';
+    let body = '';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (_url: string, init: { body: string }) => {
+        body = init.body;
+        return {
+          ok: true,
+          status: 200,
+          text: async () => '',
+          json: async () => ({ choices: [{ message: { content: '{"answer":"ok"}' } }] })
+        };
+      })
+    );
+
+    const fallback = () => ({ answer: 'offline' });
+    await callAiWithFallback({ ...baseRequest, fallback });
+    expect(JSON.parse(body).model).toBe('gemini-2.5-flash');
+  });
+
+  it('honors the GEMINI_MODEL override', async () => {
+    process.env.GEMINI_API_KEY = 'test-key';
+    process.env.GEMINI_MODEL = 'gemini-2.5-pro';
+    let body = '';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (_url: string, init: { body: string }) => {
+        body = init.body;
+        return {
+          ok: true,
+          status: 200,
+          text: async () => '',
+          json: async () => ({ choices: [{ message: { content: '{"answer":"ok"}' } }] })
+        };
+      })
+    );
+
+    const fallback = () => ({ answer: 'offline' });
+    await callAiWithFallback({ ...baseRequest, fallback });
+    expect(JSON.parse(body).model).toBe('gemini-2.5-pro');
+  });
+
+  it('uses OpenRouter when only OpenRouter is configured (Gemini skipped)', async () => {
     process.env.OPENROUTER_API_KEY = 'test-key';
     let calledUrl = '';
     vi.stubGlobal(
@@ -97,6 +170,33 @@ describe('callAiWithFallback (offline/no-key resolve)', () => {
     const result = await callAiWithFallback({ ...baseRequest, fallback });
     expect(result.provider).toBe('groq');
     expect(result.data).toEqual({ answer: 'forty-two' });
+    expect(fallback).not.toHaveBeenCalled();
+  });
+
+  it('falls through from Gemini to OpenRouter when Gemini fails', async () => {
+    process.env.GEMINI_API_KEY = 'dead-key';
+    process.env.OPENROUTER_API_KEY = 'good-key';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('generativelanguage.googleapis.com')) {
+          throw new Error('gemini down');
+        }
+        return {
+          ok: true,
+          status: 200,
+          text: async () => '',
+          json: async () => ({
+            choices: [{ message: { content: '{"answer":"openrouter-saved-it"}' } }]
+          })
+        };
+      })
+    );
+
+    const fallback = vi.fn(() => ({ answer: 'offline' }));
+    const result = await callAiWithFallback({ ...baseRequest, fallback });
+    expect(result.provider).toBe('openrouter');
+    expect(result.data).toEqual({ answer: 'openrouter-saved-it' });
     expect(fallback).not.toHaveBeenCalled();
   });
 

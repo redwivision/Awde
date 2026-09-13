@@ -24,8 +24,8 @@ What's in it:
 | API layer | `src/lib/api.ts` | How the browser talks to the server |
 | Session + sync layer | `src/lib/sync.ts` | Magic-link + Google (Better Auth) session handling, workspace push/pull, study events |
 | HTTP server + AI routes | `server.ts` | Receives `/api` calls, routes them through the AI provider chain |
-| AI wrappers + fallbacks | `server/ai.ts` | Provider key/model access (OpenRouter/Groq/NVIDIA) + "no key" deterministic generators |
-| AI provider router | `server/providerRouter.ts` | OpenRouter → Groq → NVIDIA → offline fallback, with per-provider timeouts, overall chain deadline + circuit breaker |
+| AI wrappers + fallbacks | `server/ai.ts` | Provider key/model access (Gemini/OpenRouter/Groq/NVIDIA) + "no key" deterministic generators |
+| AI provider router | `server/providerRouter.ts` | Gemini → OpenRouter → Groq → NVIDIA → offline fallback, with per-provider timeouts, overall chain deadline + circuit breaker |
 | AI secret handling | `server/secrets.ts` | Env-only key access; logs provider names only (never keys) |
 | Content cache | `server/unitCache.ts` | Content-addressed cache of generated units/quizzes (Postgres, shape-validated) |
 | Free-tier quotas | `server/quota.ts` | Per-fingerprint daily caps on AI generation spend |
@@ -611,11 +611,11 @@ evaluations, node Q&A, blurting grading, and the PDF pipeline.
 
 ```ts
 // server/providerRouter.ts (simplified)
-const PROVIDER_ORDER = ['openrouter', 'groq', 'nvidia'] as const;
+const PROVIDER_ORDER = ['gemini', 'openrouter', 'groq', 'nvidia'] as const;
 
 export async function callAiWithFallback(req: AiRouterRequest): Promise<AiRouterResult> {
   const perProviderMs = req.timeoutMs ?? AI_TIMEOUT_MS;        // e.g. 9s each
-  const deadline = Date.now() + (req.overallTimeoutMs ?? 12_000); // hard cap on the WHOLE chain
+  const deadline = Date.now() + (req.overallTimeoutMs ?? 14_000); // hard cap on the WHOLE chain
   for (const name of PROVIDER_ORDER) {
     if (!providerConfigured(name)) continue;      // skip unconfigured keys
     if (!shouldTryProvider(name)) continue;       // skip tripped circuit breaker
@@ -634,21 +634,24 @@ export async function callAiWithFallback(req: AiRouterRequest): Promise<AiRouter
 
 The four guarantees it gives the product:
 
-1. **Provider order, tried on every request** — **OpenRouter → Groq → NVIDIA**.
-   OpenRouter is primary: one key in front of 400+ models, defaulting to
-   `openrouter/free` (the $0 auto-router; pin `OPENROUTER_MODEL` to override).
-   Each is tried only if its key is configured, so you can run just OpenRouter,
-   or add both fallbacks.
+1. **Provider order, tried on every request** — **Gemini → OpenRouter → Groq →
+   NVIDIA**. Gemini is primary: it speaks the same OpenAI-compatible protocol via
+   Google's endpoint (`https://generativelanguage.googleapis.com/v1beta/openai`),
+   defaults to `gemini-2.5-flash` (fast + generous limits; pin `GEMINI_MODEL` to
+   override, e.g. `gemini-2.5-pro` on a paid account). OpenRouter is the backup:
+   one key in front of 400+ models, defaulting to `openrouter/free` (the $0
+   auto-router; pin `OPENROUTER_MODEL` to override). Each is tried only if its key
+   is configured, so you can run just Gemini, or add all the fallbacks.
 2. **Per-provider timeout** — each call is bounded (default `AI_TIMEOUT_MS` =
-   9s). All three providers use `AbortController` on a plain OpenAI-compatible
+   9s). All four providers use `AbortController` on a plain OpenAI-compatible
    `fetch`.
 3. **Circuit breaker** — 3 consecutive failures for one provider skip it for 60s
    (`recordFailure`/`shouldTryProvider`/`healthState`), then it's retried
    automatically. `resetProviderHealth()` re-arms it (used by tests and any
    future "retry now" UI).
-4. **Overall chain deadline** — without this, three hung providers would each
-   burn their 9s before the offline generator runs (27s worst case). The
-   deadline (default 12s) caps the *whole* chain; each provider's budget shrinks
+4. **Overall chain deadline** — without this, four hung providers would each
+   burn their 9s before the offline generator runs (36s worst case). The
+   deadline (default 14s) caps the *whole* chain; each provider's budget shrinks
    to whatever's left (`Math.min(perProvider, remaining)`).
 
 Each provider runner parses the model output with `extractJson()` — it strips
@@ -664,9 +667,9 @@ process).
 > **Why this design?** The target user is *on weak WiFi*, and the *cheapest*
 > year of the free tier is the one where a dead key or an overloaded provider
 > never takes the app down. `isFallback: true` in the response (resp.
-> `provider: "openrouter" | "groq" | "nvidia"` on success) lets the UI label
-> output. **The app NEVER hangs or hard-fails on AI** — the guarantee is only as
-> good as the fallback, and the fallback never fails.
+> `provider: "gemini" | "openrouter" | "groq" | "nvidia"` on success) lets the
+> UI label output. **The app NEVER hangs or hard-fails on AI** — the guarantee
+> is only as good as the fallback, and the fallback never fails.
 
 ### 6.0 Key handling: env-only, logged by name, rotated by restart (`server/secrets.ts`)
 
@@ -777,7 +780,7 @@ app.post('/api/textbook/process', upload.single('file'), async (req, res) => { .
 Then it delegates to `server/textbook.ts` → `processTextbookPdf`, which does:
 
 1. `extractPdfText(buffer)` — parse the PDF text pages with `pdf-parse`.
-2. Send the text through the shared provider router (OpenRouter → Groq → NVIDIA)
+2. Send the text through the shared provider router (Gemini → OpenRouter → Groq → NVIDIA)
    to build a full `TextbookWorkspace`.
 3. If no key / no text / every provider down → `buildFallbackTextbookWorkspace()`
    builds a deterministic workspace from the extracted text (it even splits the
@@ -913,7 +916,7 @@ scroll" + "radial gradient, not solid dim."
 
 ## 11. Tests: what they protect
 
-`tests/` uses **Vitest** + **supertest**. The suite (257 tests across 26 files;
+`tests/` uses **Vitest** + **supertest**. The suite (261 tests across 26 files;
 the DB-backed ones in `bridge.test.ts`, `cache-db.test.ts`, and
 `groups-db.test.ts` self-skip without a `DATABASE_URL`, and CI's dedicated job
 runs all three against a throwaway Postgres) clusters around
@@ -1062,7 +1065,7 @@ A mental checklist before you edit anything:
 | `src/types.ts` | The domain schema every other file types against |
 | `server.ts` | Express server: mounts Vite, runs migrations when a DB exists, registers sync routes, rate limiting + daily quotas, static serving |
 | `server/ai.ts` | Provider key/model access (OpenRouter/Groq/NVIDIA) + all `generateFallback*` deterministic generators |
-| `server/providerRouter.ts` | `callAiWithFallback`: OpenRouter → Groq → NVIDIA → offline generator, per-provider timeouts + overall chain deadline + circuit breaker |
+| `server/providerRouter.ts` | `callAiWithFallback`: Gemini → OpenRouter → Groq → NVIDIA → offline generator, per-provider timeouts + overall chain deadline + circuit breaker |
 | `server/secrets.ts` | Env-only key access; provider status logging (names only, never keys) |
 | `server/unitCache.ts` | Content-addressed cache of AI generations (canonical key, shape validation, no-op without DB) |
 | `server/quota.ts` | Per-fingerprint daily spending caps for the free tier |
